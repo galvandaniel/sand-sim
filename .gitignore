@@ -7,6 +7,9 @@
 *.obj
 *.elf
 
+# Vim editor files
+*.swp
+
 # Linker output
 *.ilk
 *.map
