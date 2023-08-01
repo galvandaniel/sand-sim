@@ -3,16 +3,17 @@
 int main(void)
 {
     
-    unsigned char **sandbox = create_sandbox(6, 7);
+    unsigned char **sandbox = create_sandbox(2, 3);
+    sandbox[0][1] = 129;
+    sandbox[1][1] = 1;
 
-    for (int i = 0; i < 6; i++)
-    {
-        for (int j = 0; j < 7; j++)
-        {
-            printf("Tile: %d\n", sandbox[i][j]);
-        }
-    }
+    print_sandbox(sandbox, 2, 3);
 
-    sandbox_free(sandbox, 6, 7);
+    do_gravity(sandbox, 2, 3, 0, 1);
+    putchar('\n');
+
+    print_sandbox(sandbox, 2, 3);
+
+    sandbox_free(sandbox, 2, 3);
     return 0;
 }

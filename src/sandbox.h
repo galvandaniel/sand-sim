@@ -1,3 +1,6 @@
+#ifndef SANDBOX_H
+#define SANDBOX_H
+
 /*
  * A collection of functions for working with a sand simulation as a 2D array
  * of tiles.
@@ -14,11 +17,15 @@
 #include <stdbool.h>
 
 
+// Define the constant tile IDs 0 to 15.
+enum tile_id {AIR, SAND, WATER};
+
+
 /*
  * Generate and allocate memory for an empty 2D sandbox of tiles with dimension
  * width X height.
  *
- * The sandbox begins filled with non-static air.
+ * The sandbox begins filled with non-static air, equivalent to 0 in value.
  *
  * @param height - Vertical length of 2D sandbox.
  * @param width - Horizontal length of 2D sandbox.
@@ -75,16 +82,6 @@ void set_tile_updated(unsigned char *tile, unsigned int current_time);
 
 
 /*
- * Determine the parity of the given current time.
- *
- * @param current_time - Time that has passed in frames since the sim began.
- *
- * @return - 0 if the time is even, 1 if the time is odd.
- */
-unsigned char get_time_parity(unsigned int current_time);
-
-
-/*
  * Return whether the given tile is static in the sandbox or not.
  *
  * A tile is static if it has no foreesable updates to perform to the sandbox.
@@ -102,3 +99,46 @@ unsigned char get_time_parity(unsigned int current_time);
 bool is_tile_static(unsigned char tile);
 
 
+/*
+ * Simulate gravity on the tile located at the given indices, within the
+ * sandbox of the given dimensions, by mutating the sandbox.
+ *
+ * This function does NOT check whether gravity should be performed on the
+ * given tile ID.
+ *
+ * @param sandbox - 2D Sandbox of tiles to mutate and perform gravity within.
+ * @param height - Height of sandbox.
+ * @param width - Width of sandbox.
+ * @param row_index - Row index of tile to perform gravity on.
+ * @param column_index - Column index of tile to perform gravity on.
+ *
+ */
+void do_gravity(unsigned char **sandbox, 
+        unsigned int height,
+        unsigned int width,
+        unsigned int row_index,
+        unsigned int column_index);
+
+
+/*
+ * Determine the parity of the given current time.
+ *
+ * @param current_time - Time that has passed in frames since the sim began.
+ *
+ * @return - 0 if the time is even, 1 if the time is odd.
+ */
+unsigned char get_time_parity(unsigned int current_time);
+
+
+/*
+ * Print a text representation of a 2D sandbox to stdout.
+ *
+ * A sandbox is represented in text by a '-' denoting air, 'O' sand, '_' water.
+ *
+ * @param sandbox - Sandbox to print to stdout.
+ * @param height, width - Dimensions of the given sandbox.
+ */
+void print_sandbox(unsigned char **sandbox, unsigned int height, unsigned int width);
+
+
+#endif
