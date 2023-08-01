@@ -75,7 +75,7 @@ bool is_tile_updated(unsigned char tile, unsigned int current_time);
  * This syncs the tile's flag to match the parity of the current simulation 
  * time.
  *
- * @param tile - Pointer to tile to mutate.
+ * @param tile - Pointer to tile to whose flag will be set.
  * @param current_time - Time that has passed in frames inside the simulation.
  */
 void set_tile_updated(unsigned char *tile, unsigned int current_time);
@@ -97,6 +97,16 @@ void set_tile_updated(unsigned char *tile, unsigned int current_time);
  *
  */
 bool is_tile_static(unsigned char tile);
+
+
+/*
+ * Mutate the give tile's static flag to static or non-static, depending on
+ * the given bool.
+ *
+ * @param tile - Pointer to tile whose static flag will be set.
+ * @param should_set_static - Whether tile is set to static or non-static.
+ */
+void set_tile_static(unsigned char *tile, bool should_set_static);
 
 
 /*
@@ -131,9 +141,10 @@ unsigned char get_time_parity(unsigned int current_time);
 
 
 /*
- * Print a text representation of a 2D sandbox to stdout.
+ * Print a string representation of a 2D sandbox to stdout.
  *
- * A sandbox is represented in text by a '-' denoting air, 'O' sand, '_' water.
+ * A sandbox is represented as a string by a '-' denoting air, 'O' sand, 
+ * '_' water.
  *
  * @param sandbox - Sandbox to print to stdout.
  * @param height, width - Dimensions of the given sandbox.

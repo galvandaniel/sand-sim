@@ -14,6 +14,13 @@ int main(void)
 
     print_sandbox(sandbox, 2, 3);
 
+
+    unsigned char test_bit = 4;
+    printf("Test_bit: %d\n", test_bit);
+    set_tile_static(&test_bit, false);
+    printf("Test_bit: %d\n", test_bit);
+
+
     sandbox_free(sandbox, 2, 3);
     return 0;
 }

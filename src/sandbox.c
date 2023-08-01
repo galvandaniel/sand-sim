@@ -112,18 +112,19 @@ void set_tile_updated(unsigned char *tile, unsigned int current_time)
 {
     unsigned char time_parity = get_time_parity(current_time);
 
-    // Create a mask of (1000 0000) or (0000 0000) to copy into updated flag.
-    unsigned char parity_mask = time_parity << 7;
+    // Masks of (0111 1111) and (1000 0000) for off/on switching of first bit.
+    unsigned char turn_off = 127;
+    unsigned char turn_on = 128;
 
     // In the case of 0, we're updating a bit flag of 1 to 0, so we AND.
     // In the case of 1, we're updating a bit flag of 0 to 1, so we OR.
     if (time_parity == 0)
     {
-        *tile &= parity_mask;
+        *tile &= turn_off;
     }
     else
     {
-        *tile |= parity_mask;
+        *tile |= turn_on;
     }
 }
 
@@ -133,6 +134,24 @@ bool is_tile_static(unsigned char tile)
     // Bring static flag to the front, extract first bit.
     unsigned char front_static = tile >> 6;
     return front_static & 1;
+}
+
+
+void set_tile_static(unsigned char *tile, bool should_set_static)
+{
+    // Masks of (0100 0000) and (1011 1111) for on/off switching of second bit.
+    unsigned char turn_off = 191;
+    unsigned char turn_on = 64;
+
+    // Depending on what data we seek to copy, AND or OR to avoid destroying data.
+    if (should_set_static)
+    {
+        *tile |= turn_on;
+    }
+    else
+    {
+        *tile &= turn_off;
+    }
 }
 
 
