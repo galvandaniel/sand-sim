@@ -21,6 +21,11 @@
 enum tile_id {AIR, SAND, WATER};
 
 
+// Amount of time that has passed, in frames (1/60 sec), since the sandbox
+// has begun.
+extern unsigned int SANDBOX_LIFETIME;
+
+
 /*
  * Generate and allocate memory for an empty 2D sandbox of tiles with dimension
  * width X height.
@@ -39,10 +44,19 @@ unsigned char **create_sandbox(unsigned int height, unsigned int width);
  * Free all memory taken up by the given sandbox simulation.
  *
  * @param sandbox - Sandbox to free.
- * @param height - Height of sandbox to free.
- * @param width - Width of sandbox to free.
+ * @param height, width - Dimensions of sandbox to free.
  */
 void sandbox_free(unsigned char **sandbox, unsigned int height, unsigned int width);
+
+
+/*
+ * Perform one full iteration of simulation on the given sandbox, applying 
+ * any tile interations, flow, gravity, etc.
+ *
+ * @param sandbox - Sandbox to simulate.
+ * @param height, width - Dimensions of sandbox.
+ */
+void process_sandbox(unsigned char **sandbox, unsigned int height, unsigned int width);
 
 
 /*
@@ -117,17 +131,34 @@ void set_tile_static(unsigned char *tile, bool should_set_static);
  * given tile ID.
  *
  * @param sandbox - 2D Sandbox of tiles to mutate and perform gravity within.
- * @param height - Height of sandbox.
- * @param width - Width of sandbox.
- * @param row_index - Row index of tile to perform gravity on.
- * @param column_index - Column index of tile to perform gravity on.
- *
+ * @param height, width - Dimensions of given sandbox.
+ * @param row_index, column_index - Coordinates of tile to perform gravity on.
  */
-void do_gravity(unsigned char **sandbox, 
+void do_gravity(unsigned char **sandbox,
         unsigned int height,
         unsigned int width,
         unsigned int row_index,
         unsigned int column_index);
+
+
+/*
+ * Simulate flow on the tile at the given indices as though it were a liquid.
+ *
+ * Intuitively, this means moving a tile left or right at random, if there is
+ * space and the tile has a floor.
+ *
+ * This function does NOT check whether flow should be performed on the given
+ * tile ID.
+ *
+ * @param sandbox - 2D Sandbox of tiles to mutate and perform flow within.
+ * @param width, height - Dimensions of given sandbox.
+ * @param row_index, column_index - Coordinates of tile to perform flow on.
+ */
+void do_liquid_flow(unsigned char **sandbox,
+        unsigned int width,
+        unsigned int height,
+        unsigned int row_index,
+        unsigned column_index);
 
 
 /*

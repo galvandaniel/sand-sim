@@ -1,26 +1,33 @@
 #include "sandbox.h"
+#include <unistd.h>
 
 int main(void)
 {
-    
-    unsigned char **sandbox = create_sandbox(2, 3);
-    sandbox[0][1] = 129;
-    sandbox[1][1] = 1;
+    unsigned char **sandbox = create_sandbox(10, 10);
 
-    print_sandbox(sandbox, 2, 3);
+    /*
+    sandbox[0][5] = 1;
+    sandbox[1][5] = 1;
+    sandbox[0][2] = 1;
+    */
+    sandbox[3][4] = 2;
+    sandbox[0][0] = 130;
+    sandbox[9][9] = 2;
+    // sandbox[1][4] = 1;
 
-    do_gravity(sandbox, 2, 3, 0, 1);
-    putchar('\n');
+    while (true)
+    {
+        print_sandbox(sandbox, 10, 10);
+        process_sandbox(sandbox, 10, 10);
+        putchar('\n');
 
-    print_sandbox(sandbox, 2, 3);
+        sleep(1);
+        if (SANDBOX_LIFETIME == 15)
+        {
+            break;
+        }
+    }
 
-
-    unsigned char test_bit = 4;
-    printf("Test_bit: %d\n", test_bit);
-    set_tile_static(&test_bit, false);
-    printf("Test_bit: %d\n", test_bit);
-
-
-    sandbox_free(sandbox, 2, 3);
+    sandbox_free(sandbox, 10, 10);
     return 0;
 }
