@@ -9,6 +9,7 @@
 
 # Vim editor files
 *.swp
+*.swo
 
 # Linker output
 *.ilk
