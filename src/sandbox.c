@@ -75,10 +75,22 @@ static bool _tile_has_gravity(unsigned char tile)
     {
         case AIR:
             return false;
+
         case SAND:
             return true;
+
         case WATER:
             return true;
+
+        case WOOD:
+            return false;
+
+        case STEAM:
+            return false;
+
+        case FIRE:
+            return true;
+
         default:
             return false;
     }
@@ -102,10 +114,22 @@ static bool _is_solid(unsigned char tile)
     {
         case AIR:
             return false;
+
         case SAND:
             return true;
+
         case WATER:
             return false;
+
+        case WOOD:
+            return true;
+
+        case STEAM:
+            return false;
+
+        case FIRE:
+            return false;
+
         default:
             return false;
     }

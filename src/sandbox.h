@@ -18,7 +18,7 @@
 
 
 // Define the constant tile IDs 0 to 15.
-enum tile_id {AIR, SAND, WATER};
+enum tile_id {AIR, SAND, WATER, WOOD, STEAM, FIRE};
 
 
 // Amount of time that has passed, in frames (1/60 sec), since the sandbox
