@@ -10,9 +10,9 @@ int main(void)
     sandbox[1][5] = 1;
     sandbox[0][2] = 1;
     */
-    sandbox[3][4] = 2;
-    sandbox[0][0] = 130;
-    sandbox[9][9] = 2;
+    sandbox[0][0] = 1;
+    sandbox[0][1] = 2;
+    sandbox[0][2] = 2;
     // sandbox[1][4] = 1;
 
     while (true)

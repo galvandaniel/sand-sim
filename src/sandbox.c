@@ -389,8 +389,8 @@ void do_gravity(unsigned char **sandbox,
 
 
 void do_liquid_flow(unsigned char **sandbox,
-        unsigned int width,
         unsigned int height,
+        unsigned int width,
         unsigned int row_index,
         unsigned int column_index)
 {

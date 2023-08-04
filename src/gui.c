@@ -10,8 +10,11 @@
 const static int NUM_UNIQUE_TILES = 16;
 
 // Dimensions are chosen by user at the command line.
-unsigned int SANDBOX_WIDTH = 640;
-unsigned int SANDBOX_HEIGHT = 360;
+unsigned int SANDBOX_WIDTH = 80;
+unsigned int SANDBOX_HEIGHT = 45;
+
+unsigned int WINDOW_WIDTH;
+unsigned int WINDOW_HEIGHT;
 
 
 SDL_Texture **TILE_TEXTURES;
@@ -88,18 +91,22 @@ struct Application *init_gui(char *title)
     // Init SDL_Image for use with PNGs and JPGs
     IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
 
+    // Initialize window dimensions as a scale of the sandbox dimensions.
+    WINDOW_WIDTH = SANDBOX_WIDTH * PIXEL_SCALE;
+    WINDOW_HEIGHT = SANDBOX_HEIGHT * PIXEL_SCALE;
+
     // Create app window once video is initialized.
     app -> window = SDL_CreateWindow(title, 
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
-            SANDBOX_WIDTH,
-            SANDBOX_HEIGHT,
+            WINDOW_WIDTH,
+            WINDOW_HEIGHT,
             window_flags);
 
     // Check if window creation succeeded.
     if (app -> window == NULL)
     {
-        printf("Failed to open a %d by %d window: %s\n", SANDBOX_WIDTH, SANDBOX_HEIGHT, SDL_GetError());
+        printf("Failed to open a %d by %d window: %s\n", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_GetError());
         exit(1);
     }
 
@@ -229,9 +236,14 @@ void draw_sandbox(struct Application *app, unsigned char **sandbox, unsigned int
                 continue;
             }
 
+            // Compute the coordinates that a tile should be blitted at by
+            // scaling up their position as dictated by the scale factor.
+            unsigned int tile_x = col * PIXEL_SCALE;
+            unsigned int tile_y = row * PIXEL_SCALE;
+
             // Grab the associated tile texture and blit it to screen.
             SDL_Texture *tile_texture = get_tile_texture(current_tile);
-            blit_texture(app, tile_texture, col, row);
+            blit_texture(app, tile_texture, tile_x, tile_y);
         }
     }
 }
@@ -244,14 +256,14 @@ void get_input(struct Application *app)
 
     // Prevent mouse data from exceeding sandbox index boundaries if window
     // gets resized.
-    if (app -> mouse -> x > SANDBOX_WIDTH)
+    if (app -> mouse -> x > WINDOW_WIDTH)
     {
-        app -> mouse -> x = SANDBOX_WIDTH - 1;
+        app -> mouse -> x = WINDOW_WIDTH - 1;
     }
 
-    if (app -> mouse -> y > SANDBOX_HEIGHT)
+    if (app -> mouse -> y > WINDOW_HEIGHT)
     {
-        app -> mouse -> y = SANDBOX_HEIGHT - 1;
+        app -> mouse -> y = WINDOW_HEIGHT - 1;
     }
 
     // Take in an input event and react.
@@ -291,8 +303,8 @@ int main(void)
     // Form a sandbox.
     unsigned char **sandbox = create_sandbox(SANDBOX_HEIGHT, SANDBOX_WIDTH);
     sandbox[2][0] = 1;
-    sandbox[2][1] = 1;
-    sandbox[2][2] = 1;
+    sandbox[2][1] = 2;
+    sandbox[2][2] = 2;
 
     while (true)
     {

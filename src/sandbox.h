@@ -155,8 +155,8 @@ void do_gravity(unsigned char **sandbox,
  * @param row_index, column_index - Coordinates of tile to perform flow on.
  */
 void do_liquid_flow(unsigned char **sandbox,
-        unsigned int width,
         unsigned int height,
+        unsigned int width,
         unsigned int row_index,
         unsigned column_index);
 

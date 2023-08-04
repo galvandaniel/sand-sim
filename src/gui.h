@@ -12,12 +12,15 @@
 #include "sandbox.h"
 
 // Upscaling for individual pixels when drawing to screen.
-#define PIXEL_SCALE 16
+#define PIXEL_SCALE 8
 
 // Width and height of sandbox and window. 
-// These change depending on user input.
+// Window size depends on sandbox size, and sandbox size depends on user input.
 extern unsigned int SANDBOX_WIDTH;
 extern unsigned int SANDBOX_HEIGHT;
+
+extern unsigned int WINDOW_WIDTH;
+extern unsigned int WINDOW_HEIGHT;
 
 // Array of pointers to all textures used by tiles.
 extern SDL_Texture **TILE_TEXTURES;
