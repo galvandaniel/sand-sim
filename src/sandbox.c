@@ -45,6 +45,27 @@ static void _swap_tiles(unsigned int row_one,
 
 
 /*
+ * Flip a coin pseudo-randomly, generating either heads or tails.
+ *
+ * This function is not seeded, and will always generate the same sequence.
+ *
+ * @return - 1 for heads, 0 for tails.
+ */
+static bool _flip_coin(void)
+{
+    // Generate a random number between 0 and 1.
+    float random_value = rand() / (float) RAND_MAX;
+
+    if (random_value > 0.5)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/*
  * Return whether the given tile is affected by gravity or not.
  *
  * @param tile - Tile to determine if it has gravity or not.
@@ -334,16 +355,12 @@ void do_gravity(unsigned char **sandbox,
     }
 
     // If we have the option of sliding down left or right, choose which one
-    // to go down depending on whether we were last updated on an even or odd
-    // frame.
-    //
-    // This simulates randomness and saves having to recompute a random number
-    // every frame that sliding gravity occurs.
+    // to go down at random by flipping a coin.
     if (can_slide_left && can_slide_right)
     {
-        bool updated_flag = get_updated_flag(current_tile);
+        bool heads = _flip_coin();
 
-        if (updated_flag == 0)
+        if (heads)
         {
             _swap_tiles(row_index, column_index, next_row, left_column, sandbox);
         }
@@ -407,14 +424,12 @@ void do_liquid_flow(unsigned char **sandbox,
         can_flow_right = true;
     }
 
-    // If we can flow both directions, choose one based on the current update
-    // flag, which changes between 0 and 1 every frame. 
-    // This simulates randomness.
+    // If we can flow both directions, choose one at random on a coin flip.
     if (can_flow_left && can_flow_right)
     {
-        bool updated_flag = get_updated_flag(sandbox[row_index][column_index]);
+        bool heads = _flip_coin();
 
-        if (updated_flag)
+        if (heads)
         {
             _swap_tiles(row_index, column_index, row_index, left_column, sandbox);
         }
