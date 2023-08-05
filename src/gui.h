@@ -146,6 +146,15 @@ void get_input(struct Application *app);
 
 
 /*
+ * Switch the mouse's selected tile type to the given tile_type.
+ *
+ * @param mouse - Mouse to switch contained tile type of.
+ * @param tile_type - Value from 0 to 15 representing the new tile type.
+ */
+void switch_selected_tile(struct Mouse *mouse, unsigned char tile_type);
+
+
+/*
  * Place a tile of the mouse's currently selected type at the mouse's location
  * in the given sandbox with dimension (width x height).
  *

@@ -55,6 +55,40 @@ static void _do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *e
 
 
 /*
+ * Perform any application updates that need to occur as a result of any
+ * keyboard keypress.
+ *
+ * @param app - App to mutate as a result of keypress.
+ * @param event - Keyboard event containing data on what key was pressed.
+ */
+static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event)
+{
+    struct Mouse *app_mouse = app -> mouse;
+
+    // Gather information about the key pressed.
+    SDL_Keysym key_data = event -> keysym;
+    SDL_Keycode keycode = key_data.sym;
+
+    switch (keycode)
+    {
+        // In the event of keys 0 - 9, switch mouse tile to appropriate type.
+        case SDLK_1:
+            switch_selected_tile(app_mouse, SAND);
+            break;
+
+        case SDLK_2:
+            switch_selected_tile(app_mouse, WATER);
+            break;
+
+        // In an unhandled keypress, do nothing.
+        default:
+            break;
+
+    }
+}
+
+
+/*
  * Unload all tile textures from memory, destroying them and freeing the array
  * of tile_textures.
  */
@@ -292,10 +326,27 @@ void get_input(struct Application *app)
                 _do_mouse_button_up(app, &event.button);
                 break;
 
+            // When a key gets pressed, perform any keyboard-related updates.
+            case SDL_KEYDOWN:
+                _do_keyboard_press(app, &event.key);
+                break;
+
             default:
                 break;
         }
     }
+}
+
+
+void switch_selected_tile(struct Mouse *mouse, unsigned char tile_type)
+{
+    // For invalid tile types, do nothing.
+    if (tile_type > 15)
+    {
+        return;
+    }
+    
+    mouse -> selected_tile = tile_type;
 }
 
 

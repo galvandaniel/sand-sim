@@ -125,7 +125,7 @@ static bool _is_solid(unsigned char tile)
             return true;
 
         case WATER:
-            return false;
+            return true;
 
         case WOOD:
             return true;
@@ -211,17 +211,18 @@ void process_sandbox(unsigned char **sandbox, unsigned int height, unsigned int 
             // it results in nothing changing, so we mark the tile as updated.
             // Take care to mutate the array element, NOT the stack-variable.
             set_tile_updated(&sandbox[row][col], SANDBOX_LIFETIME);
-
-            // Perform flow on tiles that need it.
-            if (tile_type == WATER)
-            {
-                do_liquid_flow(sandbox, height, width, row, col);
-            }
+           
 
             // Perform gravity on the tiles that need it.
             if (_tile_has_gravity(current_tile))
             {
                 do_gravity(sandbox, height, width, row, col);
+            }
+
+            // Perform flow on tiles that need it.
+            if (tile_type == WATER)
+            {
+                do_liquid_flow(sandbox, height, width, row, col);
             }
 
             // A swap could have just happened, so update the tile again to
