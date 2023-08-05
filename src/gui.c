@@ -122,7 +122,11 @@ struct Application *init_gui(char *title)
         exit(1);
     }
 
-    app -> mouse = (struct Mouse *) malloc(sizeof(struct Mouse));
+    // Initialize a new mouse with zero in every field, except for selected tile,
+    // and assign it to the application.
+    struct Mouse *new_mouse = (struct Mouse *) calloc(1, sizeof(struct Mouse));
+    new_mouse -> selected_tile = SAND;
+    app -> mouse = new_mouse;
 
     return app;
 }
@@ -258,12 +262,12 @@ void get_input(struct Application *app)
     // gets resized.
     if (app -> mouse -> x > WINDOW_WIDTH)
     {
-        app -> mouse -> x = WINDOW_WIDTH - 1;
+        app -> mouse -> x = WINDOW_WIDTH - PIXEL_SCALE;
     }
 
     if (app -> mouse -> y > WINDOW_HEIGHT)
     {
-        app -> mouse -> y = WINDOW_HEIGHT - 1;
+        app -> mouse -> y = WINDOW_HEIGHT - PIXEL_SCALE;
     }
 
     // Take in an input event and react.
@@ -273,6 +277,7 @@ void get_input(struct Application *app)
     {
         switch (event.type)
         {
+            // Free memory taken up by app, then shutdown.
             case SDL_QUIT:
                 cleanup(app);
                 exit(0);
@@ -294,6 +299,30 @@ void get_input(struct Application *app)
 }
 
 
+void place_tile(struct Mouse *mouse,
+        unsigned char **sandbox,
+        unsigned int height,
+        unsigned int width)
+{
+    // Downscale the mouse coordinates to floating sandbox coordinates.
+    float row_coordinate = (float) mouse -> y / PIXEL_SCALE;
+    float col_coordinate = (float) mouse -> x / PIXEL_SCALE;
+
+    // Round to the nearest integer to obtain valid sandbox indices.
+    unsigned int row_index = roundf(row_coordinate);
+    unsigned int col_index = roundf(col_coordinate);
+
+    // Don't replace tiles, only place them ontop of air.
+    if (get_tile_id(sandbox[row_index][col_index]) != AIR)
+    {
+        return;
+    }
+
+    // Place tile, replacing air.
+    sandbox[row_index][col_index] = mouse -> selected_tile;
+}
+
+
 int main(void)
 {
     // Initialize SDL, create an app, and load in textures.
@@ -302,9 +331,6 @@ int main(void)
 
     // Form a sandbox.
     unsigned char **sandbox = create_sandbox(SANDBOX_HEIGHT, SANDBOX_WIDTH);
-    sandbox[2][0] = 1;
-    sandbox[2][1] = 2;
-    sandbox[2][2] = 2;
 
     while (true)
     {
@@ -312,11 +338,21 @@ int main(void)
         set_black_background(app);
 
         get_input(app);
+
+        if (app -> mouse -> is_left_clicking)
+        {
+            place_tile(app -> mouse, sandbox, SANDBOX_HEIGHT, SANDBOX_WIDTH);
+        }
+
+        // Do 1 frame of sandbox processing and draw the result to the renderer.
         process_sandbox(sandbox, SANDBOX_HEIGHT, SANDBOX_WIDTH);
         draw_sandbox(app, sandbox, SANDBOX_HEIGHT, SANDBOX_WIDTH);
 
+        // Display all rendered graphics.
         SDL_RenderPresent(app -> renderer);
-        SDL_Delay(16);
+
+        // Run at ~30 FPS. (wait 33 milliseconds before proceeding to next frame)
+        SDL_Delay(33);
     }
 
     return 0;

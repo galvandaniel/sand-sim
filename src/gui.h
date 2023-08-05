@@ -14,23 +14,26 @@
 // Upscaling for individual pixels when drawing to screen.
 #define PIXEL_SCALE 8
 
-// Width and height of sandbox and window. 
-// Window size depends on sandbox size, and sandbox size depends on user input.
+// Width and height of sandbox simulation in tiles.
 extern unsigned int SANDBOX_WIDTH;
 extern unsigned int SANDBOX_HEIGHT;
 
+// Width and height of window in pixels.
+// Window size depends on sandbox size, and sandbox size depends on user input.
 extern unsigned int WINDOW_WIDTH;
 extern unsigned int WINDOW_HEIGHT;
 
 // Array of pointers to all textures used by tiles.
 extern SDL_Texture **TILE_TEXTURES;
 
-// Struct for holding mouse location data and button data.
+// Struct for holding mouse location data, button data, and the user's
+// currently selected tile.
 struct Mouse
 {
     int x;
     int y;
     bool is_left_clicking;
+    unsigned char selected_tile;
 };
 
 
@@ -74,15 +77,6 @@ void init_tile_textures(struct Application *app);
  * @param app - Application to shutdown and free.
  */
 void cleanup(struct Application *app);
-
-
-/*
- * Poll SDL for any user-input (mouse input, keyboard input) and react 
- * accordingly within the sandbox application.
- *
- * @param app - Application to react on due to input.
- */
-void get_input(struct Application *app);
 
 
 /*
@@ -149,6 +143,24 @@ void draw_sandbox(struct Application *app, unsigned char **sandbox, unsigned int
  * @param app - Application to react on due to input.
  */
 void get_input(struct Application *app);
+
+
+/*
+ * Place a tile of the mouse's currently selected type at the mouse's location
+ * in the given sandbox with dimension (width x height).
+ *
+ * Mouse screen coordinates are scaled down by PIXEL_SCALE to place a tile
+ * within sandbox.
+ *
+ * @param mouse - Pointer to mouse to get placement location and tile type.
+ * @param sandbox - Sandbox to mutate and place tile in.
+ * @param height, width - Dimensions of the given sandbox in tiles.
+ *
+ */
+void place_tile(struct Mouse *mouse,
+        unsigned char **sandbox,
+        unsigned int height,
+        unsigned int width);
 
 
 #endif
