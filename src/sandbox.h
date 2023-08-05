@@ -173,6 +173,20 @@ unsigned char get_time_parity(unsigned int current_time);
 
 
 /*
+ * Obtain the updated flag from a tile, synced to the parity of the time from
+ * when it was last updated.
+ *
+ * The updated flag on its own does NOT say whether the tile is currently
+ * updated or not. The flag represents a parity, it is NOT a boolean.
+ *
+ * Use is_tile_updated() to determine whether a tile is updated or not.
+ *
+ * @param tile - Tile to get updated flag from.
+ */
+bool get_updated_flag(unsigned char tile);
+
+
+/*
  * Print a string representation of a 2D sandbox to stdout.
  *
  * A sandbox is represented as a string by a '-' denoting air, 'O' sand, 

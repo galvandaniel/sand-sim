@@ -45,21 +45,6 @@ static void _swap_tiles(unsigned int row_one,
 
 
 /*
- * Obtain the updated flag from a tile, synced to the parity of the time from
- * when it was last updated.
- *
- * This is information is not useful on its own without current time, and so
- * it is a private function.
- *
- * @param tile - Tile to get updated flag from.
- */
-static bool _get_updated_flag(unsigned char tile)
-{
-    return tile >> 7;
-}
-
-
-/*
  * Return whether the given tile is affected by gravity or not.
  *
  * @param tile - Tile to determine if it has gravity or not.
@@ -243,7 +228,7 @@ bool is_tile_updated(unsigned char tile, unsigned int current_time)
 {
     // Shift the updated bit flag to the front, and compare.
     unsigned char time_parity = get_time_parity(current_time);
-    unsigned char updated_flag = _get_updated_flag(tile);
+    unsigned char updated_flag = get_updated_flag(tile);
 
     return updated_flag == time_parity;
 }
@@ -356,7 +341,7 @@ void do_gravity(unsigned char **sandbox,
     // every frame that sliding gravity occurs.
     if (can_slide_left && can_slide_right)
     {
-        bool updated_flag = _get_updated_flag(current_tile);
+        bool updated_flag = get_updated_flag(current_tile);
 
         if (updated_flag == 0)
         {
@@ -427,7 +412,7 @@ void do_liquid_flow(unsigned char **sandbox,
     // This simulates randomness.
     if (can_flow_left && can_flow_right)
     {
-        bool updated_flag = _get_updated_flag(sandbox[row_index][column_index]);
+        bool updated_flag = get_updated_flag(sandbox[row_index][column_index]);
 
         if (updated_flag)
         {
@@ -459,6 +444,12 @@ unsigned char get_time_parity(unsigned int current_time)
 {
     // Use a mask of (0000 ... 0001) to extract the first bit, granting parity.
     return current_time & 1;
+}
+
+bool get_updated_flag(unsigned char tile)
+{
+    // The updated flag is the last bit of a tile.
+    return tile >> 7;
 }
 
 

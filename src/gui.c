@@ -260,12 +260,12 @@ void get_input(struct Application *app)
 
     // Prevent mouse data from exceeding sandbox index boundaries if window
     // gets resized.
-    if (app -> mouse -> x > WINDOW_WIDTH)
+    if (app -> mouse -> x > WINDOW_WIDTH - PIXEL_SCALE)
     {
         app -> mouse -> x = WINDOW_WIDTH - PIXEL_SCALE;
     }
 
-    if (app -> mouse -> y > WINDOW_HEIGHT)
+    if (app -> mouse -> y > WINDOW_HEIGHT - PIXEL_SCALE)
     {
         app -> mouse -> y = WINDOW_HEIGHT - PIXEL_SCALE;
     }
@@ -317,6 +317,7 @@ void place_tile(struct Mouse *mouse,
     {
         return;
     }
+
 
     // Place tile, replacing air.
     sandbox[row_index][col_index] = mouse -> selected_tile;
