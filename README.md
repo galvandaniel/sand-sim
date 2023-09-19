@@ -48,10 +48,10 @@ Use the left mouse button the generate sand tiles into the world.
 
 The element type may be changed using the keyboard. The key controls are:
 
-1 - Sand
-2 - Water
-3 - Wood
-4 - Steam
+- 1 - Sand
+- 2 - Water
+- 3 - Wood
+- 4 - Steam
 (More elements and interactions to come in future versions!)
 
 The panel in the topleft represents your currently selected element.
