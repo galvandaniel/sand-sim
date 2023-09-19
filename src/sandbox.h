@@ -22,7 +22,7 @@
 enum tile_id {AIR, SAND, WATER, WOOD, STEAM, FIRE};
 
 
-// Amount of time that has passed, in frames (1/60 sec), since the sandbox
+// Amount of time that has passed, in frames of simulation, since the sandbox
 // has begun.
 extern unsigned int SANDBOX_LIFETIME;
 
@@ -128,8 +128,8 @@ void set_tile_static(unsigned char *tile, bool should_set_static);
  * Simulate gravity on the tile located at the given indices, within the
  * sandbox of the given dimensions, by mutating the sandbox.
  *
- * This function does NOT check whether gravity should be performed on the
- * given tile ID.
+ * This function does NOT check whether gravity should be performed on the tile
+ * at the given coordinates.
  *
  * @param sandbox - 2D Sandbox of tiles to mutate and perform gravity within.
  * @param height, width - Dimensions of given sandbox.
@@ -148,8 +148,8 @@ void do_gravity(unsigned char **sandbox,
  * Intuitively, this means moving a tile left or right at random, if there is
  * space and the tile has a floor.
  *
- * This function does NOT check whether flow should be performed on the given
- * tile ID.
+ * This function does NOT check whether flow should be performed on the tile
+ * at the given coordinates.
  *
  * @param sandbox - 2D Sandbox of tiles to mutate and perform flow within.
  * @param width, height - Dimensions of given sandbox.
@@ -159,7 +159,30 @@ void do_liquid_flow(unsigned char **sandbox,
         unsigned int height,
         unsigned int width,
         unsigned int row_index,
-        unsigned column_index);
+        unsigned int column_index);
+
+
+/*
+ * Simulate lift on the tile at the given indices as though it were a gas.
+ *
+ * Intuitively, lift is the opposite of gravity and liquid flow, combined as one. 
+ *
+ * Moving up if possible, ascending to the top left or topright otherwise.
+ * If neither of those are possible, move left or right at random if a ceiling
+ * is present.
+ *
+ * This function does NOT check whether the tile at the given coordinates should
+ * have lift.
+ *
+ * @param sandbox - 2D Sandbox of tiles to mutate and perform lift within.
+ * @param width, height - Dimensions of given sandbox.
+ * @param row_index, column_index - Coordinates of tile to perform lift on.
+ */
+void do_lift(unsigned char **sandbox,
+        unsigned int height,
+        unsigned int width,
+        unsigned int row_index,
+        unsigned int column_index);
 
 
 /*

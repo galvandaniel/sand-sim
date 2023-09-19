@@ -26,6 +26,10 @@ extern unsigned int WINDOW_HEIGHT;
 // Array of pointers to all textures used by tiles.
 extern SDL_Texture **TILE_TEXTURES;
 
+// Array of pointers to all textures used by panels. 
+// Panels display the element currently selected.
+extern SDL_Texture **PANEL_TEXTURES;
+
 // Struct for holding mouse location data, button data, and the user's
 // currently selected tile.
 struct Mouse
@@ -61,13 +65,14 @@ struct Application *init_gui(char *title);
 
 
 /*
- * Loads into memory all textures used by tiles in the sandbox.
+ * Loads into memory all textures used by tiles and panels in the sandbox.
  *
  * Use get_tile_texture to retrieve the texture a tile should use.
+ * Use get_panel_texture to retrieve the texture a panel should use.
  *
  * @param app - Application holding renderer to load textures onto.
  */
-void init_tile_textures(struct Application *app);
+void init_textures(struct Application *app);
 
 
 /*
@@ -113,6 +118,17 @@ SDL_Texture *get_tile_texture(unsigned char tile);
 
 
 /*
+ * Obtain the panel texture for the given tile, to be used for showing the
+ * tile as currently selected tile type.
+ *
+ * @param tile - Tile to fetch panel texture for.
+ *
+ * @return - Panel texture corresponding to given tile, blittable to screen.
+ */
+SDL_Texture *get_panel_texture(unsigned char tile);
+
+
+/*
  * Setup a black background on the given application.
  *
  * This background can be used as a base for further blitting.
@@ -123,17 +139,31 @@ void set_black_background(struct Application *app);
 
 
 /*
- * Draw a sandbox to the app, where each tile represents one pixel onscreen,
- * scaled in size according to PIXEL_SCALE.
+ * Draw a sandbox to the app for rendering, where each tile represents one 
+ * pixel onscreen, scaled in size according to PIXEL_SCALE.
  *
  * The given sandbox must be of a smaller dimension than the screen resolution,
  * and must not be NULL.
+ *
+ * SDL_RenderPresent() is NOT called inside this function.
  *
  * @param app - App to draw sandbox to.
  * @param sandbox - Sandbox of tiles to draw to screen.
  * @param height, width - Dimensions of sandbox.
  */
 void draw_sandbox(struct Application *app, unsigned char **sandbox, unsigned int height, unsigned int width);
+
+
+/*
+ * Render sand-sim UI elements to the given app.
+ *
+ * This includes panels displaying which tile type is currently selected by the
+ * app's mouse.
+ *
+ * @param app - App to render UI elements to.
+ *
+ */
+void draw_ui(struct Application *app);
 
 
 /*

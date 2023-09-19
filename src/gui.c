@@ -19,6 +19,7 @@ unsigned int WINDOW_HEIGHT;
 
 SDL_Texture **TILE_TEXTURES;
 
+SDL_Texture **PANEL_TEXTURES;
 
 // ----- PRIVATE FUNCTIONS -----
 
@@ -47,6 +48,8 @@ static void _do_mouse_button_down(struct Application *app, SDL_MouseButtonEvent 
  */
 static void _do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *event)
 {
+    // In the event the mouse button that was just lifted up was the left button,
+    // the user is no longer holding down left.
     if (event -> button == SDL_BUTTON_LEFT)
     {
         app -> mouse -> is_left_clicking = false;
@@ -80,6 +83,14 @@ static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event
             switch_selected_tile(app_mouse, WATER);
             break;
 
+        case SDLK_3:
+            switch_selected_tile(app_mouse, WOOD);
+            break;
+
+        case SDLK_4:
+            switch_selected_tile(app_mouse, STEAM);
+            break;
+
         // In an unhandled keypress, do nothing.
         default:
             break;
@@ -92,14 +103,16 @@ static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event
  * Unload all tile textures from memory, destroying them and freeing the array
  * of tile_textures.
  */
-static void _destroy_tile_textures(void)
+static void _destroy_textures(void)
 {
     for (int i = 0; i < NUM_UNIQUE_TILES; i++)
     {
         SDL_DestroyTexture(TILE_TEXTURES[i]);
+        SDL_DestroyTexture(PANEL_TEXTURES[i]);
     }
 
     free(TILE_TEXTURES);
+    free(PANEL_TEXTURES);
 }
 
 
@@ -162,28 +175,40 @@ struct Application *init_gui(char *title)
     new_mouse -> selected_tile = SAND;
     app -> mouse = new_mouse;
 
+    // Allocate memory for all textures used by the 16 possible tile types.
+    init_textures(app);
+
     return app;
 }
 
 
-void init_tile_textures(struct Application *app)
+void init_textures(struct Application *app)
 {
     // Allocate memory for array to hold pointers to all textures.
     TILE_TEXTURES = (SDL_Texture **) malloc(NUM_UNIQUE_TILES * sizeof(SDL_Texture *));
+    PANEL_TEXTURES = (SDL_Texture **) malloc(NUM_UNIQUE_TILES * sizeof(SDL_Texture *));
 
     // Load all tile textures.
-    TILE_TEXTURES[AIR] = load_texture(app, "assets/air.png");
-    TILE_TEXTURES[SAND] = load_texture(app, "assets/sand.png");
-    TILE_TEXTURES[WATER] = load_texture(app, "assets/water.png");
+    TILE_TEXTURES[AIR] = load_texture(app, "assets/tiles/air.png");
+    TILE_TEXTURES[SAND] = load_texture(app, "assets/tiles/sand.png");
+    TILE_TEXTURES[WATER] = load_texture(app, "assets/tiles/water.png");
+    TILE_TEXTURES[WOOD] = load_texture(app, "assets/tiles/wood.png");
+    TILE_TEXTURES[STEAM] = load_texture(app, "assets/tiles/steam.png");
+    TILE_TEXTURES[FIRE] = load_texture(app, "assets/tiles/fire.png");
+
+    // Load all panel textures.
+    PANEL_TEXTURES[AIR] = load_texture(app, "assets/panels/air_panel.png");
+    PANEL_TEXTURES[SAND] = load_texture(app, "assets/panels/sand_panel.png");
+    PANEL_TEXTURES[WATER] = load_texture(app, "assets/panels/water_panel.png");
+    PANEL_TEXTURES[WOOD] = load_texture(app, "assets/panels/wood_panel.png");
+    PANEL_TEXTURES[STEAM] = load_texture(app, "assets/panels/steam_panel.png");
+    PANEL_TEXTURES[FIRE] = load_texture(app, "assets/panels/fire_panel.png");
 
     // Placeholder textures while other tiles are being implemented.
-    TILE_TEXTURES[WOOD] = load_texture(app, "assets/air.png");
-    TILE_TEXTURES[STEAM] = load_texture(app, "assets/air.png");
-    TILE_TEXTURES[FIRE] = load_texture(app, "assets/air.png");
-
-    for (int i = 6; i < NUM_UNIQUE_TILES; i++)
+    for (int i  = 6; i < NUM_UNIQUE_TILES; i++)
     {
-        TILE_TEXTURES[i] = load_texture(app, "assets/air.png");
+        TILE_TEXTURES[i] = load_texture(app, "assets/tiles/air.png");
+        PANEL_TEXTURES[i] = load_texture(app, "assets/panels/air_panel.png");
     }
 }
 
@@ -197,7 +222,7 @@ void cleanup(struct Application *app)
     free(app);
 
     // Remove textures before exiting.
-    _destroy_tile_textures();
+    _destroy_textures();
 
     SDL_Quit();
 }
@@ -229,24 +254,14 @@ void blit_texture(struct Application *app, SDL_Texture *texture, int x, int y)
 SDL_Texture *get_tile_texture(unsigned char tile)
 {
     unsigned char tile_type = get_tile_id(tile);
+    return TILE_TEXTURES[tile_type];
+}
 
-    switch (tile_type)
-    {
-        case AIR:
-            return TILE_TEXTURES[AIR];
 
-        case SAND:
-            return TILE_TEXTURES[SAND];
-
-        case WATER:
-            return TILE_TEXTURES[WATER];
-
-        case WOOD:
-            return TILE_TEXTURES[WOOD];
-
-        default:
-            return TILE_TEXTURES[AIR];
-    }
+SDL_Texture *get_panel_texture(unsigned char tile)
+{
+    unsigned char tile_type = get_tile_id(tile);
+    return PANEL_TEXTURES[tile_type];
 }
 
 
@@ -284,6 +299,15 @@ void draw_sandbox(struct Application *app, unsigned char **sandbox, unsigned int
             blit_texture(app, tile_texture, tile_x, tile_y);
         }
     }
+}
+
+
+void draw_ui(struct Application *app)
+{
+    // Grab the panel texture for the currently selected tile, and blit to the
+    // topleft of the screen.
+    SDL_Texture *panel_texture = get_panel_texture(app -> mouse -> selected_tile);
+    blit_texture(app, panel_texture, 0, 0);
 }
 
 
@@ -371,6 +395,9 @@ void place_tile(struct Mouse *mouse,
 
 
     // Place tile, replacing air.
+    //
+    // A tile type has value (0000 XXXX) where XXXX is the tile type.
+    // This produces a new, non-updated, non-static tile of type XXXX.
     sandbox[row_index][col_index] = mouse -> selected_tile;
 }
 
@@ -379,7 +406,6 @@ int main(void)
 {
     // Initialize SDL, create an app, and load in textures.
     struct Application *app = init_gui("Sandbox");
-    init_tile_textures(app);
 
     // Form a sandbox.
     unsigned char **sandbox = create_sandbox(SANDBOX_HEIGHT, SANDBOX_WIDTH);
@@ -399,6 +425,9 @@ int main(void)
         // Do 1 frame of sandbox processing and draw the result to the renderer.
         process_sandbox(sandbox, SANDBOX_HEIGHT, SANDBOX_WIDTH);
         draw_sandbox(app, sandbox, SANDBOX_HEIGHT, SANDBOX_WIDTH);
+
+        // Draw UI elements above the sandbox so that they aren't covered.
+        draw_ui(app);
 
         // Display all rendered graphics.
         SDL_RenderPresent(app -> renderer);
