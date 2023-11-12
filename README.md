@@ -105,7 +105,7 @@ make sand
 
 This will produce a binary called "sand" which can be executed to run the program.
 
-## Windows
+### Windows
 
 Compiling sand-sim's Windows version requires MingW64 and pkg-config, both of which can be installed with the commands:
 
