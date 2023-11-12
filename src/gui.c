@@ -402,7 +402,7 @@ void place_tile(struct Mouse *mouse,
 }
 
 
-int main(void)
+int main(int argc, char *argv[])
 {
     // Initialize SDL, create an app, and load in textures.
     struct Application *app = init_gui("Sandbox");
