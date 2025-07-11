@@ -202,4 +202,4 @@ void place_tile(struct Mouse *mouse,
         unsigned int width);
 
 
-#endif
+#endif // GUI_H

@@ -73,6 +73,8 @@ The element type may be changed using the keyboard. The key controls are:
 
 The panel in the topleft represents your currently selected element.
 
+Press q to quit the app.
+
 ## Building From Source
 
 Compiling either of sand-sim's versions is supported only for Linux/Unix environments.

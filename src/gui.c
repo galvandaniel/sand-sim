@@ -91,6 +91,11 @@ static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event
             switch_selected_tile(app_mouse, STEAM);
             break;
 
+        // In the case of pressing q, the app will quit.
+        case SDLK_q:
+            cleanup(app);
+            exit(0);
+
         // In an unhandled keypress, do nothing.
         default:
             break;

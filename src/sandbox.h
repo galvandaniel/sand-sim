@@ -221,4 +221,4 @@ bool get_updated_flag(unsigned char tile);
 void print_sandbox(unsigned char **sandbox, unsigned int height, unsigned int width);
 
 
-#endif
+#endif // SANDBOX_H

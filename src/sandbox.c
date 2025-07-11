@@ -20,7 +20,8 @@
 
 #include "sandbox.h"
 
-// Lifetime begins at 0 frames and 0 seconds.
+
+// Lifetime sandbox has existed for begins at 0 frames, 0 seconds.
 unsigned int SANDBOX_LIFETIME = 0;
 
 
@@ -235,7 +236,7 @@ static bool _is_solid(unsigned char tile)
  *
  * Helper function to do_liquid_flow and do_lift.
  *
- * @param sandbox - Sandbox to potentialyl mutate by moving tiles for sliding.
+ * @param sandbox - Sandbox to potentialy mutate by moving tiles for sliding.
  * @param height, width - Dimensions of given sandbox.
  * @param row_index, column_index - Coordinates of tile to slide.
  */
@@ -250,7 +251,7 @@ void _slide_left_or_right(unsigned char **sandbox,
     unsigned int right_column = column_index + 1;
 
     // Test to see where we can move...
-    // Only slide a direction if there's an empty space, and it's not OOB.
+    // Only slide in a direction if there's an empty space, and it's not OOB.
     bool can_slide_left = false;
     bool can_slide_right = false;
 
@@ -375,6 +376,7 @@ void process_sandbox(unsigned char **sandbox, unsigned int height, unsigned int 
                 do_liquid_flow(sandbox, height, width, row, col);
             }
 
+            // Perform lift on tiles that need it.
             if (_tile_has_lift(current_tile))
             {
                 do_lift(sandbox, height, width, row, col);
@@ -419,8 +421,8 @@ void set_tile_updated(unsigned char *tile, unsigned int current_time)
     unsigned char turn_off = 127;
     unsigned char turn_on = 128;
 
-    // In the case of 0, we're updating a bit flag of 1 to 0, so we AND.
-    // In the case of 1, we're updating a bit flag of 0 to 1, so we OR.
+    // In the case of 0, we're updating a tile bit flag of 1 to 0, so we AND.
+    // In the case of 1, we're updating a tile bit flag of 0 to 1, so we OR.
     if (time_parity == 0)
     {
         *tile &= turn_off;
