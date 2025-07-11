@@ -1,25 +1,31 @@
-CFLAGS = -Wall -gdwarf-4
+CC_LINUX = clang
+CC_WINDOWS = x86_64-w64-mingw32-gcc
 SRCS = sandbox.c gui.c
-HDRS = sandbox.h gui.h
 
-CC = clang
-WINCC = x86_64-w64-mingw32-gcc
+CFLAGS = -Wall -g
+LDFLAGS_LINUX = -lSDL2_image -lm
+LDFLAGS_WINDOWS = -lm
 
-SDL_CFLAGS = `sdl2-config --cflags --libs`
+OUTPUT_LINUX = sand
+OUTPUT_WINDOWS = sandwin
 
-SDL_CFLAGS_WIN = `../include/SDL2-2.28.5/x86_64-w64-mingw32/bin/sdl2-config --cflags --libs`
-SDL_IM_CFLAGS_WIN = `pkg-config --cflags --libs ../include/SDL2_image-2.6.3/x86_64-w64-mingw32/lib/pkgconfig/SDL2_image.pc`
+# Use SDL2 built-in package config to get SDL2 flags.
+SDL_CFLAGS_LINUX = `sdl2-config --cflags --libs`
+SDL_CFLAGS_WINDOWS = `../include/SDL2-2.28.5/x86_64-w64-mingw32/bin/sdl2-config --cflags --libs`
+SDL_IM_CFLAGS_WINDOWS = `pkg-config --cflags --libs ../include/SDL2_image-2.6.3/x86_64-w64-mingw32/lib/pkgconfig/SDL2_image.pc`
 
 .PHONY: clean
 
-sand: $(HDRS) $(SRCS)
-	$(CC) $(CFLAGS) -o sand $(SRCS) $(SDL_CFLAGS) -lSDL2_image -lm
+# Linux and Windows compile commands. Default to Linux.
+$(OUTPUT_LINUX): $(SRCS)
+	$(CC_LINUX) $(CFLAGS) $(SRCS) $(SDL_CFLAGS_LINUX) $(LDFLAGS_LINUX) -o $(@)
 
-sandwin: sandbox.h gui.h sandbox.c gui.c
-	$(WINCC) $(CFLAGS) -o sand $(SRCS) $(SDL_CFLAGS_WIN) $(SDL_IM_CFLAGS_WIN) -lm
+$(OUTPUT_WINDOWS): $(SRCS)
+	$(CC_WINDOWS) $(CFLAGS) $(SRCS) $(SDL_CFLAGS_WINDOWS) $(SDL_IM_CFLAGS_WINDOWS) $(LDFLAGS_WINDOWS) -o $(@)
 
-test: sandbox.h sandbox.c test.c
-	$(CC) $(CFLAGS) -o test sandbox.c test.c -lm
+# Compile command for testing sandbox logic.
+test: sandbox.c test.c
+	$(CC_LINUX) $(CFLAGS) -o test sandbox.c test.c -lm
 
 clean:
-	rm -rf a.out test sand sand.exe
+	rm -rf a.out test $(OUTPUT_LINUX) $(OUTPUT_WINDOWS).exe
