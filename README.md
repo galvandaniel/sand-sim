@@ -35,7 +35,7 @@ sand-sim must be executed with its "assets" directory in the same location as th
 SDL2 is required for sand-sim to run.
 
 For Windows users, this means the provided "SDL2.dll" and "SDL2_image.dll" must be present in the same directory as "sand.exe".
-(This is already set up in the "sandwin" directory)
+(This is already set up correctly in the "sandwin" directory)
 
 sand-sim can then be run using the "sand.exe" executable.
 
@@ -53,7 +53,7 @@ SDL2_image is also required, which can be installed similarly:
 sudo apt-get install libsdl2-image-2.0-0
 ```
 
-Once SDL2 is installed, sand-sim can be run like so:
+Once SDL2 is installed, sand-sim can be run using the provided binary:
 
 ```bash
 ./sand
@@ -89,8 +89,8 @@ Compiling sand-sim's Linux/Unix version requires the development versions of SDL
 on Linux/Unix with the commands:
 
 ```bash
-sudo apt-get install libsdl2-2.0-0-dev
-sudo apt-get install libsdl2-image-2.0-0-dev
+sudo apt-get install libsdl2-dev
+sudo apt-get install libsdl2-image-dev
 ```
 
 Compilation of the Linux/Unix version requires clang, which can be installed with the command:
