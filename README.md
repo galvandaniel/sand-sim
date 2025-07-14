@@ -94,7 +94,7 @@ For example, to set the sandbox to be a size of 100 x 150 would look like the fo
 
 
 ```bash
-./sand --width 100 --height 100
+./sand --width 100 --height 150
 ```
 
 As another example, to use the "large" setting sandbox:
