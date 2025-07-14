@@ -1,4 +1,4 @@
-/*
+/**
  * Tiles have the following 4 bit flags, starting from most significant bit:
  *
  * 1. Update - If the tile has already been updated in the current update pass.
@@ -20,6 +20,11 @@
 
 #include "sandbox.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
+
 
 // Lifetime sandbox has existed for begins at 0 frames, 0 seconds.
 int SANDBOX_LIFETIME = 0;
@@ -28,12 +33,12 @@ int SANDBOX_LIFETIME = 0;
 // ----- STATIC/PRIVATE FUNCTIONS -----
 
 
-/*
+/**
  * Swap the tiles located at the two coordinates within sandbox.
  *
- * @param row_one, column_one - Coordinates of first tile.
- * @param row_two, column_two - Coordinates of second tile.
- * @param sandbox - Sandbox to mutate by swapping first and second tile.
+ * @param row_one, column_one Coordinates of first tile.
+ * @param row_two, column_two Coordinates of second tile.
+ * @param sandbox Sandbox to mutate by swapping first and second tile.
  */
 static void _swap_tiles(int row_one, int column_one, int row_two, int column_two, unsigned char **sandbox)
 {
@@ -44,12 +49,12 @@ static void _swap_tiles(int row_one, int column_one, int row_two, int column_two
 }
 
 
-/*
+/**
  * Flip a coin pseudo-randomly, generating either heads or tails.
  *
  * This function is not seeded, and will always generate the same sequence.
  *
- * @return - 1 for heads, 0 for tails.
+ * @return True for heads, false for tails.
  */
 static bool _flip_coin(void)
 {
@@ -65,12 +70,12 @@ static bool _flip_coin(void)
 }
 
 
-/*
+/**
  * Return whether the given tile is affected by gravity or not.
  *
- * @param tile - Tile to determine if it has gravity or not.
+ * @param tile Tile to determine if it has gravity or not.
  *
- * @return - True if tile is affected by gravity, false otherwise.
+ * @return True if tile is affected by gravity, false otherwise.
  */
 static bool _tile_has_gravity(unsigned char tile)
 {
@@ -103,13 +108,12 @@ static bool _tile_has_gravity(unsigned char tile)
 }
 
 
-/*
+/**
  * Return whether the given tile is affected by liquid flow or not.
  *
- * @param tile - Tile to determine if it has flow or not.
+ * @param tile Tile to determine if it has flow or not.
  *
- * @return - True if the tile type flows, false otherwise.
- *
+ * @return True if the tile type flows, false otherwise.
  */
 static bool _tile_has_flow(unsigned char tile)
 {
@@ -141,14 +145,14 @@ static bool _tile_has_flow(unsigned char tile)
 }
 
 
-/*
+/**
  * Return whether the given tile floats into the air naturally or not.
  *
  * Intuitively, lift is the opposite of gravity.
  *
- * @param tile - Tile to determine if it has lift or not.
+ * @param tile Tile to determine if it has lift or not.
  *
- * @return - True if tile has lift and floats, false otherwise.
+ * @return True if tile has lift and floats, false otherwise.
  */
 static bool _tile_has_lift(unsigned char tile)
 {
@@ -181,14 +185,18 @@ static bool _tile_has_lift(unsigned char tile)
 }
 
 
-/*
+/**
  * Return whether or not a tile is "solid".
  *
- * A tile is considered solid if it capable of acting as a "floor".
+ * A tile is considered solid if it capable of acting as a "floor" and can block
+ * fluid.
  * Intuitively, this means you could sensibly stand on the tile.
  *
- * For example, air is not solid, but sand is. Fire is not solid, but wood is.
+ * For example, air and fire are not solid. Sand and wood are solid.
  *
+ * @param tile Tile to determine if is solid or not.
+ * 
+ * @return True if tile is solid, false otherwise.
  */
 static bool _is_solid(unsigned char tile)
 {
@@ -220,7 +228,7 @@ static bool _is_solid(unsigned char tile)
 }
 
 
-/*
+/**
  * Perform a slide on the given tile coordinates within the sandbox, if possible.
  *
  * A slide is possible if the tile in question has room to move to the left
@@ -232,9 +240,9 @@ static bool _is_solid(unsigned char tile)
  *
  * Helper function to do_liquid_flow and do_lift.
  *
- * @param sandbox - Sandbox to potentialy mutate by moving tiles for sliding.
- * @param width - Width of given sandbox.
- * @param row_index, column_index - Coordinates of tile to slide.
+ * @param sandbox Sandbox to potentialy mutate by moving tiles for sliding.
+ * @param width Width of given sandbox.
+ * @param row_index, column_index Coordinates of tile to slide.
  */
 void _slide_left_or_right(unsigned char **sandbox, int width, int row_index, int column_index)
 {

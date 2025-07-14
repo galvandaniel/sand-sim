@@ -4,6 +4,11 @@
  */
 
 #include "gui.h"
+#include "sandbox.h"
+
+#include <SDL.h>
+#include <SDL_image.h>
+#include <stdio.h>
 
 
 // There are at most 16 unique tile IDs, and therefore 16 unique textures.
@@ -23,12 +28,12 @@ SDL_Texture **PANEL_TEXTURES;
 
 // ----- PRIVATE FUNCTIONS -----
 
-/*
+/**
  * Update mouse button pressed-down data in the given app by extracting mouse 
  * data from the mouse button event.
  *
- * @param app - App containing mouse click data to update.
- * @param event - Mouse event containing mouse data to extract.
+ * @param app App containing mouse click data to update.
+ * @param event Mouse event containing mouse data to extract.
  */
 static void _do_mouse_button_down(struct Application *app, SDL_MouseButtonEvent *event)
 {
@@ -39,12 +44,12 @@ static void _do_mouse_button_down(struct Application *app, SDL_MouseButtonEvent 
 }
 
 
-/*
+/**
  * Update mouse button lift-up data in the given app by extracting mouse data
  * from the mouse button event.
  *
- * @param app - App containing mouse click data to update.
- * @param event - Mouse event containing mouse data to extract.
+ * @param app App containing mouse click data to update.
+ * @param event Mouse event containing mouse data to extract.
  */
 static void _do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *event)
 {
@@ -57,12 +62,12 @@ static void _do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *e
 }
 
 
-/*
+/**
  * Perform any application updates that need to occur as a result of any
  * keyboard keypress.
  *
- * @param app - App to mutate as a result of keypress.
- * @param event - Keyboard event containing data on what key was pressed.
+ * @param app App to mutate as a result of keypress.
+ * @param event Keyboard event containing data on what key was pressed.
  */
 static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event)
 {
@@ -104,7 +109,7 @@ static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event
 }
 
 
-/*
+/**
  * Unload all tile textures from memory, destroying them and freeing the array
  * of tile_textures.
  */
