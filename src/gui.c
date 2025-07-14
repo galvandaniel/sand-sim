@@ -321,18 +321,6 @@ void get_input(struct Application *app)
     // Update mouse coordinates within app.
     SDL_GetMouseState(&(app -> mouse -> x), &(app -> mouse -> y));
 
-    // Prevent mouse data from exceeding sandbox index boundaries if window
-    // gets resized.
-    if (app -> mouse -> x > WINDOW_WIDTH - PIXEL_SCALE)
-    {
-        app -> mouse -> x = WINDOW_WIDTH - PIXEL_SCALE;
-    }
-
-    if (app -> mouse -> y > WINDOW_HEIGHT - PIXEL_SCALE)
-    {
-        app -> mouse -> y = WINDOW_HEIGHT - PIXEL_SCALE;
-    }
-
     // Take in an input event and react.
     SDL_Event event;
 
@@ -379,15 +367,23 @@ void switch_selected_tile(struct Mouse *mouse, unsigned char tile_type)
 }
 
 
-void place_tile(struct Mouse *mouse, unsigned char **sandbox)
+void place_tile(struct Mouse *mouse, unsigned char **sandbox, int height, int width)
 {
     // Downscale the mouse coordinates to floating sandbox coordinates.
     float row_coordinate = (float) mouse -> y / PIXEL_SCALE;
     float col_coordinate = (float) mouse -> x / PIXEL_SCALE;
 
-    // Round to the nearest integer to obtain valid sandbox indices.
-    int row_index = (int) roundf(row_coordinate);
-    int col_index = (int) roundf(col_coordinate);
+    // Chop off decimal portion to obtain valid sandbox indices.
+    int row_index = (int) row_coordinate;
+    int col_index = (int) col_coordinate;
+
+    // If mouse coordinates go outside window, clamp targeted indices to edge
+    // of sandbox.
+    row_index = (row_index >= height) ? height - 1 : row_index;
+    col_index = (col_index >= width) ? width - 1 : col_index;
+
+    row_index = (row_index < 0) ? 0 : row_index;
+    col_index = (col_index < 0) ? 0 : col_index;
 
     // Don't replace tiles, only place them ontop of air.
     if (get_tile_id(sandbox[row_index][col_index]) != AIR)
@@ -421,7 +417,7 @@ int main(int argc, char *argv[])
 
         if (app -> mouse -> is_left_clicking)
         {
-            place_tile(app -> mouse, sandbox);
+            place_tile(app -> mouse, sandbox, SANDBOX_HEIGHT, SANDBOX_WIDTH);
         }
 
         // Do 1 frame of sandbox processing and draw the result to the renderer.

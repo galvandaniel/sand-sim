@@ -196,7 +196,7 @@ void switch_selected_tile(struct Mouse *mouse, unsigned char tile_type);
  * @param height, width - Dimensions of the given sandbox in tiles.
  *
  */
-void place_tile(struct Mouse *mouse, unsigned char **sandbox);
+void place_tile(struct Mouse *mouse, unsigned char **sandbox, int height, int width);
 
 
 #endif // GUI_H
