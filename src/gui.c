@@ -9,6 +9,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 
 // There are at most 16 unique tile IDs, and therefore 16 unique textures.
@@ -99,7 +100,7 @@ static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event
         // In the case of pressing q, the app will quit.
         case SDLK_q:
             cleanup(app);
-            exit(0);
+            exit(EXIT_SUCCESS);
 
         // In an unhandled keypress, do nothing.
         default:
@@ -142,7 +143,7 @@ struct Application *init_gui(char *title)
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
         printf("(ERROR) Couldn't initialize SDL: %s\n", SDL_GetError());
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     // Init SDL_Image for use with PNGs and JPGs
@@ -164,7 +165,7 @@ struct Application *init_gui(char *title)
     if (app -> window == NULL)
     {
         printf("Failed to open a %d by %d window: %s\n", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_GetError());
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     // Use linear interpolation to scale resolution.
@@ -176,7 +177,7 @@ struct Application *init_gui(char *title)
     if (app -> renderer == NULL)
     {
         printf("Failed to create renderer: %s\n", SDL_GetError());
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     // Initialize a new mouse with zero in every field, except for selected tile,
@@ -336,7 +337,7 @@ void get_input(struct Application *app)
             // Free memory taken up by app, then shutdown.
             case SDL_QUIT:
                 cleanup(app);
-                exit(0);
+                exit(EXIT_SUCCESS);
 
             // Record player holding down mouse button by keeping track of
             // when it is pressed down and up.
