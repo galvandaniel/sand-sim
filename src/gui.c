@@ -235,6 +235,8 @@ void cleanup(struct Application *app)
     // Remove textures before exiting.
     _destroy_textures();
 
+    // Quit SDL and SDL_Image.
+    IMG_Quit();
     SDL_Quit();
 }
 
@@ -440,5 +442,5 @@ int main(int argc, char *argv[])
         SDL_Delay(33);
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
