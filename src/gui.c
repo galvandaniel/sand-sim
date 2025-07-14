@@ -12,6 +12,43 @@
 #include <stdlib.h>
 
 
+/**
+ * Wrapper for all SDL calls which can fail on returning a negative error code.
+ * 
+ * Not intended to be called on a raw pointer.
+ */
+static int SDL_CHECK_CODE(int status_code)
+{
+    if (status_code < 0)
+    {
+        SDL_Log("\nSDL ERROR: %s\nReason: %s\n",
+                __FILE__,
+                SDL_GetError());
+        exit(EXIT_FAILURE);
+    }
+    
+    return status_code;
+}
+
+/**
+ * Wrapper for all SDL calls which can fail on returning a NULL pointer.
+ * 
+ * Not intended to be called on a raw pointer.
+ */
+static void *SDL_CHECK_PTR(void *sdl_ptr)
+{
+   if (sdl_ptr == NULL)
+   {
+       SDL_Log("\nSDL ERROR: %s\nReason: %s\n",
+               __FILE__,
+               SDL_GetError());
+       exit(EXIT_FAILURE);
+   }
+
+   return sdl_ptr;
+}
+
+
 // There are at most 16 unique tile IDs, and therefore 16 unique textures.
 static const int NUM_UNIQUE_TILES = 16;
 
@@ -111,6 +148,38 @@ static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event
 
 
 /**
+ * Perform any application updates that occur due to any changes in the window
+ * state.
+ * 
+ * @param app App to mutate due to change in window state.
+ * @param event Window event containing data on what state change occurred.
+ */
+static void _do_window_change(struct Application *app, SDL_WindowEvent *event)
+{
+    SDL_WindowEventID event_id = event->event;
+
+    switch (event_id)
+    {
+        // SDL handles window resizing automatically, and with the logical 
+        // renderer size set, will handle resizing content automatically too.
+        //
+        // Cover window with black to prevent resizing causing ugly stretching 
+        // of content at border. 
+        case SDL_WINDOWEVENT_RESIZED:
+
+            set_black_background(app);
+            //SDL_Surface *window_surface = SDL_GetWindowSurface(app->window);
+            SDL_UpdateWindowSurface(app->window);
+            break;
+        
+        // Do nothing on unhandled window event.
+        default:
+            break;
+    }
+}
+
+
+/**
  * Unload all tile textures from memory, destroying them and freeing the array
  * of tile_textures.
  */
@@ -133,18 +202,16 @@ static void _destroy_textures(void)
 struct Application *init_gui(char *title)
 {
     // Allocate memory for the app.
-    struct Application *app = (struct Application *) malloc(sizeof(struct Application));
+    struct Application *app = malloc(sizeof(*app));
 
-    // Setup flags for window and renderer creation.
-    unsigned int renderer_flags = SDL_RENDERER_ACCELERATED;
-    unsigned int window_flags = 0;
+    // Let SDL pick the first suitable renderer.
+    unsigned int renderer_flags = 0;
+
+    // Window creation flags.
+    unsigned int window_flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
 
     // Attempt to initialize SDL2 video subsystem.
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
-    {
-        printf("(ERROR) Couldn't initialize SDL: %s\n", SDL_GetError());
-        exit(EXIT_FAILURE);
-    }
+    SDL_CHECK_CODE(SDL_Init(SDL_INIT_VIDEO));
 
     // Init SDL_Image for use with PNGs and JPGs
     IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
@@ -154,35 +221,25 @@ struct Application *init_gui(char *title)
     WINDOW_HEIGHT = SANDBOX_HEIGHT * PIXEL_SCALE;
 
     // Create app window once video is initialized.
-    app -> window = SDL_CreateWindow(title, 
+    app -> window = SDL_CHECK_PTR(SDL_CreateWindow(title, 
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
             WINDOW_WIDTH,
             WINDOW_HEIGHT,
-            window_flags);
+            window_flags));
+    SDL_SetWindowMinimumSize(app -> window, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    // Check if window creation succeeded.
-    if (app -> window == NULL)
-    {
-        printf("Failed to open a %d by %d window: %s\n", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_GetError());
-        exit(EXIT_FAILURE);
-    }
-
-    // Use linear interpolation to scale resolution.
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+    // Use nearest interpolation to scale resolution for pixel-perfect tiles.
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
 
     // Create renderer using the first graphics acceleration device found.
-    app -> renderer = SDL_CreateRenderer(app -> window, -1, renderer_flags);
+    // Set a logical drawing area for automatic resolution scaling of rendered contents.
+    // Logical area is big enough to render sandbox at full resolution.
+    app -> renderer = SDL_CHECK_PTR(SDL_CreateRenderer(app -> window, -1, renderer_flags));
+    SDL_CHECK_CODE(SDL_RenderSetLogicalSize(app -> renderer, WINDOW_WIDTH, WINDOW_HEIGHT));
 
-    if (app -> renderer == NULL)
-    {
-        printf("Failed to create renderer: %s\n", SDL_GetError());
-        exit(EXIT_FAILURE);
-    }
-
-    // Initialize a new mouse with zero in every field, except for selected tile,
-    // and assign it to the application.
-    struct Mouse *new_mouse = (struct Mouse *) calloc(1, sizeof(struct Mouse));
+    // Zero-out mouse to start selected tile as being sand.
+    struct Mouse *new_mouse = calloc(1, sizeof(*new_mouse));
     new_mouse -> selected_tile = SAND;
     app -> mouse = new_mouse;
 
@@ -244,7 +301,8 @@ void cleanup(struct Application *app)
 SDL_Texture *load_texture(struct Application *app, char *filename)
 {
     // Call SDL_image to load image.
-    SDL_Texture *texture = IMG_LoadTexture(app -> renderer, filename);
+    SDL_Texture *texture = SDL_CHECK_PTR(IMG_LoadTexture(app -> renderer, filename));
+
     return texture;
 }
 
@@ -257,10 +315,10 @@ void blit_texture(struct Application *app, SDL_Texture *texture, int x, int y)
     dest.y = y;
 
     // Fill in rectangle dimension data by querying the texture.
-    SDL_QueryTexture(texture, NULL, NULL, &dest.w, &dest.h);
+    SDL_CHECK_CODE(SDL_QueryTexture(texture, NULL, NULL, &dest.w, &dest.h));
 
     // Draw texture, passing in NULL to copy whole texture.
-    SDL_RenderCopy(app -> renderer, texture, NULL, &dest);
+    SDL_CHECK_CODE(SDL_RenderCopy(app -> renderer, texture, NULL, &dest));
 }
 
 
@@ -281,10 +339,10 @@ SDL_Texture *get_panel_texture(unsigned char tile)
 void set_black_background(struct Application *app)
 {
     // Set color to black.
-    SDL_SetRenderDrawColor(app -> renderer, 0, 0, 0, 255);
+    SDL_CHECK_CODE(SDL_SetRenderDrawColor(app -> renderer, 0, 0, 0, 255));
 
     // Clear the window with the current set color.
-    SDL_RenderClear(app -> renderer);
+    SDL_CHECK_CODE(SDL_RenderClear(app -> renderer));
 }
 
 
@@ -326,9 +384,6 @@ void draw_ui(struct Application *app)
 
 void get_input(struct Application *app)
 {
-    // Update mouse coordinates within app.
-    SDL_GetMouseState(&(app -> mouse -> x), &(app -> mouse -> y));
-
     // Take in an input event and react.
     SDL_Event event;
 
@@ -340,6 +395,14 @@ void get_input(struct Application *app)
             case SDL_QUIT:
                 cleanup(app);
                 exit(EXIT_SUCCESS);
+
+            // We obtain mouse coordinates in an event, as unlike SDL_GetMouseState(),
+            // mouse coordinates captured this way are unaffected by logical renderer
+            // scaling (these are mouse coordinates relative to window size).
+            case SDL_MOUSEMOTION:
+                app -> mouse -> x = event.motion.x;
+                app -> mouse -> y = event.motion.y;
+                break;
 
             // Record player holding down mouse button by keeping track of
             // when it is pressed down and up.
@@ -356,6 +419,12 @@ void get_input(struct Application *app)
                 _do_keyboard_press(app, &event.key);
                 break;
 
+            
+            case SDL_WINDOWEVENT:
+                _do_window_change(app, &event.window);
+                break;
+    
+
             default:
                 break;
         }
@@ -366,7 +435,7 @@ void get_input(struct Application *app)
 void switch_selected_tile(struct Mouse *mouse, unsigned char tile_type)
 {
     // For invalid tile types, do nothing.
-    if (tile_type > 15)
+    if (tile_type > NUM_UNIQUE_TILES - 1)
     {
         return;
     }
@@ -444,3 +513,4 @@ int main(int argc, char *argv[])
 
     return EXIT_SUCCESS;
 }
+
