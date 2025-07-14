@@ -59,7 +59,7 @@ Once SDL2 is installed, sand-sim can be run using the provided binary:
 ./sand
 ```
 
-### Controls
+### Keyboard Controls
 
 Use the left mouse button the generate sand tiles into the world.
 
@@ -74,6 +74,38 @@ The element type may be changed using the keyboard. The key controls are:
 The panel in the topleft represents your currently selected element.
 
 Press q to quit the app.
+
+
+### Command-Line Arguments
+
+The size of the sandbox simulation can be customized at the command-line with
+a simple command-line interface:
+
+```bash
+Usage: ./sand [options]
+        options:
+         -h/--help       This message.
+         --size          Size preset of sandbox, either "small", "medium", or "large".
+         --width         Set tile width of the sandbox. Overrides --size. If specified, height must be specified too.
+         --height        Set tile height of the sandbox. Overrides --size. If specified, width must be specified too.
+```
+
+For example, to set the sandbox to be a size of 100 x 150 would look like the following:
+
+
+```bash
+./sand --width 100 --height 100
+```
+
+As another example, to use the "large" setting sandbox:
+
+```bash
+./sand --size large
+```
+
+If no command-line arguments are passed, sand-sim defaults to a 'medium' size
+sandbox.
+
 
 ## Building From Source
 

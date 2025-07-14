@@ -14,6 +14,15 @@
 // Upscaling for individual pixels when drawing to screen.
 #define PIXEL_SCALE 8
 
+// Preset sizes for sandbox, in tiles.
+#define SANDBOX_SMALL_WIDTH 16
+#define SANDBOX_SMALL_HEIGHT 9
+#define SANDBOX_MEDIUM_WIDTH 80
+#define SANDBOX_MEDIUM_HEIGHT 45
+#define SANDBOX_LARGE_WIDTH 160
+#define SANDBOX_LARGE_HEIGHT 90
+
+
 // Width and height of sandbox simulation in tiles.
 extern int SANDBOX_WIDTH;
 extern int SANDBOX_HEIGHT;

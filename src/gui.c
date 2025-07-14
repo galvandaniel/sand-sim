@@ -8,7 +8,6 @@
 
 #include <SDL.h>
 #include <SDL_image.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 
@@ -52,9 +51,10 @@ static void *SDL_CHECK_PTR(void *sdl_ptr)
 // There are at most 16 unique tile IDs, and therefore 16 unique textures.
 static const int NUM_UNIQUE_TILES = 16;
 
-// Dimensions are chosen by user at the command line.
-int SANDBOX_WIDTH = 80;
-int SANDBOX_HEIGHT = 45;
+// Dimensions are chosen by user at the command line when the program begins
+// however here, we default to a medium-size sandbox.
+int SANDBOX_WIDTH = SANDBOX_MEDIUM_WIDTH;
+int SANDBOX_HEIGHT = SANDBOX_MEDIUM_HEIGHT;
 
 int WINDOW_WIDTH;
 int WINDOW_HEIGHT;
@@ -168,7 +168,6 @@ static void _do_window_change(struct Application *app, SDL_WindowEvent *event)
         case SDL_WINDOWEVENT_RESIZED:
 
             set_black_background(app);
-            //SDL_Surface *window_surface = SDL_GetWindowSurface(app->window);
             SDL_UpdateWindowSurface(app->window);
             break;
         
@@ -477,40 +476,4 @@ void place_tile(struct Mouse *mouse, unsigned char **sandbox, int height, int wi
 }
 
 
-int main(int argc, char *argv[])
-{
-    // Initialize SDL, create an app, and load in textures.
-    struct Application *app = init_gui("Sandbox");
-
-    // Form a sandbox.
-    unsigned char **sandbox = create_sandbox(SANDBOX_HEIGHT, SANDBOX_WIDTH);
-
-    while (true)
-    {
-        // Render full black to the window.
-        set_black_background(app);
-
-        get_input(app);
-
-        if (app -> mouse -> is_left_clicking)
-        {
-            place_tile(app -> mouse, sandbox, SANDBOX_HEIGHT, SANDBOX_WIDTH);
-        }
-
-        // Do 1 frame of sandbox processing and draw the result to the renderer.
-        process_sandbox(sandbox, SANDBOX_HEIGHT, SANDBOX_WIDTH);
-        draw_sandbox(app, sandbox, SANDBOX_HEIGHT, SANDBOX_WIDTH);
-
-        // Draw UI elements above the sandbox so that they aren't covered.
-        draw_ui(app);
-
-        // Display all rendered graphics.
-        SDL_RenderPresent(app -> renderer);
-
-        // Run at ~30 FPS. (wait 33 milliseconds before proceeding to next frame)
-        SDL_Delay(33);
-    }
-
-    return EXIT_SUCCESS;
-}
 
