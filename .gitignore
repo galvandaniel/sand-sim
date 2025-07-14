@@ -57,3 +57,7 @@ dkms.conf
 
 # VS Code Folder
 .vscode
+
+# Ignore sand binaries
+sand
+sandwin.exe
