@@ -7,14 +7,14 @@
 
 
 // There are at most 16 unique tile IDs, and therefore 16 unique textures.
-const static int NUM_UNIQUE_TILES = 16;
+static const int NUM_UNIQUE_TILES = 16;
 
 // Dimensions are chosen by user at the command line.
-unsigned int SANDBOX_WIDTH = 80;
-unsigned int SANDBOX_HEIGHT = 45;
+int SANDBOX_WIDTH = 80;
+int SANDBOX_HEIGHT = 45;
 
-unsigned int WINDOW_WIDTH;
-unsigned int WINDOW_HEIGHT;
+int WINDOW_WIDTH;
+int WINDOW_HEIGHT;
 
 
 SDL_Texture **TILE_TEXTURES;
@@ -130,8 +130,8 @@ struct Application *init_gui(char *title)
     struct Application *app = (struct Application *) malloc(sizeof(struct Application));
 
     // Setup flags for window and renderer creation.
-    int renderer_flags = SDL_RENDERER_ACCELERATED;
-    int window_flags = 0;
+    unsigned int renderer_flags = SDL_RENDERER_ACCELERATED;
+    unsigned int window_flags = 0;
 
     // Attempt to initialize SDL2 video subsystem.
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -190,8 +190,8 @@ struct Application *init_gui(char *title)
 void init_textures(struct Application *app)
 {
     // Allocate memory for array to hold pointers to all textures.
-    TILE_TEXTURES = (SDL_Texture **) malloc(NUM_UNIQUE_TILES * sizeof(SDL_Texture *));
-    PANEL_TEXTURES = (SDL_Texture **) malloc(NUM_UNIQUE_TILES * sizeof(SDL_Texture *));
+    TILE_TEXTURES = malloc((unsigned long) NUM_UNIQUE_TILES * sizeof(*TILE_TEXTURES));
+    PANEL_TEXTURES = malloc((unsigned long) NUM_UNIQUE_TILES * sizeof(*PANEL_TEXTURES));
 
     // Load all tile textures.
     TILE_TEXTURES[AIR] = load_texture(app, "assets/tiles/air.png");
@@ -280,11 +280,11 @@ void set_black_background(struct Application *app)
 }
 
 
-void draw_sandbox(struct Application *app, unsigned char **sandbox, unsigned int height, unsigned int width)
+void draw_sandbox(struct Application *app, unsigned char **sandbox, int height, int width)
 {
-    for (unsigned int row = 0; row < height; row++)
+    for (int row = 0; row < height; row++)
     {
-        for (unsigned int col = 0; col < width; col++)
+        for (int col = 0; col < width; col++)
         {
             unsigned char current_tile = sandbox[row][col];
 
@@ -296,8 +296,8 @@ void draw_sandbox(struct Application *app, unsigned char **sandbox, unsigned int
 
             // Compute the coordinates that a tile should be blitted at by
             // scaling up their position as dictated by the scale factor.
-            unsigned int tile_x = col * PIXEL_SCALE;
-            unsigned int tile_y = row * PIXEL_SCALE;
+            int tile_x = col * PIXEL_SCALE;
+            int tile_y = row * PIXEL_SCALE;
 
             // Grab the associated tile texture and blit it to screen.
             SDL_Texture *tile_texture = get_tile_texture(current_tile);
@@ -379,18 +379,15 @@ void switch_selected_tile(struct Mouse *mouse, unsigned char tile_type)
 }
 
 
-void place_tile(struct Mouse *mouse,
-        unsigned char **sandbox,
-        unsigned int height,
-        unsigned int width)
+void place_tile(struct Mouse *mouse, unsigned char **sandbox)
 {
     // Downscale the mouse coordinates to floating sandbox coordinates.
     float row_coordinate = (float) mouse -> y / PIXEL_SCALE;
     float col_coordinate = (float) mouse -> x / PIXEL_SCALE;
 
     // Round to the nearest integer to obtain valid sandbox indices.
-    unsigned int row_index = roundf(row_coordinate);
-    unsigned int col_index = roundf(col_coordinate);
+    int row_index = (int) roundf(row_coordinate);
+    int col_index = (int) roundf(col_coordinate);
 
     // Don't replace tiles, only place them ontop of air.
     if (get_tile_id(sandbox[row_index][col_index]) != AIR)
@@ -424,7 +421,7 @@ int main(int argc, char *argv[])
 
         if (app -> mouse -> is_left_clicking)
         {
-            place_tile(app -> mouse, sandbox, SANDBOX_HEIGHT, SANDBOX_WIDTH);
+            place_tile(app -> mouse, sandbox);
         }
 
         // Do 1 frame of sandbox processing and draw the result to the renderer.

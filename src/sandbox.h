@@ -24,7 +24,7 @@ enum tile_id {AIR, SAND, WATER, WOOD, STEAM, FIRE};
 
 // Amount of time that has passed, in frames of simulation, since the sandbox
 // has begun.
-extern unsigned int SANDBOX_LIFETIME;
+extern int SANDBOX_LIFETIME;
 
 
 /*
@@ -38,16 +38,16 @@ extern unsigned int SANDBOX_LIFETIME;
  *
  * @return - Pointer to allocated 2D array of bytes representing a sandbox.
  */
-unsigned char **create_sandbox(unsigned int height, unsigned int width);
+unsigned char **create_sandbox(int height, int width);
 
 
 /*
  * Free all memory taken up by the given sandbox simulation.
  *
  * @param sandbox - Sandbox to free.
- * @param height, width - Dimensions of sandbox to free.
+ * @param height, width - Height of sandbox to free.
  */
-void sandbox_free(unsigned char **sandbox, unsigned int height, unsigned int width);
+void sandbox_free(unsigned char **sandbox, int height);
 
 
 /*
@@ -57,7 +57,7 @@ void sandbox_free(unsigned char **sandbox, unsigned int height, unsigned int wid
  * @param sandbox - Sandbox to simulate.
  * @param height, width - Dimensions of sandbox.
  */
-void process_sandbox(unsigned char **sandbox, unsigned int height, unsigned int width);
+void process_sandbox(unsigned char **sandbox, int height, int width);
 
 
 /*
@@ -82,7 +82,7 @@ unsigned char get_tile_id(unsigned char tile);
  *
  * @return - 1 if the tile has already been updated, 0 otherwise.
  */
-bool is_tile_updated(unsigned char tile, unsigned int current_time);
+bool is_tile_updated(unsigned char tile, int current_time);
 
 
 /*
@@ -93,7 +93,7 @@ bool is_tile_updated(unsigned char tile, unsigned int current_time);
  * @param tile - Pointer to tile to whose flag will be set.
  * @param current_time - Time that has passed in frames inside the simulation.
  */
-void set_tile_updated(unsigned char *tile, unsigned int current_time);
+void set_tile_updated(unsigned char *tile, int current_time);
 
 
 /*
@@ -135,11 +135,7 @@ void set_tile_static(unsigned char *tile, bool should_set_static);
  * @param height, width - Dimensions of given sandbox.
  * @param row_index, column_index - Coordinates of tile to perform gravity on.
  */
-void do_gravity(unsigned char **sandbox,
-        unsigned int height,
-        unsigned int width,
-        unsigned int row_index,
-        unsigned int column_index);
+void do_gravity(unsigned char **sandbox, int height, int width, int row_index, int column_index);
 
 
 /*
@@ -155,11 +151,7 @@ void do_gravity(unsigned char **sandbox,
  * @param width, height - Dimensions of given sandbox.
  * @param row_index, column_index - Coordinates of tile to perform flow on.
  */
-void do_liquid_flow(unsigned char **sandbox,
-        unsigned int height,
-        unsigned int width,
-        unsigned int row_index,
-        unsigned int column_index);
+void do_liquid_flow(unsigned char **sandbox, int height, int width, int row_index, int column_index);
 
 
 /*
@@ -178,11 +170,7 @@ void do_liquid_flow(unsigned char **sandbox,
  * @param width, height - Dimensions of given sandbox.
  * @param row_index, column_index - Coordinates of tile to perform lift on.
  */
-void do_lift(unsigned char **sandbox,
-        unsigned int height,
-        unsigned int width,
-        unsigned int row_index,
-        unsigned int column_index);
+void do_lift(unsigned char **sandbox, int height, int width, int row_index, int column_index);
 
 
 /*
@@ -192,7 +180,7 @@ void do_lift(unsigned char **sandbox,
  *
  * @return - 0 if the time is even, 1 if the time is odd.
  */
-unsigned char get_time_parity(unsigned int current_time);
+unsigned char get_time_parity(int current_time);
 
 
 /*
@@ -218,7 +206,7 @@ bool get_updated_flag(unsigned char tile);
  * @param sandbox - Sandbox to print to stdout.
  * @param height, width - Dimensions of the given sandbox.
  */
-void print_sandbox(unsigned char **sandbox, unsigned int height, unsigned int width);
+void print_sandbox(unsigned char **sandbox, int height, int width);
 
 
 #endif // SANDBOX_H

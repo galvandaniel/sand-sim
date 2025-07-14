@@ -22,7 +22,7 @@
 
 
 // Lifetime sandbox has existed for begins at 0 frames, 0 seconds.
-unsigned int SANDBOX_LIFETIME = 0;
+int SANDBOX_LIFETIME = 0;
 
 
 // ----- STATIC/PRIVATE FUNCTIONS -----
@@ -35,11 +35,7 @@ unsigned int SANDBOX_LIFETIME = 0;
  * @param row_two, column_two - Coordinates of second tile.
  * @param sandbox - Sandbox to mutate by swapping first and second tile.
  */
-static void _swap_tiles(unsigned int row_one,
-        unsigned int column_one,
-        unsigned int row_two,
-        unsigned int column_two,
-        unsigned char **sandbox)
+static void _swap_tiles(int row_one, int column_one, int row_two, int column_two, unsigned char **sandbox)
 {
     // Use a temp variable to prevent destroying data before swap is complete.
     unsigned char temp = sandbox[row_one][column_one];
@@ -58,7 +54,7 @@ static void _swap_tiles(unsigned int row_one,
 static bool _flip_coin(void)
 {
     // Generate a random number between 0 and 1.
-    float random_value = rand() / (float) RAND_MAX;
+    float random_value = (float) rand() / (float) RAND_MAX;
 
     if (random_value > 0.5)
     {
@@ -237,18 +233,14 @@ static bool _is_solid(unsigned char tile)
  * Helper function to do_liquid_flow and do_lift.
  *
  * @param sandbox - Sandbox to potentialy mutate by moving tiles for sliding.
- * @param height, width - Dimensions of given sandbox.
+ * @param width - Width of given sandbox.
  * @param row_index, column_index - Coordinates of tile to slide.
  */
-void _slide_left_or_right(unsigned char **sandbox,
-        unsigned int height,
-        unsigned int width,
-        unsigned int row_index,
-        unsigned int column_index)
+void _slide_left_or_right(unsigned char **sandbox, int width, int row_index, int column_index)
 {
     // Gather info about what's to the left and right.
-    unsigned int left_column = column_index - 1;
-    unsigned int right_column = column_index + 1;
+    int left_column = column_index - 1;
+    int right_column = column_index + 1;
 
     // Test to see where we can move...
     // Only slide in a direction if there's an empty space, and it's not OOB.
@@ -299,27 +291,27 @@ void _slide_left_or_right(unsigned char **sandbox,
 // ----- PUBLIC FUNCTIONS -----
 
 
-unsigned char **create_sandbox(unsigned int height, unsigned int width)
+unsigned char **create_sandbox(int height, int width)
 {
     // Allocate memory for each row.
-    unsigned char **new_sandbox = (unsigned char **) malloc(height * sizeof(unsigned char *));
+    unsigned char **new_sandbox = malloc((unsigned long) height * sizeof(*new_sandbox));
 
     // Then allocate memory for each tile within each row, setting each tile to
     // 0, which corresponds to non-static air.
-    for (unsigned int row_index = 0; row_index < height; row_index++)
+    for (int row_index = 0; row_index < height; row_index++)
     {
-        new_sandbox[row_index] = (unsigned char *) calloc(width, sizeof(unsigned char));
+        new_sandbox[row_index] = calloc((unsigned long) width, sizeof(**new_sandbox));
     }
 
     return new_sandbox;
 }
 
 
-void sandbox_free(unsigned char **sandbox, unsigned int height, unsigned int width)
+void sandbox_free(unsigned char **sandbox, int height)
 {
     // First, free each row as an array of bytes.
     // Then, free the array of pointers that pointed to each array of bytes.
-    for (unsigned int row_index = 0; row_index < height; row_index++)
+    for (int row_index = 0; row_index < height; row_index++)
     {
         free(sandbox[row_index]);
     }
@@ -328,12 +320,12 @@ void sandbox_free(unsigned char **sandbox, unsigned int height, unsigned int wid
 }
 
 
-void process_sandbox(unsigned char **sandbox, unsigned int height, unsigned int width)
+void process_sandbox(unsigned char **sandbox, int height, int width)
 {
     // Iterate through whole sandbox, applying updates where necessary.
-    for (unsigned int row = 0; row < height; row++)
+    for (int row = 0; row < height; row++)
     {
-        for (unsigned int col = 0; col < width; col++)
+        for (int col = 0; col < width; col++)
         {
             unsigned char current_tile = sandbox[row][col];
             unsigned char tile_type = get_tile_id(current_tile);
@@ -403,7 +395,7 @@ unsigned char get_tile_id(unsigned char tile)
 }
 
 
-bool is_tile_updated(unsigned char tile, unsigned int current_time)
+bool is_tile_updated(unsigned char tile, int current_time)
 {
     // Shift the updated bit flag to the front, and compare.
     unsigned char time_parity = get_time_parity(current_time);
@@ -413,7 +405,7 @@ bool is_tile_updated(unsigned char tile, unsigned int current_time)
 }
 
 
-void set_tile_updated(unsigned char *tile, unsigned int current_time)
+void set_tile_updated(unsigned char *tile, int current_time)
 {
     unsigned char time_parity = get_time_parity(current_time);
 
@@ -460,13 +452,9 @@ void set_tile_static(unsigned char *tile, bool should_set_static)
 }
 
 
-void do_gravity(unsigned char **sandbox,
-        unsigned int height,
-        unsigned int width,
-        unsigned int row_index,
-        unsigned int column_index)
+void do_gravity(unsigned char **sandbox, int height, int width, int row_index, int column_index)
 {
-    unsigned int next_row = row_index + 1;
+    int next_row = row_index + 1;
 
     // Don't simulate gravity if doing so would take us out of bounds.
     if (next_row == height)
@@ -493,8 +481,8 @@ void do_gravity(unsigned char **sandbox,
     }
 
     // Get column indices of tiles to the bottom left and bottom right.
-    unsigned int left_column = column_index - 1;
-    unsigned int right_column = column_index + 1;
+    int left_column = column_index - 1;
+    int right_column = column_index + 1;
 
     // Assume that a slide isn't possible.
     bool can_slide_left = false;
@@ -548,13 +536,9 @@ void do_gravity(unsigned char **sandbox,
 }
 
 
-void do_liquid_flow(unsigned char **sandbox,
-        unsigned int height,
-        unsigned int width,
-        unsigned int row_index,
-        unsigned int column_index)
+void do_liquid_flow(unsigned char **sandbox, int height, int width, int row_index, int column_index)
 {
-    unsigned int next_row = row_index + 1;
+    int next_row = row_index + 1;
 
     // Liquid can't flow if it's not on solid footing.
     // Being on the botton of sandbox counts as being on solid footing.
@@ -564,23 +548,20 @@ void do_liquid_flow(unsigned char **sandbox,
         return;
     }
 
-    _slide_left_or_right(sandbox, height, width, row_index, column_index);
+    _slide_left_or_right(sandbox, width, row_index, column_index);
 }
 
 
-void do_lift(unsigned char **sandbox,
-        unsigned int height,
-        unsigned int width,
-        unsigned int row_index,
-        unsigned int column_index)
+void do_lift(unsigned char **sandbox, int height, int width, int row_index, int column_index)
 {
     bool can_ascend = false;
     bool can_slide = false;
 
-    unsigned int next_row = row_index - 1;
+    int next_row = row_index - 1;
 
     // We can only potentially ascend if doing so wouldn't take us out of bounds.
-    if (next_row != -1)
+    // It is also impossible to ascend to the bottom of the sandbox.
+    if (next_row != -1 && next_row != height - 1)
     {
         can_ascend = true;
     }
@@ -605,8 +586,8 @@ void do_lift(unsigned char **sandbox,
         }
 
         // Get the tiles to the top left and topright and their tile types.
-        unsigned int left_column = column_index - 1;
-        unsigned int right_column = column_index + 1;
+        int left_column = column_index - 1;
+        int right_column = column_index + 1;
 
         // Assume ascending to the left or right isn't possible.
         bool can_ascend_left = false;
@@ -655,13 +636,13 @@ void do_lift(unsigned char **sandbox,
 
     if (can_slide)
     {
-        _slide_left_or_right(sandbox, height, width, row_index, column_index);
+        _slide_left_or_right(sandbox, width, row_index, column_index);
     }
 
 }
 
 
-unsigned char get_time_parity(unsigned int current_time)
+unsigned char get_time_parity(int current_time)
 {
     // Use a mask of (0000 ... 0001) to extract the first bit, granting parity.
     return current_time & 1;
@@ -674,7 +655,7 @@ bool get_updated_flag(unsigned char tile)
 }
 
 
-void print_sandbox(unsigned char **sandbox, unsigned int height, unsigned int width)
+void print_sandbox(unsigned char **sandbox, int height, int width)
 {
     if (sandbox == NULL)
     {
@@ -683,9 +664,9 @@ void print_sandbox(unsigned char **sandbox, unsigned int height, unsigned int wi
 
     // Iterate through the sandbox, putting newlines at the end of each row
     // and printing each tile as an appropriate character.
-    for (unsigned int row = 0; row < height; row++)
+    for (int row = 0; row < height; row++)
     {
-        for (unsigned int col = 0; col < width; col++)
+        for (int col = 0; col < width; col++)
         {
             unsigned char current_tile = sandbox[row][col];
 

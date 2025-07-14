@@ -2,7 +2,7 @@ CC_LINUX = clang
 CC_WINDOWS = x86_64-w64-mingw32-gcc
 SRCS = $(wildcard src/*.c)
 
-CFLAGS = -Wall -g
+CFLAGS = -std=c17 -Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -pedantic -g
 LDFLAGS_LINUX = -lSDL2_image -lm
 LDFLAGS_WINDOWS = -lm
 

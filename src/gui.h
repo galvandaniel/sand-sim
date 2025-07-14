@@ -15,13 +15,13 @@
 #define PIXEL_SCALE 8
 
 // Width and height of sandbox simulation in tiles.
-extern unsigned int SANDBOX_WIDTH;
-extern unsigned int SANDBOX_HEIGHT;
+extern int SANDBOX_WIDTH;
+extern int SANDBOX_HEIGHT;
 
 // Width and height of window in pixels.
 // Window size depends on sandbox size, and sandbox size depends on user input.
-extern unsigned int WINDOW_WIDTH;
-extern unsigned int WINDOW_HEIGHT;
+extern int WINDOW_WIDTH;
+extern int WINDOW_HEIGHT;
 
 // Array of pointers to all textures used by tiles.
 extern SDL_Texture **TILE_TEXTURES;
@@ -151,7 +151,7 @@ void set_black_background(struct Application *app);
  * @param sandbox - Sandbox of tiles to draw to screen.
  * @param height, width - Dimensions of sandbox.
  */
-void draw_sandbox(struct Application *app, unsigned char **sandbox, unsigned int height, unsigned int width);
+void draw_sandbox(struct Application *app, unsigned char **sandbox, int height, int width);
 
 
 /*
@@ -196,10 +196,7 @@ void switch_selected_tile(struct Mouse *mouse, unsigned char tile_type);
  * @param height, width - Dimensions of the given sandbox in tiles.
  *
  */
-void place_tile(struct Mouse *mouse,
-        unsigned char **sandbox,
-        unsigned int height,
-        unsigned int width);
+void place_tile(struct Mouse *mouse, unsigned char **sandbox);
 
 
 #endif // GUI_H
