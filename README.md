@@ -9,7 +9,7 @@ Written in C using [SDL2](https://www.libsdl.org/).
 
 Personal project by Daniel Galvan.
 
-![Demo of Program](src/assets/demo/demo.gif)
+![Demo of Program](assets/demo/demo.gif)
 
 This project, while presentable in its current form, is planned to be further extended with additional customization options, elements, and toy features.
 
@@ -81,12 +81,11 @@ Compiling either of sand-sim's versions is supported only for Linux/Unix environ
 
 Download and extract a copy of the source code from the "releases" tab.
 
-Inside the "src" directory of the repository, the provided Makefile can be used to compile sand-sim.
+At the project root, the provided Makefile can be used to compile sand-sim.
 
 ### Linux/Unix
 
-Compiling sand-sim's Linux/Unix version requires the development versions of SDL2 and SDL2_image, which can be installed
-on Linux/Unix with the commands:
+Compiling sand-sim's Linux/Unix version requires the development versions of SDL2 and SDL2_image, which can be installed on Linux/Unix with the commands:
 
 ```bash
 sudo apt-get install libsdl2-dev
@@ -99,10 +98,10 @@ Compilation of the Linux/Unix version requires clang, which can be installed wit
 sudo apt-get install clang
 ```
 
-Once clang is installed, sand-sim can be built from the "src" directory with the command:
+Once clang is installed, sand-sim can be built from the project root directory with the command:
 
 ```bash
-make sand
+make
 ```
 
 This will produce a binary called "sand" which can be executed to run the program.
@@ -119,17 +118,18 @@ sudo apt-get install mingw-w64
 sudo apt-get install pkg-config
 ```
 
-Once these are installed, sand-sim can be built from the "src" directory with the command:
+Once these are installed, sand-sim can be built from the project root directory with the command:
 
 ```bash
 make sandwin
 ```
 
-The necessary SDL2 Windows compilation libraries are provided with the source of sand-sim.
+The necessary SDL2 Windows libraries are provided with the source of sand-sim and
+no external installation of SDL2 is necessary.
 
 ## Source File Organization
 
-- "sandbox.h" - Contains functions for sandbox simulation logic.
-- "gui.h" - Contains structures and functions for displaying a sandbox using SDL2.
 - "assets/" - Directory containing all visual assets.
-- "test.c" - Debugging code.
+- "sandbox.h" - Contains functions for sandbox simulation logic.
+- "gui.h" - Contains structures and functions for displaying sandbox using SDL2.
+

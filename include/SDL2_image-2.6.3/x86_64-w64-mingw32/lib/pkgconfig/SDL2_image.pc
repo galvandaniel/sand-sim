@@ -1,6 +1,6 @@
 # This relative prefix path is reliant on sand-sim being compiled at the location of
 # its Makefile!
-prefix=../include/SDL2_image-2.6.3/x86_64-w64-mingw32
+prefix=include/SDL2_image-2.6.3/x86_64-w64-mingw32
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
