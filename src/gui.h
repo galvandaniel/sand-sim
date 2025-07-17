@@ -39,7 +39,7 @@ extern SDL_Texture **TILE_TEXTURES;
 // Panels display the element currently selected.
 extern SDL_Texture **PANEL_TEXTURES;
 
-// Struct for holding mouse location data, button data, and the user's
+// Type containing mouse location data, button data, and the user's
 // currently selected tile.
 struct Mouse
 {
@@ -50,7 +50,7 @@ struct Mouse
 };
 
 
-// Struct for holding references to the GUI application's most integral pieces:
+// Type holding pointers to the GUI application's most integral pieces:
 // The window, renderer, and mouse.
 struct Application
 {

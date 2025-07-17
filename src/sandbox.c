@@ -2,7 +2,7 @@
  * Tiles have the following 4 bit flags, starting from most significant bit:
  *
  * 1. Update - If the tile has already been updated in the current update pass.
- * 2. Static - If the tile is set to not be updated due to reaching rest.
+ * 2. (UNUSED)
  * 3. (UNUSED)
  * 4. (UNUSED)
  *
@@ -30,7 +30,7 @@
 int SANDBOX_LIFETIME = 0;
 
 
-// ----- STATIC/PRIVATE FUNCTIONS -----
+// ----- STATIC FUNCTIONS -----
 
 
 /**
@@ -42,7 +42,6 @@ int SANDBOX_LIFETIME = 0;
  */
 static void _swap_tiles(int row_one, int column_one, int row_two, int column_two, unsigned char **sandbox)
 {
-    // Use a temp variable to prevent destroying data before swap is complete.
     unsigned char temp = sandbox[row_one][column_one];
     sandbox[row_one][column_one] = sandbox[row_two][column_two];
     sandbox[row_two][column_two] = temp;
@@ -50,9 +49,23 @@ static void _swap_tiles(int row_one, int column_one, int row_two, int column_two
 
 
 /**
- * Flip a coin pseudo-randomly, generating either heads or tails.
+ * Generate a integer between the given ranges, inclusive.
+ * 
+ * This function is not needed and will always generate the same sequence.
+ * 
+ * @param min, max Inclusive bounds of the random integer to be generated.
+ * 
+ * @return Random integer in the interval [min, max].
+ */
+static int randint(int min, int max)
+{
+    return min + (rand() % (max + 1 - min));
+}
+
+/**
+ * Flip a coin, generating either heads or tails.
  *
- * This function is not seeded, and will always generate the same sequence.
+ * This function is not seeded and will always generate the same sequence.
  *
  * @return True for heads, false for tails.
  */
@@ -67,6 +80,31 @@ static bool _flip_coin(void)
     }
 
     return 0;
+}
+
+
+/**
+ * Return whether the given tile is an empty space or not.
+ * 
+ * @param tile Tile to determine if is empty and replaceable or not.
+ * @return True if tile is empty, false otherwise.
+ */
+static bool _tile_is_empty(unsigned char tile)
+{
+    return get_tile_id(tile) == AIR;
+}
+
+
+/**
+ * Determine wheter the two given tiles have the type tile type.
+ * 
+ * @param tile, other_tile Tiles to determine if they have same type.
+ * 
+ * @return True if tiles have same tile type, false otherwise.
+ */
+static bool _are_tiles_same_type(unsigned char tile, unsigned char other_tile)
+{
+    return get_tile_id(tile) == get_tile_id(other_tile);
 }
 
 
@@ -109,83 +147,6 @@ static bool _tile_has_gravity(unsigned char tile)
 
 
 /**
- * Return whether the given tile is affected by liquid flow or not.
- *
- * @param tile Tile to determine if it has flow or not.
- *
- * @return True if the tile type flows, false otherwise.
- */
-static bool _tile_has_flow(unsigned char tile)
-{
-    unsigned char tile_type = get_tile_id(tile);
-
-    switch (tile_type)
-    {
-        case AIR:
-            return false;
-
-        case SAND:
-            return false;
-
-        case WATER:
-            return true;
-
-        case WOOD:
-            return false;
-
-        case STEAM:
-            return false;
-
-        case FIRE:
-            return false;
-
-        default:
-            return false;
-    }
-}
-
-
-/**
- * Return whether the given tile floats into the air naturally or not.
- *
- * Intuitively, lift is the opposite of gravity.
- *
- * @param tile Tile to determine if it has lift or not.
- *
- * @return True if tile has lift and floats, false otherwise.
- */
-static bool _tile_has_lift(unsigned char tile)
-{
-    unsigned char tile_type = get_tile_id(tile);
-
-    switch (tile_type)
-    {
-        // Air refers to the empty tile, it does not receive lift.
-        case AIR:
-            return false;
-
-        case SAND:
-            return false;
-
-        case WATER:
-            return false;
-
-        case WOOD:
-            return false;
-
-        case STEAM:
-            return true;
-
-        case FIRE:
-            return true;
-
-        default:
-            return false;
-    }
-}
-
-
-/**
  * Return whether or not a tile is "solid".
  *
  * A tile is considered solid if it capable of acting as a "floor" and can block
@@ -198,7 +159,7 @@ static bool _tile_has_lift(unsigned char tile)
  * 
  * @return True if tile is solid, false otherwise.
  */
-static bool _is_solid(unsigned char tile)
+static bool _tile_is_solid(unsigned char tile)
 {
     unsigned char tile_type = get_tile_id(tile);
 
@@ -211,10 +172,132 @@ static bool _is_solid(unsigned char tile)
             return true;
 
         case WATER:
-            return true;
+            return false;
 
         case WOOD:
             return true;
+
+        case STEAM:
+            return false;
+
+        case FIRE:
+            return false;
+
+        default:
+            return false;
+    }
+}
+
+
+/**
+ * Return whether the given tile is "liquid". 
+ * 
+ * A tile is considered liquid if it is able to flow ontop of solids and other 
+ * liquids.
+ * 
+ * For example, water is a liquid. Wood and steam are not liquids.
+ *
+ * @param tile Tile to determine if is liquid or not.
+ *
+ * @return True if the tile type is liquid and there has flow, false otherwise.
+ */
+static bool _tile_is_liquid(unsigned char tile)
+{
+    unsigned char tile_type = get_tile_id(tile);
+
+    switch (tile_type)
+    {
+        case AIR:
+            return false;
+
+        case SAND:
+            return false;
+
+        case WATER:
+            return true;
+
+        case WOOD:
+            return false;
+
+        case STEAM:
+            return false;
+
+        case FIRE:
+            return false;
+
+        default:
+            return false;
+    }
+}
+
+
+/**
+ * Return whether the given tile is a "gas" 
+ * 
+ * A tile is considered a gas if lifts into the air and is able to permeate
+ * through liquids and other gasses.
+ *
+ *
+ * @param tile Tile to determine if is gas and has lift or not.
+ *
+ * @return True if tile is a gas and lifts into the air, false otherwise.
+ */
+static bool _tile_is_gas(unsigned char tile)
+{
+    unsigned char tile_type = get_tile_id(tile);
+
+    switch (tile_type)
+    {
+        // Air refers to the empty tile, it is not a gas.
+        case AIR:
+            return false;
+
+        case SAND:
+            return false;
+
+        case WATER:
+            return false;
+
+        case WOOD:
+            return false;
+
+        case STEAM:
+            return true;
+
+        case FIRE:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+
+/**
+ * Return whether or not a tile dissolves in fluids therefore has a chance to
+ * flow laterally through liquids.
+ * 
+ * @param tile Tile to determine if dissolves in liquid.
+ * 
+ * @return True if tile dissolves in liquids like water, false otherwise.
+ */
+static bool _tile_dissolves(unsigned char tile)
+{
+    unsigned char tile_type = get_tile_id(tile);
+
+    switch (tile_type)
+    {
+        case AIR:
+            return false;
+
+        case SAND:
+            return false;
+
+        case WATER:
+            return false;
+
+        case WOOD:
+            return false;
 
         case STEAM:
             return false;
@@ -246,24 +329,12 @@ static bool _is_solid(unsigned char tile)
  */
 void _slide_left_or_right(unsigned char **sandbox, int width, int row_index, int column_index)
 {
-    // Gather info about what's to the left and right.
     int left_column = column_index - 1;
     int right_column = column_index + 1;
 
-    // Test to see where we can move...
     // Only slide in a direction if there's an empty space, and it's not OOB.
-    bool can_slide_left = false;
-    bool can_slide_right = false;
-
-    if (left_column != -1 && get_tile_id(sandbox[row_index][left_column]) == AIR)
-    {
-        can_slide_left = true;
-    }
-
-    if (right_column != width && get_tile_id(sandbox[row_index][right_column]) == AIR)
-    {
-        can_slide_right = true;
-    }
+    bool can_slide_left = left_column != -1 && _tile_is_empty(sandbox[row_index][left_column]);
+    bool can_slide_right = right_column != width && _tile_is_empty(sandbox[row_index][right_column]);
 
     // If we can flow both directions, choose one at random on a coin flip.
     if (can_slide_left && can_slide_right)
@@ -287,12 +358,68 @@ void _slide_left_or_right(unsigned char **sandbox, int width, int row_index, int
         _swap_tiles(row_index, column_index, row_index, left_column, sandbox);
         return;
     }
-
     if (can_slide_right)
     {
         _swap_tiles(row_index, column_index, row_index, right_column, sandbox);
         return;
     }
+}
+
+
+/**
+ * Determine if the given sandbox coordinates can be lifted to the target coordinates.
+ * 
+ * It is assumed that the target coordinates are valid coordinates which can be
+ * lifted, coordinates are not checked for consistency with anti-gravity logic.
+ */
+static bool _can_lift(unsigned char **sandbox, 
+                      int width, 
+                      int row_index, 
+                      int column_index, 
+                      int target_row, 
+                      int target_column)
+{
+    // If attempting to lift OOB, reject.
+    if (target_row == -1 || target_column == -1 || target_column == width)
+    {
+        return false;
+    }
+
+    unsigned char source_tile = sandbox[row_index][column_index];
+    unsigned char target_tile = sandbox[target_row][target_column];
+
+    return (_tile_is_empty(target_tile)
+         || _tile_is_liquid(target_tile)
+         || (_tile_is_gas(target_tile) && !_are_tiles_same_type(source_tile, target_tile)));
+}
+
+
+/**
+ * Determine if the given sandbox coordinates can sink to the target coordaintes.
+ * 
+ * It is assumed that the target coordinates are valid coordinates which can be
+ * sunk to, coordinates are not checked for consistency with gravity logic.
+ */
+static bool _can_sink(unsigned char **sandbox,
+                      int height,
+                      int width, 
+                      int row_index,
+                      int column_index,
+                      int target_row,
+                      int target_column)
+{
+    // Cannot sink if doing so goes OOB.
+    if (target_row == height || target_column == -1 || target_column == width)
+    {
+        return false;
+    }
+
+    unsigned char source_tile = sandbox[row_index][column_index];
+    unsigned char target_tile = sandbox[target_row][target_column];
+
+    return (_tile_is_liquid(target_tile)
+         && !_are_tiles_same_type(source_tile, target_tile)
+         && !_tile_dissolves(source_tile));
 }
 
 
@@ -305,7 +432,7 @@ unsigned char **create_sandbox(int height, int width)
     unsigned char **new_sandbox = malloc((unsigned long) height * sizeof(*new_sandbox));
 
     // Then allocate memory for each tile within each row, setting each tile to
-    // 0, which corresponds to non-static air.
+    // 0, which corresponds to air.
     for (int row_index = 0; row_index < height; row_index++)
     {
         new_sandbox[row_index] = calloc((unsigned long) width, sizeof(**new_sandbox));
@@ -336,18 +463,10 @@ void process_sandbox(unsigned char **sandbox, int height, int width)
         for (int col = 0; col < width; col++)
         {
             unsigned char current_tile = sandbox[row][col];
-            unsigned char tile_type = get_tile_id(current_tile);
-            bool is_static = is_tile_static(current_tile);
             bool is_updated = is_tile_updated(current_tile, SANDBOX_LIFETIME);
 
             // Do not simulate an empty tile.
-            if (tile_type == AIR)
-            {
-                continue;
-            }
-
-            // Do not simulate a static tile.
-            if (is_static)
+            if (_tile_is_empty(current_tile))
             {
                 continue;
             }
@@ -370,14 +489,14 @@ void process_sandbox(unsigned char **sandbox, int height, int width)
                 do_gravity(sandbox, height, width, row, col);
             }
 
-            // Perform flow on tiles that need it.
-            if (_tile_has_flow(current_tile))
+            // Perform flow on liquid tiles.
+            if (_tile_is_liquid(current_tile))
             {
                 do_liquid_flow(sandbox, height, width, row, col);
             }
 
-            // Perform lift on tiles that need it.
-            if (_tile_has_lift(current_tile))
+            // Perform lift on gasses
+            if (_tile_is_gas(current_tile))
             {
                 do_lift(sandbox, height, width, row, col);
             }
@@ -405,7 +524,6 @@ unsigned char get_tile_id(unsigned char tile)
 
 bool is_tile_updated(unsigned char tile, int current_time)
 {
-    // Shift the updated bit flag to the front, and compare.
     unsigned char time_parity = get_time_parity(current_time);
     unsigned char updated_flag = get_updated_flag(tile);
 
@@ -434,32 +552,6 @@ void set_tile_updated(unsigned char *tile, int current_time)
 }
 
 
-bool is_tile_static(unsigned char tile)
-{
-    // Bring static flag to the front, extract first bit.
-    unsigned char front_static = tile >> 6;
-    return front_static & 1;
-}
-
-
-void set_tile_static(unsigned char *tile, bool should_set_static)
-{
-    // Masks of (0100 0000) and (1011 1111) for on/off switching of second bit.
-    unsigned char turn_off = 191;
-    unsigned char turn_on = 64;
-
-    // Depending on what data we seek to copy, AND or OR to avoid destroying data.
-    if (should_set_static)
-    {
-        *tile |= turn_on;
-    }
-    else
-    {
-        *tile &= turn_off;
-    }
-}
-
-
 void do_gravity(unsigned char **sandbox, int height, int width, int row_index, int column_index)
 {
     int next_row = row_index + 1;
@@ -470,47 +562,39 @@ void do_gravity(unsigned char **sandbox, int height, int width, int row_index, i
         return;
     }
 
-    unsigned char current_tile = sandbox[row_index][column_index];
+    // First check if tile can sink/fall directly down.
+    bool can_sink_below = _can_sink(sandbox, height, width, row_index, column_index, next_row, column_index);
     unsigned char tile_below = sandbox[next_row][column_index];
 
-    // If the tile directly beneath us is empty, fall by one tile.
-    if (get_tile_id(tile_below) == AIR)
+    if (_tile_is_empty(tile_below) || can_sink_below)
     {
         _swap_tiles(row_index, column_index, next_row, column_index, sandbox);
         return;
     }
 
-    // If the tile directly beneath us is water, sink through it.
-    // However, don't let water sink through itself.
-    if (get_tile_id(tile_below) == WATER && get_tile_id(current_tile) != WATER)
-    {
-        _swap_tiles(row_index, column_index, next_row, column_index, sandbox);
-        return;
-    }
-
-    // Get column indices of tiles to the bottom left and bottom right.
     int left_column = column_index - 1;
     int right_column = column_index + 1;
 
-    // Assume that a slide isn't possible.
-    bool can_slide_left = false;
-    bool can_slide_right = false;
+    // The left and right borders of the sandbox are considered walls.
+    bool is_wall_on_left = left_column == -1 || _tile_is_solid(sandbox[row_index][left_column]);
+    bool is_wall_on_right = right_column == width || _tile_is_solid(sandbox[row_index][right_column]);
 
-    // Determine if its feasible to slide left, right, or neither.
-    // Short-circuiting has us avoid accessing out of bounds index values.
-    if (left_column != -1 && get_tile_id(sandbox[next_row][left_column]) == AIR)
+    // Cannot slide or sink downward if there are blocking walls on left and right.
+    if (is_wall_on_left && is_wall_on_right)
     {
-        can_slide_left = true;
+        return;
     }
 
-    if (right_column != width && get_tile_id(sandbox[next_row][right_column]) == AIR)
-    {
-        can_slide_right = true;
-    }
+    // Now check if tile can sink/slide diagonally instead.
+    bool can_sink_bottomleft = _can_sink(sandbox, height, width, row_index, column_index, next_row, left_column);
+    bool can_sink_bottomright = _can_sink(sandbox, height, width, row_index, column_index, next_row, right_column);
 
-    // If we have the option of sliding down left or right, choose which one
-    // to go down at random by flipping a coin.
-    if (can_slide_left && can_slide_right)
+    bool can_slide_bottomleft = !is_wall_on_left && _tile_is_empty(sandbox[next_row][left_column]);
+    bool can_slide_bottomright = !is_wall_on_right && _tile_is_empty(sandbox[next_row][right_column]);
+
+    // If we can both slide/sink down left and right, choose one at random.
+    if ((can_slide_bottomleft && can_slide_bottomright)
+        || (can_sink_bottomleft && can_sink_bottomright))
     {
         bool heads = _flip_coin();
 
@@ -526,21 +610,16 @@ void do_gravity(unsigned char **sandbox, int height, int width, int row_index, i
     }
 
     // If there is no choice in direction, do whichever is possible.
-    if (can_slide_left)
+    if (can_slide_bottomleft || can_sink_bottomleft)
     {
         _swap_tiles(row_index, column_index, next_row, left_column, sandbox);
         return;
     }
-
-    if (can_slide_right)
+    if (can_slide_bottomright || can_sink_bottomright)
     {
         _swap_tiles(row_index, column_index, next_row, right_column, sandbox);
         return;
     }
-
-    // At this point, the tile is in a location where it cannot fall any more.
-    // In this situation, it is now considered a static tile.
-    // set_static(tile);
 }
 
 
@@ -548,10 +627,10 @@ void do_liquid_flow(unsigned char **sandbox, int height, int width, int row_inde
 {
     int next_row = row_index + 1;
 
-    // Liquid can't flow if it's not on solid footing.
+    // Liquid can't flow if not on solid footing or not ontop of another liquid.
     // Being on the botton of sandbox counts as being on solid footing.
-    // Short-circuiting prevents OOB memory access.
-    if (next_row != height && !_is_solid(sandbox[next_row][column_index]))
+    bool on_solid_ground = next_row == height || _tile_is_solid(sandbox[next_row][column_index]);
+    if (!on_solid_ground && !_tile_is_liquid(sandbox[next_row][column_index]))
     {
         return;
     }
@@ -562,91 +641,51 @@ void do_liquid_flow(unsigned char **sandbox, int height, int width, int row_inde
 
 void do_lift(unsigned char **sandbox, int height, int width, int row_index, int column_index)
 {
-    bool can_ascend = false;
-    bool can_slide = false;
-
     int next_row = row_index - 1;
+    int left_column = column_index - 1;
+    int right_column = column_index + 1;
 
-    // We can only potentially ascend if doing so wouldn't take us out of bounds.
-    // It is also impossible to ascend to the bottom of the sandbox.
-    if (next_row != -1 && next_row != height - 1)
+    // Determine the directions tile can life to.
+    bool can_ascend_up = _can_lift(sandbox, width, row_index, column_index, next_row, column_index);
+    bool can_ascend_left = _can_lift(sandbox, width, row_index, column_index, next_row, left_column);
+    bool can_ascend_right = _can_lift(sandbox, width, row_index, column_index, next_row, right_column);
+    bool can_slide_left = _can_lift(sandbox, width, row_index, column_index, row_index, left_column);
+    bool can_slide_right = _can_lift(sandbox, width, row_index, column_index, row_index, right_column);
+
+    // Pick one movement option at random by collecting the possible target
+    // indices into an array.
+    bool movement_options[] = {can_ascend_up, 
+                               can_ascend_left, 
+                               can_ascend_right,
+                               can_slide_left,
+                               can_slide_right};
+    int index_options[5][2] = {{next_row, column_index},
+                               {next_row, left_column},
+                               {next_row, right_column},
+                               {row_index, left_column},
+                               {row_index, right_column}};
+    int target_indices[5][2];
+    int num_true = 0;
+    for (int i = 0; i < 5; i++)
     {
-        can_ascend = true;
-    }
-
-    // We can only slide if we're on the ceiling of the sandbox, or if the
-    // tile above us is solid and can serve as a ceiling.
-    if (next_row == -1 || _is_solid(sandbox[next_row][column_index]))
-    {
-        can_slide = true;
-    }
-
-    // Anti-gravity logic.
-    if (can_ascend)
-    {
-        unsigned char tile_above = sandbox[next_row][column_index];
-
-        // If the tile directly above us is air or is water, rise through it.
-        if (get_tile_id(tile_above) == AIR || get_tile_id(tile_above) == WATER)
+        if (movement_options[i])
         {
-            _swap_tiles(row_index, column_index, next_row, column_index, sandbox);
-            return;
-        }
-
-        // Get the tiles to the top left and topright and their tile types.
-        int left_column = column_index - 1;
-        int right_column = column_index + 1;
-
-        // Assume ascending to the left or right isn't possible.
-        bool can_ascend_left = false;
-        bool can_ascend_right = false;
-
-        // We can only ascend sideways through air, and only if we don't end up OOB.
-        if (left_column != -1 && get_tile_id(sandbox[next_row][left_column]) == AIR)
-        {
-            can_ascend_left = true;
-        }
-
-        if (right_column != width && get_tile_id(sandbox[next_row][right_column]) == AIR)
-        {
-            can_ascend_right = true;
-        }
-
-        // If we have a choice of left or right ascension, pick one at random.
-        if (can_ascend_left && can_ascend_right)
-        {
-            bool heads = _flip_coin();
-
-            if (heads)
-            {
-                _swap_tiles(row_index, column_index, next_row, left_column, sandbox);                
-            }
-            else
-            {
-                _swap_tiles(row_index, column_index, next_row, right_column, sandbox);
-            }
-            return;
-        }
-
-        // If there is only one choice of ascension, do that.
-        if (can_ascend_left)
-        {
-            _swap_tiles(row_index, column_index, next_row, left_column, sandbox);
-            return;
-        }
-
-        if (can_ascend_right)
-        {
-            _swap_tiles(row_index, column_index, next_row, right_column, sandbox);
-            return;
+            target_indices[num_true][0] = index_options[i][0];
+            target_indices[num_true][1] = index_options[i][1];
+            num_true++;
         }
     }
 
-    if (can_slide)
+    // No ascension is possible if cannot move any way upwards.
+    if (num_true == 0)
     {
-        _slide_left_or_right(sandbox, width, row_index, column_index);
+        return;
     }
 
+    int random_index = randint(0, num_true - 1);
+    int target_row = target_indices[random_index][0];
+    int target_column = target_indices[random_index][1];
+    _swap_tiles(row_index, column_index, target_row, target_column, sandbox);
 }
 
 
@@ -663,41 +702,4 @@ bool get_updated_flag(unsigned char tile)
 }
 
 
-void print_sandbox(unsigned char **sandbox, int height, int width)
-{
-    if (sandbox == NULL)
-    {
-        return;
-    }
-
-    // Iterate through the sandbox, putting newlines at the end of each row
-    // and printing each tile as an appropriate character.
-    for (int row = 0; row < height; row++)
-    {
-        for (int col = 0; col < width; col++)
-        {
-            unsigned char current_tile = sandbox[row][col];
-
-            if (get_tile_id(current_tile) == AIR)
-            {
-                putchar('-');
-            }
-
-            else if (get_tile_id(current_tile) == SAND)
-            {
-                putchar('O');
-            }
-
-            else if (get_tile_id(current_tile) == WATER)
-            {
-                putchar('_');
-            }
-
-            if (col == width - 1)
-            {
-                putchar('\n');
-            }
-        }
-    }
-}
 

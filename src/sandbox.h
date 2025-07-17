@@ -2,8 +2,7 @@
 #define SANDBOX_H
 
 /**
- * A collection of functions for working with a sand simulation as a 2D array
- * of tiles.
+ * A collection of functions for defining and processing a sand simulation.
  *
  * Each tile shall be represented as a single unsigned big-endian byte.
  *
@@ -28,7 +27,7 @@ extern int SANDBOX_LIFETIME;
  * Generate and allocate memory for an empty 2D sandbox of tiles with dimension
  * width X height.
  *
- * The sandbox begins filled with non-static air, equivalent to 0 in value.
+ * The sandbox begins filled with air, equivalent to 0 in value.
  *
  * @param height Vertical length of 2D sandbox.
  * @param width Horizontal length of 2D sandbox.
@@ -49,7 +48,7 @@ void sandbox_free(unsigned char **sandbox, int height);
 
 /**
  * Perform one full iteration of simulation on the given sandbox, applying 
- * any tile interations, flow, gravity, etc.
+ * any tile interactions, flow, gravity, flamability, etc.
  *
  * @param sandbox Sandbox to simulate.
  * @param height, width Dimensions of sandbox.
@@ -94,38 +93,13 @@ void set_tile_updated(unsigned char *tile, int current_time);
 
 
 /**
- * Return whether the given tile is static in the sandbox or not.
- *
- * A tile is static if it has no foreesable updates to perform to the sandbox.
- *
- * For example, a tile of sand that cannot move downwards any further is
- * considered static.
- *
- * If a tile is static, it will not be updated and will not affect the sandbox.
- *
- * @param tile Tile to determine if is static or not.
- * 
- * @return True if the tile is static, false otherwise.
- */
-bool is_tile_static(unsigned char tile);
-
-
-/**
- * Mutate the give tile's static flag to static or non-static, depending on
- * the given bool.
- *
- * @param tile Pointer to tile whose static flag will be set.
- * @param should_set_static Whether tile is set to static or non-static.
- */
-void set_tile_static(unsigned char *tile, bool should_set_static);
-
-
-/**
  * Simulate gravity on the tile located at the given indices, within the
  * sandbox of the given dimensions, by mutating the sandbox.
- *
- * This function does NOT check whether gravity should be performed on the tile
- * at the given coordinates.
+ * 
+ * Gravity is simulated on a tile by having the tile either fall down 1 tile or
+ * sink through a liquid tile.
+ * If neither of these are possible, then the tile will attempt to slide or sink
+ * diagonally down left or right, choosing at random if both are possible.
  *
  * @param sandbox 2D Sandbox of tiles to mutate and perform gravity within.
  * @param height, width Dimensions of given sandbox.
@@ -137,11 +111,9 @@ void do_gravity(unsigned char **sandbox, int height, int width, int row_index, i
 /**
  * Simulate flow on the tile at the given indices as though it were a liquid.
  *
- * Intuitively, this means moving a tile left or right at random, if there is
- * space and the tile has a floor.
- *
- * This function does NOT check whether flow should be performed on the tile
- * at the given coordinates.
+ * Flow is simulated on a tile by moving a left or right at random. 
+ * There must be space at the left/right the tile must be on top of a 
+ * solid floor or other liquids.
  *
  * @param sandbox 2D Sandbox of tiles to mutate and perform flow within.
  * @param width, height Dimensions of given sandbox.
@@ -153,14 +125,11 @@ void do_liquid_flow(unsigned char **sandbox, int height, int width, int row_inde
 /**
  * Simulate lift on the tile at the given indices as though it were a gas.
  *
- * Intuitively, lift is the opposite of gravity and liquid flow, combined as one. 
+ * Lift is simulated on a tile by moving at random 1 tile left, right, up, 
+ * upleft, or upright, wherever possible.
  *
- * Moving up if possible, ascending to the top left or topright otherwise.
- * If neither of those are possible, move left or right at random if a ceiling
- * is present.
- *
- * This function does NOT check whether the tile at the given coordinates should
- * have lift.
+ * A lifetd tile is free to potentially move to any one of the spaces above if
+ * the space is either empty, a liquid, or a gas.
  *
  * @param sandbox 2D Sandbox of tiles to mutate and perform lift within.
  * @param width, height Dimensions of given sandbox.
@@ -193,18 +162,6 @@ unsigned char get_time_parity(int current_time);
  * @return True if updated flag is set, false otherwise.
  */
 bool get_updated_flag(unsigned char tile);
-
-
-/**
- * Print a string representation of a 2D sandbox to stdout.
- *
- * A sandbox is represented as a string by a '-' denoting air, 'O' sand, 
- * '_' water.
- *
- * @param sandbox Sandbox to print to stdout.
- * @param height, width Dimensions of the given sandbox.
- */
-void print_sandbox(unsigned char **sandbox, int height, int width);
 
 
 #endif // SANDBOX_H
