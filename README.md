@@ -33,15 +33,12 @@ sand-sim must be executed with its "assets" directory in the same location as th
 
 SDL2 is required for sand-sim to run.
 
-For Windows users, this means the provided "SDL2.dll" and "SDL2_image.dll" must be present in the same directory as "sandwin.exe". 
-
-[!NOTE]
-Inside the "sand-sim-win" directory, the structure described above is already setup correctly.
+For Windows users, this means the provided "SDL2.dll" and "SDL2_image.dll" must be present in the same directory as "sandwin.exe". Inside the "sand-sim-win" directory, this structure is alraedy setup correctly.
 
 sand-sim can then be run using the "sandwin.exe" executable. 
 
-[!IMPORTANT]
-Windows Defender may pop up with a [warning message](https://superuser.com/questions/1553842/windows-protected-your-pc) regarding "sandwin.exe" being an unrecognized app. Clicking "More info" and then "Run anyway" will enable the app to run. (sand-sim is not malicious, the well-documented source code can checked to verify this) 
+> [!IMPORTANT]
+> Windows Defender may pop up with a [warning message](https://superuser.com/questions/1553842/windows-protected-your-pc) regarding "sandwin.exe" being an unrecognized app. Clicking "More info" and then "Run anyway" will enable the app to run. (sand-sim is not malicious, the well-documented source code can checked to verify this) 
 
 For Linux users, SDL2 must be installed system-wide. 
 
@@ -113,8 +110,8 @@ sandbox.
 
 ## Building From Source
 
-![NOTE]
-The compilation instructions below assume a Debian-based Linux enviroment. 
+> [!NOTE]
+> The compilation instructions below assume a Debian-based Linux enviroment. 
 
 After cloning the source code, the provided Makefile present at the project root 
 can be used to compile sand-sim once the required dependencies are in place.
