@@ -19,14 +19,13 @@ This project, while presentable in its current form, is planned to be further ex
 
 If running on a Linux Distribution:
 - Contents of "sand-sim" directory as downloaded from the "releases" tab.
-- SDL2
-- SDL2_image
+- [SDL2](https://github.com/libsdl-org/SDL/tree/SDL2)
+- [SDL2_image](https://github.com/libsdl-org/SDL_image/tree/SDL2)
 
 If running on Windows:
 - Contents of "sand-sim-win" directory as downloaded from the "releases" tab.
 
-Alternatively, [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) can be used if running on Windows to use
-the Linux version.
+Alternatively, [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) can be used if running on Windows to use the Linux version.
 
 ### Installation
 
@@ -34,12 +33,17 @@ sand-sim must be executed with its "assets" directory in the same location as th
 
 SDL2 is required for sand-sim to run.
 
-For Windows users, this means the provided "SDL2.dll" and "SDL2_image.dll" must be present in the same directory as "sand.exe".
-(This is already set up correctly in the "sandwin" directory)
+For Windows users, this means the provided "SDL2.dll" and "SDL2_image.dll" must be present in the same directory as "sandwin.exe". 
 
-sand-sim can then be run using the "sand.exe" executable.
+[!NOTE]
+Inside the "sand-sim-win" directory, the structure described above is already setup correctly.
 
-For Linux/Unix users, SDL2 must be installed system-wide. 
+sand-sim can then be run using the "sandwin.exe" executable. 
+
+[!IMPORTANT]
+Windows Defender may pop up with a [warning message](https://superuser.com/questions/1553842/windows-protected-your-pc) regarding "sandwin.exe" being an unrecognized app. Clicking "More info" and then "Run anyway" will enable the app to run. (sand-sim is not malicious, the well-documented source code can checked to verify this) 
+
+For Linux users, SDL2 must be installed system-wide. 
 
 To do this, run the following command:
 
@@ -109,15 +113,15 @@ sandbox.
 
 ## Building From Source
 
-Compiling either of sand-sim's versions is supported only for Linux/Unix environments.
+![NOTE]
+The compilation instructions below assume a Debian-based Linux enviroment. 
 
-Download and extract a copy of the source code from the "releases" tab.
+After cloning the source code, the provided Makefile present at the project root 
+can be used to compile sand-sim once the required dependencies are in place.
 
-At the project root, the provided Makefile can be used to compile sand-sim.
+### Linux
 
-### Linux/Unix
-
-Compiling sand-sim's Linux/Unix version requires the development versions of SDL2 and SDL2_image, which can be installed on Linux/Unix with the commands:
+Compiling sand-sim's Linux version requires the development versions of SDL2 and SDL2_image, which can be installed on Linux with the commands:
 
 ```bash
 sudo apt-get install libsdl2-dev
