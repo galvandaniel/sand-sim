@@ -33,7 +33,7 @@ sand-sim must be executed with its "assets" directory in the same location as th
 
 SDL2 is required for sand-sim to run.
 
-For Windows users, this means the provided "SDL2.dll" and "SDL2_image.dll" must be present in the same directory as "sandwin.exe". Inside the "sand-sim-win" directory, this structure is alraedy setup correctly.
+For Windows users, this means the provided "SDL2.dll" and "SDL2_image.dll" must be present in the same directory as "sandwin.exe". Inside the "sand-sim-win" directory, this structure is already setup correctly.
 
 sand-sim can then be run using the "sandwin.exe" executable. 
 
@@ -157,12 +157,18 @@ Once these are installed, sand-sim can be built from the project root directory 
 make sandwin
 ```
 
-The necessary SDL2 Windows libraries are provided with the source of sand-sim and
-no external installation of SDL2 is necessary.
+The necessary SDL2 Windows compiled libraries are provided with the source of sand-sim and
+no external installation of SDL2 is necessary for Windows compilation.
 
-## Source File Organization
+As a reminder, in order to run the output Windows binary, "sandwin.exe" must be placed
+next to the SDL2 and SDL2_image DLLs. (along with the "assets" directory)
 
-- "assets/" - Directory containing all visual assets.
-- "sandbox.h" - Contains functions for sandbox simulation logic.
-- "gui.h" - Contains structures and functions for displaying sandbox using SDL2.
+These DLL files can be obtained from the [SDL2](https://github.com/libsdl-org/SDL/releases/tag/release-2.28.5) and [SDL2_image](https://github.com/libsdl-org/SDL_image/releases/tag/release-2.6.3) repositories within the "win32-x64" archives.
+
+## Project and Source File Organization
+
+- "assets/" - Visual and audio assets used in GUI.
+- "libs/" - Pre-compiled third-party library code and headers.
+- "src/sandbox.c" - Core sandbox simulation logic.
+- "src/gui.c" - Implementation of GUI for displaying sandbox in SDL2.
 
