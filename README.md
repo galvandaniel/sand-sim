@@ -84,11 +84,11 @@ a simple command-line interface:
 
 ```bash
 Usage: ./sand [options]
-        options:
-         -h/--help       This message.
-         --size          Size preset of sandbox, either "small", "medium", or "large".
-         --width         Set tile width of the sandbox. Overrides --size. If specified, height must be specified too.
-         --height        Set tile height of the sandbox. Overrides --size. If specified, width must be specified too.
+Options:
+  -h/--help      This message.
+  --size         Size preset of sandbox, either "small", "medium", or "large".
+  --width        Set tile width of the sandbox. Overrides --size. If specified, height must be specified too.
+  --height       Set tile height of the sandbox. Overrides --size. If specified, width must be specified too.
 ```
 
 For example, to set the sandbox to be a size of 100 x 150 would look like the following:

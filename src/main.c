@@ -3,8 +3,10 @@
 
 #include <SDL.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
+
+
+const char *APP_NAME = "Sandbox";
 
 
 /**
@@ -14,14 +16,15 @@
  */
 static void print_usage_string(char *binary_name)
 {
-    printf("Sand Simulation, a simple sandbox simulation written in C using SDL2.\n");
-    putchar('\n');
-    printf("Usage: %s [options]\n", binary_name);
-    printf("\toptions: \n");
-    printf("\t -h/--help \t This message.\n");
-    printf("\t --size \t Size preset of sandbox, either \"small\", \"medium\", or \"large\".\n");
-    printf("\t --width \t Set tile width of the sandbox. Overrides --size. If specified, height must be specified too.\n");
-    printf("\t --height \t Set tile height of the sandbox. Overrides --size. If specified, width must be specified too.\n");
+    // Prefer SDL_Log over printf for portability. Does not require SDL_init.
+    SDL_Log("\nSand Simulation, a simple sandbox simulation written in C using SDL2.\n"
+            "Usage: %s [options]\n"
+            "Options: \n"
+            "  -h/--help \t This message.\n"
+            "  --size \t Size preset of sandbox, either \"small\", \"medium\", or \"large\".\n"
+            "  --width \t Set tile width of the sandbox. Overrides --size. If specified, height must be specified too.\n"
+            "  --height \t Set tile height of the sandbox. Overrides --size. If specified, width must be specified too.\n",
+            binary_name);
 }
 
 
@@ -123,7 +126,7 @@ int main(int argc, char **argv)
     parse_args(argc, argv);
 
     // Initialize SDL, create an app, and load in textures.
-    struct Application *app = init_gui("Sandbox");
+    struct Application *app = init_gui(APP_NAME);
 
     // Form a sandbox.
     unsigned char **sandbox = create_sandbox(SANDBOX_HEIGHT, SANDBOX_WIDTH);

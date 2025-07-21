@@ -15,13 +15,17 @@
  * Wrapper for all SDL calls which can fail on returning a negative error code.
  * 
  * Not intended to be called on a raw pointer.
+ * 
+ * @param status_code Code returned from an SDL API call.
+ * @param line_number The expanded value of __LINE__ when API call is made.
  */
-static int SDL_CHECK_CODE(int status_code)
+static int SDL_CHECK_CODE(int status_code, int line_number)
 {
     if (status_code < 0)
     {
-        SDL_Log("\nSDL ERROR: %s\nReason: %s\n",
+        SDL_Log("\nSDL ERROR: %s:%d\nReason: %s\n",
                 __FILE__,
+                line_number,
                 SDL_GetError());
         exit(EXIT_FAILURE);
     }
@@ -33,13 +37,17 @@ static int SDL_CHECK_CODE(int status_code)
  * Wrapper for all SDL calls which can fail on returning a NULL pointer.
  * 
  * Not intended to be called on a raw pointer.
+ * 
+ * @param sdl_ptr A pointer to an SDL type as returned from an SDL API call.
+ * @param line_number The expanded value of __LINE__ when API call is made.
  */
-static void *SDL_CHECK_PTR(void *sdl_ptr)
+static void *SDL_CHECK_PTR(void *sdl_ptr, int line_number)
 {
    if (sdl_ptr == NULL)
    {
-       SDL_Log("\nSDL ERROR: %s\nReason: %s\n",
+       SDL_Log("\nSDL ERROR: %s:%d\nReason: %s\n",
                __FILE__,
+               line_number,
                SDL_GetError());
        exit(EXIT_FAILURE);
    }
@@ -196,7 +204,7 @@ static void _destroy_textures(void)
 // ----- PUBLIC FUNCTIONS -----
 
 
-struct Application *init_gui(char *title)
+struct Application *init_gui(const char *title)
 {
     // Allocate memory for the app.
     struct Application *app = malloc(sizeof(*app));
@@ -208,7 +216,7 @@ struct Application *init_gui(char *title)
     unsigned int window_flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
 
     // Attempt to initialize SDL2 video subsystem.
-    SDL_CHECK_CODE(SDL_Init(SDL_INIT_VIDEO));
+    SDL_CHECK_CODE(SDL_Init(SDL_INIT_VIDEO), __LINE__);
 
     // Init SDL_Image for use with PNGs and JPGs
     IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
@@ -223,7 +231,7 @@ struct Application *init_gui(char *title)
             SDL_WINDOWPOS_UNDEFINED,
             WINDOW_WIDTH,
             WINDOW_HEIGHT,
-            window_flags));
+            window_flags), __LINE__);
     SDL_SetWindowMinimumSize(app -> window, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     // Use nearest interpolation to scale resolution for pixel-perfect tiles.
@@ -232,8 +240,8 @@ struct Application *init_gui(char *title)
     // Create renderer using the first graphics acceleration device found.
     // Set a logical drawing area for automatic resolution scaling of rendered contents.
     // Logical area is big enough to render sandbox at full resolution.
-    app -> renderer = SDL_CHECK_PTR(SDL_CreateRenderer(app -> window, -1, renderer_flags));
-    SDL_CHECK_CODE(SDL_RenderSetLogicalSize(app -> renderer, WINDOW_WIDTH, WINDOW_HEIGHT));
+    app -> renderer = SDL_CHECK_PTR(SDL_CreateRenderer(app -> window, -1, renderer_flags), __LINE__);
+    SDL_CHECK_CODE(SDL_RenderSetLogicalSize(app -> renderer, WINDOW_WIDTH, WINDOW_HEIGHT), __LINE__);
 
     // Zero-out mouse to start selected tile as being sand.
     struct Mouse *new_mouse = calloc(1, sizeof(*new_mouse));
@@ -298,7 +306,7 @@ void cleanup(struct Application *app)
 SDL_Texture *load_texture(struct Application *app, char *filename)
 {
     // Call SDL_image to load image.
-    SDL_Texture *texture = SDL_CHECK_PTR(IMG_LoadTexture(app -> renderer, filename));
+    SDL_Texture *texture = SDL_CHECK_PTR(IMG_LoadTexture(app -> renderer, filename), __LINE__);
 
     return texture;
 }
@@ -312,10 +320,10 @@ void blit_texture(struct Application *app, SDL_Texture *texture, int x, int y)
     dest.y = y;
 
     // Fill in rectangle dimension data by querying the texture.
-    SDL_CHECK_CODE(SDL_QueryTexture(texture, NULL, NULL, &dest.w, &dest.h));
+    SDL_CHECK_CODE(SDL_QueryTexture(texture, NULL, NULL, &dest.w, &dest.h), __LINE__);
 
     // Draw texture, passing in NULL to copy whole texture.
-    SDL_CHECK_CODE(SDL_RenderCopy(app -> renderer, texture, NULL, &dest));
+    SDL_CHECK_CODE(SDL_RenderCopy(app -> renderer, texture, NULL, &dest), __LINE__);
 }
 
 
@@ -336,10 +344,10 @@ SDL_Texture *get_panel_texture(unsigned char tile)
 void set_black_background(struct Application *app)
 {
     // Set color to black.
-    SDL_CHECK_CODE(SDL_SetRenderDrawColor(app -> renderer, 0, 0, 0, 255));
+    SDL_CHECK_CODE(SDL_SetRenderDrawColor(app -> renderer, 0, 0, 0, 255), __LINE__);
 
     // Clear the window with the current set color.
-    SDL_CHECK_CODE(SDL_RenderClear(app -> renderer));
+    SDL_CHECK_CODE(SDL_RenderClear(app -> renderer), __LINE__);
 }
 
 

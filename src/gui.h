@@ -68,9 +68,9 @@ struct Application
  *
  * @return Pointer to created application containing pointers to the resulting
  * window and renderer. 
- * This function returns NULL if any part of the app initialization fails
+ * This function will call exit() if any part of the app initialization fails.
  */
-struct Application *init_gui(char *title);
+struct Application *init_gui(const char *title);
 
 
 /**
