@@ -18,9 +18,23 @@
 enum tile_id {AIR, SAND, WATER, WOOD, STEAM, FIRE};
 
 
-// Amount of time that has passed, in frames of simulation, since the sandbox
-// has begun.
-extern int SANDBOX_LIFETIME;
+/**
+ * Type describing a sandbox simulation, containing particle grid data, grid
+ * dimensions, and grid metadata.
+ */
+struct Sandbox
+{
+    // 2D array of bytes, each byte encoding 1 particle of the sandbox.
+    unsigned char **grid;
+
+    // Sandbox dimensions in particle tiles.
+    int width;
+    int height;
+
+    // Amount of times sandbox has been simulated (one 'frame') since the
+    // sandbox has been created.
+    long long lifetime;
+};
 
 
 /**
@@ -29,21 +43,20 @@ extern int SANDBOX_LIFETIME;
  *
  * The sandbox begins filled with air, equivalent to 0 in value.
  *
- * @param height Vertical length of 2D sandbox.
- * @param width Horizontal length of 2D sandbox.
+ * @param width Horizontal length of 2D sandbox in particle tiles.
+ * @param height Vertical length of 2D sandbox in particles tiles.
  *
- * @return Pointer to allocated 2D array of bytes representing a sandbox.
+ * @return Pointer to allocated sandbox.
  */
-unsigned char **create_sandbox(int height, int width);
+struct Sandbox *create_sandbox(int width, int height);
 
 
 /**
  * Free all memory taken up by the given sandbox simulation.
  *
  * @param sandbox Sandbox to free.
- * @param height Height of sandbox to free.
  */
-void sandbox_free(unsigned char **sandbox, int height);
+void sandbox_free(struct Sandbox *sandbox);
 
 
 /**
@@ -51,9 +64,8 @@ void sandbox_free(unsigned char **sandbox, int height);
  * any tile interactions, flow, gravity, flamability, etc.
  *
  * @param sandbox Sandbox to simulate.
- * @param height, width Dimensions of sandbox.
  */
-void process_sandbox(unsigned char **sandbox, int height, int width);
+void process_sandbox(struct Sandbox *sandbox);
 
 
 /**
@@ -78,7 +90,7 @@ unsigned char get_tile_id(unsigned char tile);
  *
  * @return True if the tile has already been updated, false otherwise.
  */
-bool is_tile_updated(unsigned char tile, int current_time);
+bool is_tile_updated(unsigned char tile, long long current_time);
 
 
 /**
@@ -89,12 +101,12 @@ bool is_tile_updated(unsigned char tile, int current_time);
  * @param tile Pointer to tile to whose flag will be set.
  * @param current_time Time that has passed in frames inside the simulation.
  */
-void set_tile_updated(unsigned char *tile, int current_time);
+void set_tile_updated(unsigned char *tile, long long current_time);
 
 
 /**
- * Simulate gravity on the tile located at the given indices, within the
- * sandbox of the given dimensions, by mutating the sandbox.
+ * Simulate gravity on the tile located at the given indices by mutating the 
+ * sandbox.
  * 
  * Gravity is simulated on a tile by having the tile either fall down 1 tile or
  * sink through a liquid tile.
@@ -102,10 +114,9 @@ void set_tile_updated(unsigned char *tile, int current_time);
  * diagonally down left or right, choosing at random if both are possible.
  *
  * @param sandbox 2D Sandbox of tiles to mutate and perform gravity within.
- * @param height, width Dimensions of given sandbox.
- * @param row_index, column_index Coordinates of tile to perform gravity on.
+ * @param row, col Coordinates of tile to perform gravity on.
  */
-void do_gravity(unsigned char **sandbox, int height, int width, int row_index, int column_index);
+void do_gravity(struct Sandbox *sandbox, int row, int col);
 
 
 /**
@@ -116,10 +127,9 @@ void do_gravity(unsigned char **sandbox, int height, int width, int row_index, i
  * solid floor or other liquids.
  *
  * @param sandbox 2D Sandbox of tiles to mutate and perform flow within.
- * @param width, height Dimensions of given sandbox.
- * @param row_index, column_index Coordinates of tile to perform flow on.
+ * @param row, col Coordinates of tile to perform flow on.
  */
-void do_liquid_flow(unsigned char **sandbox, int height, int width, int row_index, int column_index);
+void do_liquid_flow(struct Sandbox *sandbox, int row, int col);
 
 
 /**
@@ -128,14 +138,13 @@ void do_liquid_flow(unsigned char **sandbox, int height, int width, int row_inde
  * Lift is simulated on a tile by moving at random 1 tile left, right, up, 
  * upleft, or upright, wherever possible.
  *
- * A lifetd tile is free to potentially move to any one of the spaces above if
+ * A lifted tile is free to potentially move to any one of the spaces above if
  * the space is either empty, a liquid, or a gas.
  *
  * @param sandbox 2D Sandbox of tiles to mutate and perform lift within.
- * @param width, height Dimensions of given sandbox.
- * @param row_index, column_index Coordinates of tile to perform lift on.
+ * @param row, col Coordinates of tile to perform lift on.
  */
-void do_lift(unsigned char **sandbox, int height, int width, int row_index, int column_index);
+void do_lift(struct Sandbox *sandbox, int row, int col);
 
 
 /**
@@ -145,7 +154,7 @@ void do_lift(unsigned char **sandbox, int height, int width, int row_index, int 
  *
  * @return 0 if the time is even, 1 if the time is odd.
  */
-unsigned char get_time_parity(int current_time);
+unsigned char get_time_parity(long long current_time);
 
 
 /**

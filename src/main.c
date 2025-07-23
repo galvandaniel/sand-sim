@@ -5,8 +5,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Preset sizes for sandbox, in tiles.
+#define SANDBOX_SMALL_WIDTH 16
+#define SANDBOX_SMALL_HEIGHT 9
+#define SANDBOX_MEDIUM_WIDTH 80
+#define SANDBOX_MEDIUM_HEIGHT 45
+#define SANDBOX_LARGE_WIDTH 160
+#define SANDBOX_LARGE_HEIGHT 90
 
-const char *APP_NAME = "Sandbox";
+
+static const char *APP_NAME = "Sandbox";
 
 
 /**
@@ -30,12 +38,31 @@ static void print_usage_string(char *binary_name)
 
 /**
  * Parse the command line arguments passed, manipulating the dimensions of the
- * sandbox.
+ * sandbox, placing the result into the given output integer array.
+ * 
+ * The given output integer array must be of size at least 2, otherwise
+ * undefined behavior results.
+ * 
  * @param argc Argument count.
  * @param argv Argument vector.
+ * @param dimensions Out-parameter to write parsed dimensions to, written
+ * in (width, height) order. If parse fails, (0, 0) is written.
  */
-static void parse_args(int argc, char **argv)
+static void parse_args(int argc, char **argv, int *dimensions)
 {
+    int width_index = 0;
+    int height_index = 1;
+
+    dimensions[width_index] = 0;
+    dimensions[height_index] = 0;
+
+    // For no argments specified, default to medium-size sandbox.
+    if (argc == 1)
+    {
+        dimensions[width_index] = SANDBOX_MEDIUM_WIDTH;
+        dimensions[height_index] = SANDBOX_MEDIUM_HEIGHT;
+    }
+
     // Print usage help string if all options are absent.
     if (argc == 2)
     {
@@ -55,18 +82,18 @@ static void parse_args(int argc, char **argv)
 
         if (strcmp("small", argv[2]) == 0)
         {
-            SANDBOX_WIDTH = SANDBOX_SMALL_WIDTH;
-            SANDBOX_HEIGHT = SANDBOX_SMALL_HEIGHT;
+            dimensions[width_index] = SANDBOX_SMALL_WIDTH;
+            dimensions[height_index] = SANDBOX_SMALL_HEIGHT;
         }
         else if (strcmp("medium", argv[2]) == 0)
         {
-            SANDBOX_WIDTH = SANDBOX_MEDIUM_WIDTH;
-            SANDBOX_HEIGHT = SANDBOX_MEDIUM_HEIGHT;
+            dimensions[width_index] = SANDBOX_MEDIUM_WIDTH;
+            dimensions[height_index] = SANDBOX_MEDIUM_HEIGHT;
         }
         else if (strcmp("large", argv[2]) == 0)
         {
-            SANDBOX_WIDTH = SANDBOX_LARGE_WIDTH;
-            SANDBOX_HEIGHT = SANDBOX_LARGE_HEIGHT;
+            dimensions[width_index] = SANDBOX_LARGE_WIDTH;
+            dimensions[height_index] = SANDBOX_LARGE_HEIGHT;
         }
         else
         {
@@ -104,15 +131,15 @@ static void parse_args(int argc, char **argv)
         int user_width = atoi(argv[2]);
         int user_height = atoi(argv[4]);
 
-        // Stop if atoi() failed.
-        if (user_width == 0 || user_height == 0)
+        // Stop if atoi() failed to parse into valid integer within INT_MAX.
+        if (user_width <= 0 || user_height <= 0)
         {
             print_usage_string(argv[0]);
             exit(EXIT_FAILURE);
         }
 
-        SANDBOX_WIDTH = user_width;
-        SANDBOX_HEIGHT = user_height;
+        dimensions[width_index] = user_width;
+        dimensions[height_index] = user_height;
     }
 }
 
@@ -123,13 +150,14 @@ static void parse_args(int argc, char **argv)
 int main(int argc, char **argv)
 {
     // Change the dimensions of sandbox w.r.t arguments.
-    parse_args(argc, argv);
+    int sandbox_dimensions[2];
+    parse_args(argc, argv, sandbox_dimensions);
+
+    // Form a sandbox of user's desired dimensions.
+    struct Sandbox *sandbox = create_sandbox(sandbox_dimensions[0], sandbox_dimensions[1]);
 
     // Initialize SDL, create an app, and load in textures.
-    struct Application *app = init_gui(APP_NAME);
-
-    // Form a sandbox.
-    unsigned char **sandbox = create_sandbox(SANDBOX_HEIGHT, SANDBOX_WIDTH);
+    struct Application *app = init_gui(APP_NAME, sandbox);
 
     while (true)
     {
@@ -138,20 +166,20 @@ int main(int argc, char **argv)
 
         get_input(app);
 
-        if (app -> mouse -> is_left_clicking)
+        if (app->mouse->is_left_clicking)
         {
-            place_tile(app -> mouse, sandbox, SANDBOX_HEIGHT, SANDBOX_WIDTH);
+            place_tile(app->mouse, sandbox);
         }
 
         // Do 1 frame of sandbox processing and draw the result to the renderer.
-        process_sandbox(sandbox, SANDBOX_HEIGHT, SANDBOX_WIDTH);
-        draw_sandbox(app, sandbox, SANDBOX_HEIGHT, SANDBOX_WIDTH);
+        process_sandbox(sandbox);
+        draw_sandbox(app);
 
         // Draw UI elements above the sandbox so that they aren't covered.
         draw_ui(app);
 
         // Display all rendered graphics.
-        SDL_RenderPresent(app -> renderer);
+        SDL_RenderPresent(app->renderer);
 
         // Run at ~30 FPS. (wait 33 milliseconds before proceeding to next frame)
         SDL_Delay(33);

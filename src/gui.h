@@ -10,27 +10,9 @@
 #include <SDL_image.h>
 #include <stdbool.h>
 
-
 // Upscaling for individual pixels when drawing to screen.
 #define PIXEL_SCALE 8
 
-// Preset sizes for sandbox, in tiles.
-#define SANDBOX_SMALL_WIDTH 16
-#define SANDBOX_SMALL_HEIGHT 9
-#define SANDBOX_MEDIUM_WIDTH 80
-#define SANDBOX_MEDIUM_HEIGHT 45
-#define SANDBOX_LARGE_WIDTH 160
-#define SANDBOX_LARGE_HEIGHT 90
-
-
-// Width and height of sandbox simulation in tiles.
-extern int SANDBOX_WIDTH;
-extern int SANDBOX_HEIGHT;
-
-// Width and height of window in pixels.
-// Window size depends on sandbox size, and sandbox size depends on user input.
-extern int WINDOW_WIDTH;
-extern int WINDOW_HEIGHT;
 
 // Array of pointers to all textures used by tiles.
 extern SDL_Texture **TILE_TEXTURES;
@@ -39,37 +21,57 @@ extern SDL_Texture **TILE_TEXTURES;
 // Panels display the element currently selected.
 extern SDL_Texture **PANEL_TEXTURES;
 
-// Type containing mouse location data, button data, and the user's
-// currently selected tile.
+/**
+ * Type descrbing GUI Application data controlled by a mouse input device.
+ */
 struct Mouse
 {
+    // Mouse coordinates in app window in terms of absolute window size.
     int x;
     int y;
+
+    // Whether LMB is currently held down or not.
     bool is_left_clicking;
+
+    // Selected particle tile type to place down.
     unsigned char selected_tile;
 };
 
 
-// Type holding pointers to the GUI application's most integral pieces:
-// The window, renderer, and mouse.
+/**
+ * Type describing all critical components owned by a GUI application.
+ */
 struct Application
 {
+    // App GUI components.
     SDL_Renderer *renderer;
     SDL_Window *window;
+
+    // Mouse data captured by GUI application.
     struct Mouse *mouse;
+
+    // Sandbox owned and displayed by GUI application.
+    struct Sandbox *sandbox;
+
+    // Minimum size of app window in pixels, depends on sandbox size.
+    // Actual window size may grow larger than these values.
+    int min_window_width;
+    int min_window_height;
 };
 
 
 /**
- * Initializes sandbox GUI application and SDL.
+ * Initialize Sandbox GUI application and SDL with respect to the given sandbox
+ * data.
  *
  * @param title NULL-terminated bytestring to name the application window.
+ * @param sandbox Sandbox to be owned by the initialized GUI application.
  *
- * @return Pointer to created GUI application owning pointers to the resulting
- * SDL window and renderer. 
+ * @return Pointer to created GUI application which renders and owns the passed
+ * sandbox object.
  * This function will call exit() if any part of the app initialization fails.
  */
-struct Application *init_gui(const char *title);
+struct Application *init_gui(const char *title, struct Sandbox *sandbox);
 
 
 /**
@@ -148,19 +150,14 @@ void set_black_background(struct Application *app);
 
 
 /**
- * Draw a sandbox to the app for rendering, where each tile represents one 
- * pixel onscreen, scaled in size according to PIXEL_SCALE.
- *
- * The given sandbox must be of a smaller dimension than the screen resolution,
- * and must not be NULL.
+ * Draw a passed GUI application's currently owned sandbox, where each tile 
+ * represents one pixel onscreen, scaled in size according to PIXEL_SCALE.
  *
  * SDL_RenderPresent() is NOT called inside this function.
  *
- * @param app App to draw sandbox to.
- * @param sandbox Sandbox of tiles to draw to screen.
- * @param height, width Dimensions of sandbox.
+ * @param app App whose owned sandbox will be drawn.
  */
-void draw_sandbox(struct Application *app, unsigned char **sandbox, int height, int width);
+void draw_sandbox(struct Application *app);
 
 
 /**
@@ -194,17 +191,16 @@ void switch_selected_tile(struct Mouse *mouse, unsigned char tile_type);
 
 
 /**
- * Place a tile of the mouse's currently selected type at the mouse's location
- * in the given sandbox with dimension (width x height).
+ * Place a tile of the mouse's currently selected type at the mouse's relative 
+ * location in the given sandbox.
  *
  * Mouse screen coordinates are scaled down by PIXEL_SCALE to place a tile
  * within sandbox.
  *
  * @param mouse Pointer to mouse to get placement location and tile type.
  * @param sandbox Sandbox to mutate and place tile in.
- * @param height, width Dimensions of the given sandbox in tiles.
  */
-void place_tile(struct Mouse *mouse, unsigned char **sandbox, int height, int width);
+void place_tile(struct Mouse *mouse, struct Sandbox *sandbox);
 
 
 #endif // GUI_H

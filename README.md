@@ -91,21 +91,37 @@ Options:
   --height       Set tile height of the sandbox. Overrides --size. If specified, width must be specified too.
 ```
 
-For example, to set the sandbox to be a size of 100 x 150 would look like the following:
+Custom widths and heights are supported up to INT_MAX as defined in limits.h,
+which is platform dependent.
 
+For example, on Linux, to set the sandbox to be a size of 50 x 80 would look like the following:
 
 ```bash
-./sand --width 100 --height 150
+./sand --width 50 --height 80
 ```
 
-As another example, to use the "large" setting sandbox:
+Similarly on Windows:
+
+```bash
+.\sandwin.exe --width 50 --height 80
+```
+
+As another example, to use the "large" setting sandbox on Linux:
 
 ```bash
 ./sand --size large
 ```
 
+And on Windows:
+```bash
+.\sandwin.exe --size large
+```
+
 If no command-line arguments are passed, sand-sim defaults to a 'medium' size
 sandbox.
+
+If any command-line arguments are invalid for any reason, sand-sim will repeat
+its usage string.
 
 
 ## Building From Source
