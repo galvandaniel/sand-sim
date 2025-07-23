@@ -1,6 +1,7 @@
 CC_LINUX = clang
 CC_WINDOWS = x86_64-w64-mingw32-gcc
 SRCS = $(wildcard src/*.c)
+HDRS = $(wildcard src/*.h)
 
 CFLAGS = -std=c17 -Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -pedantic -O2
 LDFLAGS_LINUX = -lSDL2_image -lm
@@ -17,10 +18,10 @@ SDL_IM_CFLAGS_WINDOWS = `pkg-config --cflags --libs libs/mingw/SDL2_image-2.6.3/
 .PHONY: clean
 
 # Linux and Windows compile commands. Default to Linux.
-$(OUTPUT_LINUX): $(SRCS)
+$(OUTPUT_LINUX): $(SRCS) $(HDRS)
 	$(CC_LINUX) $(CFLAGS) $(SRCS) $(SDL_CFLAGS_LINUX) $(LDFLAGS_LINUX) -o $(@)
 
-$(OUTPUT_WINDOWS): $(SRCS)
+$(OUTPUT_WINDOWS): $(SRCS) $(HDRS)
 	$(CC_WINDOWS) $(CFLAGS) $(SRCS) $(SDL_CFLAGS_WINDOWS) $(SDL_IM_CFLAGS_WINDOWS) $(LDFLAGS_WINDOWS) -o $(@)
 
 clean:
