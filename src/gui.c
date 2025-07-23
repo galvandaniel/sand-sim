@@ -11,6 +11,9 @@
 #include <stdlib.h>
 
 
+// ----- SDL API CALL WRAPPERS -----
+
+
 /**
  * Wrapper for all SDL calls which can fail on returning a negative error code.
  * 
@@ -142,8 +145,7 @@ static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event
 
         // In the case of pressing q, the app will quit.
         case SDLK_q:
-            cleanup(app);
-            exit(EXIT_SUCCESS);
+            quit_gui(app);
 
         // In an unhandled keypress, do nothing.
         default:
@@ -199,6 +201,30 @@ static void _destroy_textures(void)
     free(TILE_TEXTURES);
     free(PANEL_TEXTURES);
 }
+
+
+/**
+ * Free any memory the passed GUI application takes up, shutting down any
+ * libraries loading by init_gui().
+ *
+ * @param app Owning GUI application to free.
+ */
+void _cleanup(struct Application *app)
+{
+    // Shut down SDL and free memory taken up by app.
+    SDL_DestroyWindow(app -> window);
+    SDL_DestroyRenderer(app -> renderer);
+    free(app -> mouse);
+    free(app);
+
+    // Remove textures before exiting.
+    _destroy_textures();
+
+    // Quit SDL and SDL_Image.
+    IMG_Quit();
+    SDL_Quit();
+}
+
 
 
 // ----- PUBLIC FUNCTIONS -----
@@ -286,20 +312,10 @@ void init_textures(struct Application *app)
 }
 
 
-void cleanup(struct Application *app)
+void quit_gui(struct Application *app)
 {
-    // Shut down SDL and free memory taken up by app.
-    SDL_DestroyWindow(app -> window);
-    SDL_DestroyRenderer(app -> renderer);
-    free(app -> mouse);
-    free(app);
-
-    // Remove textures before exiting.
-    _destroy_textures();
-
-    // Quit SDL and SDL_Image.
-    IMG_Quit();
-    SDL_Quit();
+    _cleanup(app);
+    exit(EXIT_SUCCESS);
 }
 
 
@@ -396,10 +412,10 @@ void get_input(struct Application *app)
     {
         switch (event.type)
         {
-            // Free memory taken up by app, then shutdown.
+            // Quit app and exit process on closing window input event.
             case SDL_QUIT:
-                cleanup(app);
-                exit(EXIT_SUCCESS);
+                quit_gui(app);
+                break;
 
             // We obtain mouse coordinates in an event, as unlike SDL_GetMouseState(),
             // mouse coordinates captured this way are unaffected by logical renderer

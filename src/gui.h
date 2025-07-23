@@ -61,13 +61,12 @@ struct Application
 
 
 /**
- * Initializes sandbox application and SDL, allocating memory for a window 
- * and renderer together in a single application struct.
+ * Initializes sandbox GUI application and SDL.
  *
  * @param title NULL-terminated bytestring to name the application window.
  *
- * @return Pointer to created application containing pointers to the resulting
- * window and renderer. 
+ * @return Pointer to created GUI application owning pointers to the resulting
+ * SDL window and renderer. 
  * This function will call exit() if any part of the app initialization fails.
  */
 struct Application *init_gui(const char *title);
@@ -79,18 +78,19 @@ struct Application *init_gui(const char *title);
  * Use get_tile_texture to retrieve the texture a tile should use.
  * Use get_panel_texture to retrieve the texture a panel should use.
  *
- * @param app Application holding renderer to load textures onto.
+ * @param app Owning GUI application holding renderer to load textures onto.
  */
 void init_textures(struct Application *app);
 
 
 /**
- * Cleanup the given sandbox application, freeing any memory it takes up, and 
- * shutdown SDL.
- *
- * @param app Application to shutdown and free.
+ * Quit the sandbox application, freeing any memory it takes up, shutting down
+ * any libraries initialized by init_gui(), and exiting the running process
+ * gracefully.
+ * 
+ * @param app Owning GUI application to shutdown and free.
  */
-void cleanup(struct Application *app);
+void quit_gui(struct Application *app);
 
 
 /**
