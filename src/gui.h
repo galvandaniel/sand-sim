@@ -13,6 +13,14 @@
 // Upscaling for individual pixels when drawing to screen.
 #define PIXEL_SCALE 8
 
+/**
+ * Unique modes the mouse can be in when placing tiles in the sandbox with LMB.
+ * 
+ * PLACE: Place tile only on empty spaces.
+ * DELETE: Place empty (air) tile on any other tile.
+ * REPLACE: Place tile on any other tile.
+ */
+enum mouse_mode {PLACE, DELETE, REPLACE, NUM_MOUSE_MODES};
 
 // Array of pointers to all textures used by tiles.
 extern SDL_Texture **TILE_TEXTURES;
@@ -35,6 +43,9 @@ struct Mouse
 
     // Selected particle tile type to place down.
     unsigned char selected_tile;
+
+    // Mode controlling whether mouse deletes or places tiles into sandbox.
+    enum mouse_mode mode;
 };
 
 
@@ -173,12 +184,23 @@ void draw_ui(struct Application *app);
 
 
 /**
- * Poll SDL for any user-input (mouse input, keyboard input) and react
- * accordingly within the sandbox application.
+ * Poll SDL for any user-input (mouse input, keyboard input) and update the
+ * GUI application state respectfully.
  *
- * @param app Application to react on due to input.
+ * @param app GUI Application whose data to update with respect to user input.
  */
 void get_input(struct Application *app);
+
+
+/**
+ * Mutate the given GUI application's owned sandbox with respect to the current
+ * input state present in app.
+ * 
+ * Intended to be called together with get_input() to process user input.
+ * 
+ * @param app GUI application whose sandbox to update according to user input.
+ */
+void handle_input(struct Application *app);
 
 
 /**
@@ -191,16 +213,36 @@ void switch_selected_tile(struct Mouse *mouse, unsigned char tile_type);
 
 
 /**
- * Place a tile of the mouse's currently selected type at the mouse's relative 
- * location in the given sandbox.
+ * Place a tile of the given mouse's currently selected type at its screen
+ * location, scaled down the dimensions of the passed sandbox according to
+ * PIXEL_SCALE.
  *
- * Mouse screen coordinates are scaled down by PIXEL_SCALE to place a tile
- * within sandbox.
  *
- * @param mouse Pointer to mouse to get placement location and tile type.
- * @param sandbox Sandbox to mutate and place tile in.
+ * @param mouse Mouse whose coordinates and selected tile type will be used.
+ * @param sandbox Sandbox to mutate and place tile in according to mouse data.
  */
 void place_tile(struct Mouse *mouse, struct Sandbox *sandbox);
+
+
+/**
+ * Remove the tile located at the given mouse's screen location, scaled down to
+ * the dimensions of the passed sandbox according to PIXEL_SCALE.
+ * 
+ * @param mouse Mouse whose coordinates will be used to delete a tile.
+ * @param sandbox Sandbox to mutate and delete tile in.
+ */
+void delete_tile(struct Mouse *mouse, struct Sandbox *sandbox);
+
+
+/**
+ * Replace the tile located at the given mouse's screen location, scaled down to
+ * the dimensions of the passed sandbox according to PIXEL_SCALE, with the
+ * mouse's currently selected type.
+ * 
+ * @param mouse Mouse whose coordinates and selected tile type will be used.
+ * @param sandbox Sandbox to mutate and replace tile in.
+ */
+void replace_tile(struct Mouse *mouse, struct Sandbox *sandbox);
 
 
 #endif // GUI_H

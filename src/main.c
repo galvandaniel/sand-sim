@@ -161,21 +161,17 @@ int main(int argc, char **argv)
 
     while (true)
     {
-        // Render full black to the window.
         set_black_background(app);
 
+        // Update application state and its sandbox state w.r.t user input.
         get_input(app);
-
-        if (app->mouse->is_left_clicking)
-        {
-            place_tile(app->mouse, sandbox);
-        }
+        handle_input(app);
 
         // Do 1 frame of sandbox processing and draw the result to the renderer.
         process_sandbox(sandbox);
         draw_sandbox(app);
 
-        // Draw UI elements above the sandbox so that they aren't covered.
+        // Draw UI after the sandbox so that its above all tiles.
         draw_ui(app);
 
         // Display all rendered graphics.

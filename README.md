@@ -60,9 +60,9 @@ Once SDL2 is installed, sand-sim can be run using the provided binary:
 ./sand
 ```
 
-### Keyboard Controls
+### Controls
 
-Use the left mouse button the generate sand tiles into the world.
+Use the left mouse button the generate tiles into the world!
 
 The element type may be changed using the keyboard. The key controls are:
 

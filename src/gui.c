@@ -67,6 +67,70 @@ SDL_Texture **PANEL_TEXTURES;
 
 // ----- PRIVATE FUNCTIONS -----
 
+
+/**
+ * Scale the given window (x, y) coordinates down to (row, col) sandbox
+ * coordinates. 
+ * 
+ * x is scaled w.r.t sandbox width to get a col index in the range [0, width].
+ * y is scaled w.r.t sandbox height to get a row index in the range [0, height].
+ * 
+ * The given window coordinates are expected to be placed in an array of size
+ * at least 2 in order [x, y].
+ * 
+ * The sandbox coordinates are given as an output parameter in order [row, col]
+ * 
+ * @param window_coords Array of size at least 2, holding (x, y) window coords.
+ * @param sandbox Sandbox whose dimensions will be used to scale down window
+ * coodinates
+ * @param sandbox_coords Out-parameter array of size at least 2 to place 
+ * resulting sandbox coordinates in.
+ */
+static void _scale_screen_coords(int *window_coords, struct Sandbox *sandbox, int *sandbox_coords)
+{
+    int x = window_coords[0];
+    int y = window_coords[1];
+
+    // Downscale the window coordinates to floating sandbox coordinates.
+    float raw_row = (float) y / PIXEL_SCALE;
+    float raw_col = (float) x / PIXEL_SCALE;
+
+    // Chop off decimal portion to obtain valid sandbox indices.
+    int row = (int) raw_row;
+    int col = (int) raw_col;
+
+    // If window coordinates go outside sandbox, clamp targeted indices to edge
+    // of sandbox.
+    row = (row >= sandbox->height) ? sandbox->height - 1 : row;
+    col = (col >= sandbox->width) ? sandbox->width - 1 : col;
+
+    row = (row < 0) ? 0 : row;
+    col = (col < 0) ? 0 : col;
+
+    sandbox_coords[0] = row;
+    sandbox_coords[1] = col;
+}
+
+
+/**
+ * Scale the (x, y) location of the given mouse located in some window down to 
+ * (row, col) sandbox coordinates.
+ * 
+ * The sandbox coordinates are given as an output parameter in order [row, col]
+ * 
+ * @param mouse Mouse whose window coordinates will 
+ * @param sandbox Sandbox whose dimensions will be used to scale down mouse
+ * coodinates
+ * @param sandbox_coords Out-parameter array of size at least 2 to place 
+ * resulting sandbox coordinates in.
+ */
+static void _scale_mouse_coords(struct Mouse *mouse, struct Sandbox *sandbox, int *sandbox_coords)
+{
+    int mouse_coords[] = {mouse->x, mouse->y};
+    _scale_screen_coords(mouse_coords, sandbox, sandbox_coords);
+}
+
+
 /**
  * Update mouse button pressed-down data in the given app by extracting mouse 
  * data from the mouse button event.
@@ -76,9 +140,17 @@ SDL_Texture **PANEL_TEXTURES;
  */
 static void _do_mouse_button_down(struct Application *app, SDL_MouseButtonEvent *event)
 {
-    if (event->button == SDL_BUTTON_LEFT)
+    unsigned char mouse_button = event->button;
+
+    switch (mouse_button)
     {
-        app->mouse->is_left_clicking = true;
+        case SDL_BUTTON_LEFT:
+            app->mouse->is_left_clicking = true;
+            break;
+        
+        // Do nothing on unhandled mouse press.
+        default:
+            break;
     }
 }
 
@@ -92,11 +164,22 @@ static void _do_mouse_button_down(struct Application *app, SDL_MouseButtonEvent 
  */
 static void _do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *event)
 {
-    // In the event the mouse button that was just lifted up was the left button,
-    // the user is no longer holding down left.
-    if (event->button == SDL_BUTTON_LEFT)
+    unsigned char mouse_button = event->button;
+
+    switch (mouse_button)
     {
-        app->mouse->is_left_clicking = false;
+        case SDL_BUTTON_LEFT:
+            app->mouse->is_left_clicking = false;
+            break;
+        
+        // Loop through mouse placement modes on RMB press.
+        case SDL_BUTTON_RIGHT:
+            app->mouse->mode = (app->mouse->mode + 1) % NUM_MOUSE_MODES;
+            break;
+        
+        // Do nothing on unhandled mouse press.
+        default:
+            break;
     }
 }
 
@@ -227,7 +310,7 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
 {
     struct Application *app = malloc(sizeof(*app));
 
-    // Initialize window dimensions as a scale of the sandbox dimensions.
+    // Initialize window screen dimensions as a scale of the sandbox dimensions.
     app->sandbox = sandbox;
     app->min_window_width = sandbox->width * PIXEL_SCALE;
     app->min_window_height = sandbox->height * PIXEL_SCALE;
@@ -446,6 +529,33 @@ void get_input(struct Application *app)
 }
 
 
+void handle_input(struct Application *app)
+{
+    // Left clicking controls placing/deleting tiles on the owned sandbox.
+    if (app->mouse->is_left_clicking)
+    {
+        switch (app->mouse->mode)
+        {
+            case PLACE:
+                place_tile(app->mouse, app->sandbox);
+                break;
+            
+            case DELETE:
+                delete_tile(app->mouse, app->sandbox);
+                break;
+            
+            case REPLACE:
+                replace_tile(app->mouse, app->sandbox);
+                break;
+
+            default:
+                break;
+        }
+    }
+}
+
+
+
 void switch_selected_tile(struct Mouse *mouse, unsigned char tile_type)
 {
     // For invalid tile types, do nothing.
@@ -460,21 +570,10 @@ void switch_selected_tile(struct Mouse *mouse, unsigned char tile_type)
 
 void place_tile(struct Mouse *mouse, struct Sandbox *sandbox)
 {
-    // Downscale the mouse coordinates to floating sandbox coordinates.
-    float row_coordinate = (float) mouse->y / PIXEL_SCALE;
-    float col_coordinate = (float) mouse->x / PIXEL_SCALE;
-
-    // Chop off decimal portion to obtain valid sandbox indices.
-    int row = (int) row_coordinate;
-    int col = (int) col_coordinate;
-
-    // If mouse coordinates go outside window, clamp targeted indices to edge
-    // of sandbox.
-    row = (row >= sandbox->height) ? sandbox->height - 1 : row;
-    col = (col >= sandbox->width) ? sandbox->width - 1 : col;
-
-    row = (row < 0) ? 0 : row;
-    col = (col < 0) ? 0 : col;
+    int sandbox_coords[2];
+    _scale_mouse_coords(mouse, sandbox, sandbox_coords);
+    int row = sandbox_coords[0];
+    int col = sandbox_coords[1];
 
     // Don't replace tiles, only place them ontop of air.
     if (get_tile_id(sandbox->grid[row][col]) != AIR)
@@ -482,13 +581,32 @@ void place_tile(struct Mouse *mouse, struct Sandbox *sandbox)
         return;
     }
 
-
-    // Place tile, replacing air.
-    //
-    // A tile type has value (0000 XXXX) where XXXX is the tile type.
-    // This produces a new, non-updated, non-static tile of type XXXX.
+    // Sync new tile to the sandbox lifetime to prevent update until next frame.
     sandbox->grid[row][col] = mouse->selected_tile;
+    set_tile_updated(&(sandbox->grid[row][col]), sandbox->lifetime);
 }
 
 
+void delete_tile(struct Mouse *mouse, struct Sandbox *sandbox)
+{
+    // Scale down mouse window coordinates to sandbox coordinates.
+    int sandbox_coords[2];
+    _scale_mouse_coords(mouse, sandbox, sandbox_coords);
+    int row = sandbox_coords[0];
+    int col = sandbox_coords[1];
+
+    sandbox->grid[row][col] = AIR;
+}
+
+void replace_tile(struct Mouse *mouse, struct Sandbox *sandbox)
+{
+    int sandbox_coords[2];
+    _scale_mouse_coords(mouse, sandbox, sandbox_coords);
+    int row = sandbox_coords[0];
+    int col = sandbox_coords[1];
+
+    // Sync new tile to the sandbox lifetime to prevent update until next frame.
+    sandbox->grid[row][col] = mouse->selected_tile;
+    set_tile_updated(&(sandbox->grid[row][col]), sandbox->lifetime);
+}
 

@@ -14,8 +14,13 @@
 #include <stdbool.h>
 
 
-// Define the constant tile IDs 0 to 15.
-enum tile_id {AIR, SAND, WATER, WOOD, STEAM, FIRE};
+// All tile types a tile particle can be.
+enum tile_id {AIR, // The empty tile.
+              SAND, 
+              WATER, 
+              WOOD, 
+              STEAM, 
+              FIRE};
 
 
 /**
