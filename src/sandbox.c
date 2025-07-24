@@ -660,38 +660,38 @@ void do_lift(struct Sandbox *sandbox, int row, int col)
     int left_col = col - 1;
     int right_col = col + 1;
 
-    // Determine the directions tile can life to.
-    bool can_ascend_up = _can_lift(sandbox, row, col, next_row, col);
-    bool can_ascend_left = _can_lift(sandbox, row, col, next_row, left_col);
-    bool can_ascend_right = _can_lift(sandbox, row, col, next_row, right_col);
-    bool can_slide_left = _can_lift(sandbox, row, col, row, left_col);
-    bool can_slide_right = _can_lift(sandbox, row, col, row, right_col);
+    // Capture possible coordinates to lift to and determine whether tile
+    // at (row, col) can be lifted to any of them.
+    int movement_options[5][2] = {{next_row, col},
+                                  {next_row, left_col},
+                                  {next_row, right_col},
+                                  {row, left_col},
+                                  {row, right_col}};
+    bool movement_possibilities[5];
 
-    // Pick one movement option at random by collecting the possible target
-    // indices into an array.
-    bool movement_options[] = {can_ascend_up, 
-                               can_ascend_left, 
-                               can_ascend_right,
-                               can_slide_left,
-                               can_slide_right};
-    int index_options[5][2] = {{next_row, col},
-                               {next_row, left_col},
-                               {next_row, right_col},
-                               {row, left_col},
-                               {row, right_col}};
+    for (int i = 0; i < 5; i++)
+    {
+        movement_possibilities[i] = _can_lift(sandbox, 
+                                              row, 
+                                              col, 
+                                              movement_options[i][0], 
+                                              movement_options[i][1]);
+    }
+
+    // Collect the valid movement options into an array then pick one at random.
     int target_indices[5][2];
     int num_true = 0;
     for (int i = 0; i < 5; i++)
     {
-        if (movement_options[i])
+        if (movement_possibilities[i])
         {
-            target_indices[num_true][0] = index_options[i][0];
-            target_indices[num_true][1] = index_options[i][1];
+            target_indices[num_true][0] = movement_options[i][0];
+            target_indices[num_true][1] = movement_options[i][1];
             num_true++;
         }
     }
 
-    // No ascension is possible if cannot move any way upwards.
+    // No lift is possible if cannot move any way upwards.
     if (num_true == 0)
     {
         return;
