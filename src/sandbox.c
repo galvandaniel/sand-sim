@@ -25,6 +25,9 @@
 #include <math.h>
 
 
+const double survival_chances[] = {0.10, 0.50, 0.95, 1.0};
+
+
 // ----- STATIC FUNCTIONS -----
 
 
@@ -47,7 +50,7 @@ static void _swap_tiles(int row_one, int col_one, int row_two, int col_two, unsi
 /**
  * Generate a integer between the given ranges, inclusive.
  * 
- * This function is not needed and will always generate the same sequence.
+ * This function is not seeded and will always generate the same sequence.
  * 
  * @param min, max Inclusive bounds of the random integer to be generated.
  * 
@@ -115,7 +118,6 @@ static bool _tile_has_gravity(unsigned char tile)
 {
     enum tile_type current_type = get_tile_type(tile);
 
-    // We return, so no break is needed to prevent fall-through.
     switch (current_type)
     {
         case AIR:
@@ -304,6 +306,31 @@ static bool _tile_dissolves(unsigned char tile)
         default:
             return false;
     }
+}
+
+
+/**
+ * Perform a random roll on whether the given tile should survive to the next
+ * frame of simulation or not. This depends on the tile's classification in
+ * survival odds.
+ * 
+ * @param tile Tile to determine if should survive to next frame or not
+ * @return True if tile survives, false if tile dies and is replaced by air.
+ */
+static bool _roll_should_tile_survive(unsigned char tile)
+{
+    enum lifespan_duration lifespan = get_tile_lifespan(tile);
+
+    // Tile with permanent duration always survives.
+    if (lifespan == PERMANENT)
+    {
+        return true;
+    }
+
+    double random_value = (double) rand() / (double) RAND_MAX;
+    double chance_of_survival = survival_chances[lifespan];
+
+    return random_value <= chance_of_survival;
 }
 
 
@@ -500,6 +527,14 @@ void process_sandbox(struct Sandbox *sandbox)
                 continue;
             }
 
+            // Perform survival check.
+            bool should_survive = _roll_should_tile_survive(current_tile);
+            if (!should_survive)
+            {
+                grid[row][col] = AIR;
+                continue;
+            }
+
             // Reaching this point means an update-check MUST occur, even if
             // it results in nothing changing, so we mark the tile as updated.
             // Take care to mutate the array element, NOT the stack-variable.
@@ -542,6 +577,37 @@ enum tile_type get_tile_type(unsigned char tile)
     enum tile_type type_id = tile_mask & tile;
 
     return type_id;
+}
+
+
+enum lifespan_duration get_tile_lifespan(unsigned char tile)
+{
+    enum tile_type current_type = get_tile_type(tile);
+
+    switch (current_type)
+    {
+        // AIR represents empty tile so lifespan has no significance for it.
+        case AIR:
+            return PERMANENT;
+
+        case SAND:
+            return PERMANENT;
+
+        case WATER:
+            return PERMANENT;
+
+        case WOOD:
+            return PERMANENT;
+
+        case STEAM:
+            return LONG;
+
+        case FIRE:
+            return AVERAGE;
+
+        default:
+            return PERMANENT;
+    }
 }
 
 

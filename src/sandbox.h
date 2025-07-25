@@ -22,6 +22,29 @@ enum tile_type {AIR,
                 STEAM, 
                 FIRE};
 
+/**
+ * Classifications for how likely it is a tile particle will survive to next 
+ * step in the sandbox.
+ *  
+ * SHORT: Particle is very likely to disappear on next frame.
+ * AVERAGE: Particle is equally likely to disappear or survive on next frame. 
+ * LONG: Particle is unlikely to disappear on next frame.
+ * 
+ * PERMANENT: Particle will never disappear unless deleted by user.
+ */
+enum lifespan_duration {SHORT, AVERAGE, LONG, PERMANENT};
+
+/**
+ * Odds of survival with length equal in size to lifespan_duration enum,
+ * corresponding element-wise.
+ * 
+ * Example: survival_chances[SHORT] is equal to odds for survival of tile w/
+ * a SHORT lifespan.
+ * 
+ * 0.0 indicates 0% chance of survival, 1.0 indicates 100% chance.
+ */
+extern const double survival_chances[];
+
 
 /**
  * Type describing a sandbox simulation, containing particle grid data, grid
@@ -81,6 +104,14 @@ void process_sandbox(struct Sandbox *sandbox);
  * @return Value from 0 to 15 representing the type of tile given.
  */
 enum tile_type get_tile_type(unsigned char tile);
+
+
+/**
+ * Get the classification a tile has for surviving to the next frame.
+ * 
+ * @param tile Tile to get classification for likelihood of survival.
+ */
+enum lifespan_duration get_tile_lifespan(unsigned char tile);
 
 
 /**
