@@ -7,20 +7,20 @@
  * Each tile shall be represented as a single unsigned big-endian byte.
  *
  * The first 4 significant bits are reserved for tile flags.
- * The last 4 bits represent a tile ID number, from 0 to 15.
+ * The last 4 bits represent a tile type ID number, from 0 to 15.
  */
 
  
 #include <stdbool.h>
 
 
-// All tile types a tile particle can be.
-enum tile_id {AIR, // The empty tile.
-              SAND, 
-              WATER, 
-              WOOD, 
-              STEAM, 
-              FIRE};
+// All tile types a tile particle can be. AIR denotes the empty tile.
+enum tile_type {AIR, 
+                SAND, 
+                WATER, 
+                WOOD, 
+                STEAM, 
+                FIRE};
 
 
 /**
@@ -74,13 +74,13 @@ void process_sandbox(struct Sandbox *sandbox);
 
 
 /**
- * Return the ID number of a tile, ranging from 0 to 15.
+ * Return the type of a tile, describing its properties in simulation.
  *
- * @param tile Tile number, represented as a byte, to fetch ID number of.
+ * @param tile Tile, represented as a byte, to fetch type of.
  *
  * @return Value from 0 to 15 representing the type of tile given.
  */
-unsigned char get_tile_id(unsigned char tile);
+enum tile_type get_tile_type(unsigned char tile);
 
 
 /**

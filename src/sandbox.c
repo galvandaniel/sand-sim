@@ -6,7 +6,7 @@
  * 3. (UNUSED)
  * 4. (UNUSED)
  *
- * The remaining 4 bits are used for tile ID numbers, going as follow:
+ * The remaining 4 bits are used for tile type identifiers, going as follow:
  *
  * 0 - Air (empty tile)
  * 1 - Sand
@@ -87,7 +87,7 @@ static bool _flip_coin(void)
  */
 static bool _tile_is_empty(unsigned char tile)
 {
-    return get_tile_id(tile) == AIR;
+    return get_tile_type(tile) == AIR;
 }
 
 
@@ -100,7 +100,7 @@ static bool _tile_is_empty(unsigned char tile)
  */
 static bool _are_tiles_same_type(unsigned char tile, unsigned char other_tile)
 {
-    return get_tile_id(tile) == get_tile_id(other_tile);
+    return get_tile_type(tile) == get_tile_type(other_tile);
 }
 
 
@@ -113,10 +113,10 @@ static bool _are_tiles_same_type(unsigned char tile, unsigned char other_tile)
  */
 static bool _tile_has_gravity(unsigned char tile)
 {
-    unsigned char tile_type = get_tile_id(tile);
+    enum tile_type current_type = get_tile_type(tile);
 
     // We return, so no break is needed to prevent fall-through.
-    switch (tile_type)
+    switch (current_type)
     {
         case AIR:
             return false;
@@ -157,9 +157,9 @@ static bool _tile_has_gravity(unsigned char tile)
  */
 static bool _tile_is_solid(unsigned char tile)
 {
-    unsigned char tile_type = get_tile_id(tile);
+    enum tile_type current_type = get_tile_type(tile);
 
-    switch (tile_type)
+    switch (current_type)
     {
         case AIR:
             return false;
@@ -199,9 +199,9 @@ static bool _tile_is_solid(unsigned char tile)
  */
 static bool _tile_is_liquid(unsigned char tile)
 {
-    unsigned char tile_type = get_tile_id(tile);
+    enum tile_type current_type = get_tile_type(tile);
 
-    switch (tile_type)
+    switch (current_type)
     {
         case AIR:
             return false;
@@ -240,9 +240,9 @@ static bool _tile_is_liquid(unsigned char tile)
  */
 static bool _tile_is_gas(unsigned char tile)
 {
-    unsigned char tile_type = get_tile_id(tile);
+    enum tile_type current_type = get_tile_type(tile);
 
-    switch (tile_type)
+    switch (current_type)
     {
         // Air refers to the empty tile, it is not a gas.
         case AIR:
@@ -279,9 +279,9 @@ static bool _tile_is_gas(unsigned char tile)
  */
 static bool _tile_dissolves(unsigned char tile)
 {
-    unsigned char tile_type = get_tile_id(tile);
+    enum tile_type current_type = get_tile_type(tile);
 
-    switch (tile_type)
+    switch (current_type)
     {
         case AIR:
             return false;
@@ -527,13 +527,13 @@ void process_sandbox(struct Sandbox *sandbox)
 }
 
 
-unsigned char get_tile_id(unsigned char tile)
+enum tile_type get_tile_type(unsigned char tile)
 {
     // Use a mask of (0000 1111) to extract the first 4 bits.
     unsigned char tile_mask = 0x0f;
-    unsigned char tile_id = tile_mask & tile;
+    enum tile_type type_id = tile_mask & tile;
 
-    return tile_id;
+    return type_id;
 }
 
 

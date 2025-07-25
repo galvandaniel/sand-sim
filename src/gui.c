@@ -203,19 +203,19 @@ static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event
     {
         // In the event of keys 0 - 9, switch mouse tile to appropriate type.
         case SDLK_1:
-            switch_selected_tile(app_mouse, SAND);
+            switch_selected_type(app_mouse, SAND);
             break;
 
         case SDLK_2:
-            switch_selected_tile(app_mouse, WATER);
+            switch_selected_type(app_mouse, WATER);
             break;
 
         case SDLK_3:
-            switch_selected_tile(app_mouse, WOOD);
+            switch_selected_type(app_mouse, WOOD);
             break;
 
         case SDLK_4:
-            switch_selected_tile(app_mouse, STEAM);
+            switch_selected_type(app_mouse, STEAM);
             break;
 
         // In the case of pressing q, the app will quit.
@@ -347,7 +347,7 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
 
     // Zero-out mouse to start selected tile as being sand.
     struct Mouse *new_mouse = calloc(1, sizeof(*new_mouse));
-    new_mouse->selected_tile = SAND;
+    new_mouse->selected_type = SAND;
     app->mouse = new_mouse;
 
     // Allocate memory for all textures used by the 16 possible tile types.
@@ -421,15 +421,15 @@ void blit_texture(struct Application *app, SDL_Texture *texture, int x, int y)
 
 SDL_Texture *get_tile_texture(unsigned char tile)
 {
-    unsigned char tile_type = get_tile_id(tile);
-    return TILE_TEXTURES[tile_type];
+    enum tile_type current_type = get_tile_type(tile);
+    return TILE_TEXTURES[current_type];
 }
 
 
 SDL_Texture *get_panel_texture(unsigned char tile)
 {
-    unsigned char tile_type = get_tile_id(tile);
-    return PANEL_TEXTURES[tile_type];
+    enum tile_type current_type = get_tile_type(tile);
+    return PANEL_TEXTURES[current_type];
 }
 
 
@@ -452,7 +452,7 @@ void draw_sandbox(struct Application *app)
             unsigned char current_tile = app->sandbox->grid[row][col];
 
             // Don't draw air.
-            if (get_tile_id(current_tile) == AIR)
+            if (get_tile_type(current_tile) == AIR)
             {
                 continue;
             }
@@ -474,7 +474,7 @@ void draw_ui(struct Application *app)
 {
     // Grab the panel texture for the currently selected tile, and blit to the
     // topleft of the screen.
-    SDL_Texture *panel_texture = get_panel_texture(app->mouse->selected_tile);
+    SDL_Texture *panel_texture = get_panel_texture((unsigned char) app->mouse->selected_type);
     blit_texture(app, panel_texture, 0, 0);
 }
 
@@ -556,15 +556,15 @@ void handle_input(struct Application *app)
 
 
 
-void switch_selected_tile(struct Mouse *mouse, unsigned char tile_type)
+void switch_selected_type(struct Mouse *mouse, enum tile_type new_type)
 {
     // For invalid tile types, do nothing.
-    if (tile_type > NUM_UNIQUE_TILES - 1)
+    if (new_type > NUM_UNIQUE_TILES - 1)
     {
         return;
     }
     
-    mouse->selected_tile = tile_type;
+    mouse->selected_type = new_type;
 }
 
 
@@ -575,14 +575,14 @@ void place_tile(struct Mouse *mouse, struct Sandbox *sandbox)
     int row = sandbox_coords[0];
     int col = sandbox_coords[1];
 
-    // Don't replace tiles, only place them ontop of air.
-    if (get_tile_id(sandbox->grid[row][col]) != AIR)
+    // Only place new tiles ontop of air.
+    if (get_tile_type(sandbox->grid[row][col]) != AIR)
     {
         return;
     }
 
     // Sync new tile to the sandbox lifetime to prevent update until next frame.
-    sandbox->grid[row][col] = mouse->selected_tile;
+    sandbox->grid[row][col] = (unsigned char) mouse->selected_type;
     set_tile_updated(&(sandbox->grid[row][col]), sandbox->lifetime);
 }
 
@@ -595,7 +595,13 @@ void delete_tile(struct Mouse *mouse, struct Sandbox *sandbox)
     int row = sandbox_coords[0];
     int col = sandbox_coords[1];
 
-    sandbox->grid[row][col] = AIR;
+    // Don't delete air tile, this would be redundant.
+    if (get_tile_type(sandbox->grid[row][col]) == AIR)
+    {
+        return;
+    }
+
+    sandbox->grid[row][col] = (unsigned char) AIR;
 }
 
 void replace_tile(struct Mouse *mouse, struct Sandbox *sandbox)
@@ -604,9 +610,18 @@ void replace_tile(struct Mouse *mouse, struct Sandbox *sandbox)
     _scale_mouse_coords(mouse, sandbox, sandbox_coords);
     int row = sandbox_coords[0];
     int col = sandbox_coords[1];
+    unsigned char type_as_tile = (unsigned char) mouse->selected_type;
+
+    // Don't replace a tile with its own type, this would be redundant.
+    enum tile_type source_type = get_tile_type(sandbox->grid[row][col]);
+    enum tile_type dest_type = get_tile_type(type_as_tile);
+    if (source_type == dest_type)
+    {
+        return;
+    }
 
     // Sync new tile to the sandbox lifetime to prevent update until next frame.
-    sandbox->grid[row][col] = mouse->selected_tile;
+    sandbox->grid[row][col] = type_as_tile;
     set_tile_updated(&(sandbox->grid[row][col]), sandbox->lifetime);
 }
 

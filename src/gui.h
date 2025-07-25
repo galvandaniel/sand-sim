@@ -6,6 +6,8 @@
  * the logic presented in sandbox.h
  */
 
+#include "sandbox.h"
+
 #include <SDL.h>
 #include <SDL_image.h>
 #include <stdbool.h>
@@ -42,7 +44,7 @@ struct Mouse
     bool is_left_clicking;
 
     // Selected particle tile type to place down.
-    unsigned char selected_tile;
+    enum tile_type selected_type;
 
     // Mode controlling whether mouse deletes or places tiles into sandbox.
     enum mouse_mode mode;
@@ -204,12 +206,12 @@ void handle_input(struct Application *app);
 
 
 /**
- * Switch the mouse's selected tile type to the given tile_type.
+ * Switch the mouse's selected tile type to the given new_type.
  *
  * @param mouse Mouse to switch contained tile type of.
- * @param tile_type Value from 0 to 15 representing the new tile type.
+ * @param new_type Value from 0 to 15 representing the new tile type.
  */
-void switch_selected_tile(struct Mouse *mouse, unsigned char tile_type);
+void switch_selected_type(struct Mouse *mouse, enum tile_type new_type);
 
 
 /**
