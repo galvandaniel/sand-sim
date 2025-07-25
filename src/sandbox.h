@@ -144,7 +144,8 @@ void do_liquid_flow(struct Sandbox *sandbox, int row, int col);
  * upleft, or upright, wherever possible.
  *
  * A lifted tile is free to potentially move to any one of the spaces above if
- * the space is either empty, a liquid, or a gas.
+ * the space is either empty or a gas. 
+ * Lift through a liquid can only occur upwards.
  *
  * @param sandbox 2D Sandbox of tiles to mutate and perform lift within.
  * @param row, col Coordinates of tile to perform lift on.

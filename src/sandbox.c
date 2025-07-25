@@ -386,6 +386,14 @@ static bool _can_lift(struct Sandbox *sandbox, int row, int col, int target_row,
     unsigned char source_tile = sandbox->grid[row][col];
     unsigned char target_tile = sandbox->grid[target_row][target_col];
 
+    // A tile can only lift through liquid by going upwards, not sideways.
+    bool is_left_or_right = (target_col == col - 1) || (target_col == col + 1);
+    bool is_parallel_horizontal = target_row == row && is_left_or_right;
+    if (_tile_is_liquid(target_tile) && is_parallel_horizontal)
+    {
+        return false;
+    }
+
     // Gases lift through liquids and other gases, but only if not passes
     // through own gas type.
     return (_tile_is_empty(target_tile)

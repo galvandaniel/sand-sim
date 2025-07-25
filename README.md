@@ -74,7 +74,7 @@ The element type may be changed using the keyboard. The key controls are:
 
 The panel in the topleft represents your currently selected element.
 
-Press q to quit the app.
+Press ESC to quit the app.
 
 
 ### Command-Line Arguments
