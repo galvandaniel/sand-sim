@@ -218,6 +218,10 @@ static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event
             switch_selected_type(app_mouse, STEAM);
             break;
 
+        case SDLK_5:
+            switch_selected_type(app_mouse, FIRE);
+            break;
+
         // In the case of pressing ESC, the app will quit.
         case SDLK_ESCAPE:
             quit_gui(app);
@@ -581,9 +585,7 @@ void place_tile(struct Mouse *mouse, struct Sandbox *sandbox)
         return;
     }
 
-    // Sync new tile to the sandbox lifetime to prevent update until next frame.
-    sandbox->grid[row][col] = (unsigned char) mouse->selected_type;
-    set_tile_updated(&(sandbox->grid[row][col]), sandbox->lifetime);
+    sandbox->grid[row][col] = create_tile(sandbox, mouse->selected_type);
 }
 
 
@@ -601,7 +603,7 @@ void delete_tile(struct Mouse *mouse, struct Sandbox *sandbox)
         return;
     }
 
-    sandbox->grid[row][col] = (unsigned char) AIR;
+    sandbox->grid[row][col] = AIR;
 }
 
 void replace_tile(struct Mouse *mouse, struct Sandbox *sandbox)
@@ -610,18 +612,14 @@ void replace_tile(struct Mouse *mouse, struct Sandbox *sandbox)
     _scale_mouse_coords(mouse, sandbox, sandbox_coords);
     int row = sandbox_coords[0];
     int col = sandbox_coords[1];
-    unsigned char type_as_tile = (unsigned char) mouse->selected_type;
 
     // Don't replace a tile with its own type, this would be redundant.
     enum tile_type source_type = get_tile_type(sandbox->grid[row][col]);
-    enum tile_type dest_type = get_tile_type(type_as_tile);
-    if (source_type == dest_type)
+    if (source_type == mouse->selected_type)
     {
         return;
     }
 
-    // Sync new tile to the sandbox lifetime to prevent update until next frame.
-    sandbox->grid[row][col] = type_as_tile;
-    set_tile_updated(&(sandbox->grid[row][col]), sandbox->lifetime);
+    sandbox->grid[row][col] = create_tile(sandbox, mouse->selected_type);
 }
 

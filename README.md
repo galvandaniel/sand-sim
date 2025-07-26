@@ -70,7 +70,7 @@ The element type may be changed using the keyboard. The key controls are:
 - 2 - Water
 - 3 - Wood
 - 4 - Steam
-(More elements and interactions to come in future versions!)
+- 5 - Fire
 
 The panel in the topleft represents your currently selected element.
 

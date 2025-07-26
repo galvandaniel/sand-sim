@@ -25,7 +25,7 @@
 #include <math.h>
 
 
-const double survival_chances[] = {0.10, 0.50, 0.95, 1.0};
+const double survival_chances[] = {0.50, 0.87, 0.95, 1.0};
 
 
 // ----- STATIC FUNCTIONS -----
@@ -104,6 +104,44 @@ static bool _tile_is_empty(unsigned char tile)
 static bool _are_tiles_same_type(unsigned char tile, unsigned char other_tile)
 {
     return get_tile_type(tile) == get_tile_type(other_tile);
+}
+
+
+/**
+ * Get the flammability of a tile, the chance a tile has of being lit on fire in
+ * next frame when adjacent to any incendiary tile in the cardinal directions.
+ * 
+ * @param tile Tile to get flammability chance for.
+ * 
+ * @return Chance of being lit on fire, 0.0 indicating 0%, 1.0 indicating 100%.
+ */
+static double _tile_flammability(unsigned char tile)
+{
+    enum tile_type current_type = get_tile_type(tile);
+
+    switch (current_type)
+    {
+        case AIR:
+            return 0.0;
+
+        case SAND:
+            return 0.0;
+
+        case WATER:
+            return 0.0;
+
+        case WOOD:
+            return 0.75;
+
+        case STEAM:
+            return 0.0;
+
+        case FIRE:
+            return 0.0;            
+
+        default:
+            return 0.0;
+    }
 }
 
 
@@ -310,6 +348,44 @@ static bool _tile_dissolves(unsigned char tile)
 
 
 /**
+ * Return whether or not a tile is able to light other flammable tiles on fire 
+ * by being close to them.
+ * 
+ * @param tile Tile to determine if can light other tiles on fire or not.
+ * 
+ * @return True if tile can light others on fire, false otherwise.
+ */
+static bool _tile_is_incendiary(unsigned char tile)
+{
+    enum tile_type current_type = get_tile_type(tile);
+
+    switch (current_type)
+    {
+        case AIR:
+            return false;
+
+        case SAND:
+            return false;
+
+        case WATER:
+            return false;
+
+        case WOOD:
+            return false;
+
+        case STEAM:
+            return false;
+
+        case FIRE:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+
+/**
  * Perform a random roll on whether the given tile should survive to the next
  * frame of simulation or not. This depends on the tile's classification in
  * survival odds.
@@ -331,6 +407,67 @@ static bool _roll_should_tile_survive(unsigned char tile)
     double chance_of_survival = survival_chances[lifespan];
 
     return random_value <= chance_of_survival;
+}
+
+
+/**
+ * Perform a random roll on whether or not the tile located at the given indices
+ * in the sandbox should light on fire and be replaced by a fire tile.
+ * 
+ * If the given tile cannot burn at all, no randomness or roll is performed.
+ * 
+ * @param sandbox Sandbox containing tile to test for burn condition.
+ * @param row, col Indices of tile to determine if should convert to fire on 
+ * next frame or not.
+ * @return True if roll succeeds and tile should become fire, false otherwise.
+ */
+static bool _roll_should_tile_burn(struct Sandbox *sandbox, int row, int col)
+{
+    double burn_chance = _tile_flammability(sandbox->grid[row][col]);
+
+    // FP comparison is inexact, but here inflammability is assigned the 
+    // literal value of 0.0, which is exactly representable in IEEE 754
+    if (burn_chance == 0.0)
+    {
+        return false;
+    }
+
+    int row_below = row + 1;
+    int row_above = row - 1;
+    int left_col = col - 1;
+    int right_col = col + 1;
+    // Flammable tiles roll for burn if an incendiary tile is directly NSEW.
+    int search_area_indices[4][2] = {{row_above, col},
+                                     {row, right_col},
+                                     {row_below, col},
+                                     {row, left_col}};
+    // Search for incendiary tile. 
+    // If search area goes OOB, default to not incendiary.
+    bool is_next_to_incendiary = false;
+    for (int i = 0; i < 4; i++)
+    {
+        int search_row = search_area_indices[i][0];
+        int search_col = search_area_indices[i][1];
+
+        if (search_row < 0 || search_row == sandbox->height 
+         || search_col < 0 || search_col == sandbox->width)
+         {
+            continue;
+         }
+
+         if (_tile_is_incendiary(sandbox->grid[search_row][search_col]))
+         {
+            is_next_to_incendiary = true;
+            break;
+         }
+    }
+
+    if (!is_next_to_incendiary)
+    {
+        return false;
+    }
+    double random_value = (double) rand() / (double) RAND_MAX;
+    return random_value <= burn_chance;
 }
 
 
@@ -535,11 +672,24 @@ void process_sandbox(struct Sandbox *sandbox)
                 continue;
             }
 
+            // Perform burn check. Resulting fire tile should not be simulated.
+            bool should_burn = _roll_should_tile_burn(sandbox, row, col);
+            if (should_burn)
+            {
+                grid[row][col] = create_tile(sandbox, FIRE);
+                continue;
+            }
+
             // Reaching this point means an update-check MUST occur, even if
             // it results in nothing changing, so we mark the tile as updated.
             // Take care to mutate the array element, NOT the stack-variable.
             set_tile_updated(&grid[row][col], sandbox->lifetime);
-           
+
+            // Perform extinguish check. Only fire extinguishes. 
+            if (get_tile_type(current_tile) == FIRE)
+            {
+                do_extinguish(sandbox, row, col);
+            }
 
             // Perform gravity on the tiles that need it.
             if (_tile_has_gravity(current_tile))
@@ -567,6 +717,18 @@ void process_sandbox(struct Sandbox *sandbox)
 
     // For every frame of processing, the sandbox grows older.
     sandbox->lifetime++;
+}
+
+
+unsigned char create_tile(struct Sandbox *sandbox, enum tile_type new_type)
+{
+    // New tiles are synced to time to prevent update until next frame.
+    unsigned char new_tile = (unsigned char) new_type;
+    set_tile_updated(&new_tile, sandbox->lifetime);
+
+    // TODO: Randomization of tile color will go here.
+
+    return new_tile;
 }
 
 
@@ -775,6 +937,46 @@ void do_lift(struct Sandbox *sandbox, int row, int col)
     int target_row = target_indices[random_index][0];
     int target_col = target_indices[random_index][1];
     _swap_tiles(row, col, target_row, target_col, sandbox->grid);
+}
+
+
+void do_extinguish(struct Sandbox *sandbox, int row, int col)
+{
+    int row_below = row + 1;
+    int row_above = row - 1;
+    int left_col = col - 1;
+    int right_col = col + 1;
+    // Check for water in cardinal directions.
+    int search_area_indices[4][2] = {{row_above, col},
+                                     {row, right_col},
+                                     {row_below, col},
+                                     {row, left_col}}; 
+    bool is_next_to_water = false;
+    for (int i = 0; i < 4; i++)
+    {
+        int search_row = search_area_indices[i][0];
+        int search_col = search_area_indices[i][1];
+
+        // If search area goes OOB, default to not water.
+        if (search_row < 0 || search_row == sandbox->height 
+         || search_col < 0 || search_col == sandbox->width)
+         {
+            continue;
+         }
+
+         if (get_tile_type(sandbox->grid[search_row][search_col]) == WATER)
+         {
+            is_next_to_water = true;
+            break;
+         }
+    }
+
+    if (!is_next_to_water)
+    {
+        return;
+    }
+
+    sandbox->grid[row][col] = create_tile(sandbox, STEAM);
 }
 
 

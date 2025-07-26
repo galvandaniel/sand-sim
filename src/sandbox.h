@@ -97,6 +97,19 @@ void process_sandbox(struct Sandbox *sandbox);
 
 
 /**
+ * Create a new tile particle of the given tile type whose updated flag is 
+ * synced to the parity of the given sandbox's lifetime as though put through
+ * a call to set_tile_updated().
+ * 
+ * @param sandbox Sandbox with which the returned t
+ * @param tile_type Type which the generated tile is given.
+ * 
+ * @return Tile particle, encoded as a single byte.
+ */
+unsigned char create_tile(struct Sandbox *sandbox, enum tile_type new_type);
+
+
+/**
  * Return the type of a tile, describing its properties in simulation.
  *
  * @param tile Tile, represented as a byte, to fetch type of.
@@ -182,6 +195,18 @@ void do_liquid_flow(struct Sandbox *sandbox, int row, int col);
  * @param row, col Coordinates of tile to perform lift on.
  */
 void do_lift(struct Sandbox *sandbox, int row, int col);
+
+
+/**
+ * Simulate extinguishing of fire at the given indices.
+ * 
+ * Extinguishing is simulated on a tile by checking if water is directly
+ * adjacent in any of the cardinal directions, and turning to smoke if so.
+ * 
+ * @param sandbox 2D Sandbox of tiles to simulate extinguishing within.
+ * @param row, col Coordinate sof tile to simulate extinguishing on.
+ */
+void do_extinguish(struct Sandbox *sandbox, int row, int col);
 
 
 /**
