@@ -24,6 +24,13 @@
  */
 enum mouse_mode {PLACE, DELETE, REPLACE, NUM_MOUSE_MODES};
 
+
+// Arrays of length NUM_TILE_TYPES to NULL-terminates strings indicating 
+// relative filepaths of textures used by tiles and panels.
+extern const char *TILE_TEXTURE_FILENAMES[];
+extern const char *PANEL_TEXTURE_FILENAMES[];
+
+
 // Array of pointers to all textures used by tiles.
 extern SDL_Texture **TILE_TEXTURES;
 
@@ -113,11 +120,11 @@ void quit_gui(struct Application *app);
  * SDL_Texture on the given application.
  *
  * @param app App to load image on.
- * @param filename Filepath of image to load from src folder as root.
+ * @param filename Filepath of image to load from, relative to program location.
  *
  * @return Image loaded as SDL_Texture
  */
-SDL_Texture *load_texture(struct Application *app, char *filename);
+SDL_Texture *load_texture(struct Application *app, const char *filename);
 
 
 /**

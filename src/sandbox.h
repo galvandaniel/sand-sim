@@ -20,7 +20,8 @@ enum tile_type {AIR,
                 WATER, 
                 WOOD, 
                 STEAM, 
-                FIRE};
+                FIRE,
+                NUM_TILE_TYPES};
 
 
 /**

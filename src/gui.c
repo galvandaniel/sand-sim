@@ -11,6 +11,30 @@
 #include <stdlib.h>
 
 
+// The order of these filepaths must be consistent with the order of
+// enum tile_type, otherwise the wrong colors will display for tiles.
+const char *TILE_TEXTURE_FILENAMES[] = {
+    "assets/tiles/air.png",
+    "assets/tiles/sand.png",
+    "assets/tiles/water.png",
+    "assets/tiles/wood.png",
+    "assets/tiles/steam.png",
+    "assets/tiles/fire.png"
+};
+const char *PANEL_TEXTURE_FILENAMES[] = {
+    "assets/panels/air_panel.png",
+    "assets/panels/sand_panel.png",
+    "assets/panels/water_panel.png",
+    "assets/panels/wood_panel.png",
+    "assets/panels/steam_panel.png",
+    "assets/panels/fire_panel.png"
+};
+
+
+SDL_Texture **TILE_TEXTURES;
+SDL_Texture **PANEL_TEXTURES;
+
+
 // ----- SDL API CALL WRAPPERS -----
 
 
@@ -58,12 +82,6 @@ static void *SDL_CHECK_PTR(void *sdl_ptr, int line_number)
    return sdl_ptr;
 }
 
-
-// There are at most 16 unique tile IDs, and therefore 16 unique textures.
-static const int NUM_UNIQUE_TILES = 16;
-
-SDL_Texture **TILE_TEXTURES;
-SDL_Texture **PANEL_TEXTURES;
 
 // ----- PRIVATE FUNCTIONS -----
 
@@ -185,6 +203,21 @@ static void _do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *e
 
 
 /**
+ * Perform any application updates that need to occur as a result of scrolling 
+ * or pressing the mouse wheel.
+ * 
+ * @param app App to mutate as a result of mousewheel motion.
+ * @param event Mouse wheel event containing data on wheel motion.
+ */
+static void _do_mouse_wheel_motion(struct Application *app, SDL_MouseWheelEvent *event)
+{
+    // Amount of vertical scroll is platform dependent.
+    int vertical_scroll = event->y;
+    return;
+}
+
+
+/**
  * Perform any application updates that need to occur as a result of any
  * keyboard keypress.
  *
@@ -271,7 +304,7 @@ static void _do_window_change(struct Application *app, SDL_WindowEvent *event)
  */
 static void _destroy_textures(void)
 {
-    for (int i = 0; i < NUM_UNIQUE_TILES; i++)
+    for (int i = 0; i < NUM_TILE_TYPES; i++)
     {
         SDL_DestroyTexture(TILE_TEXTURES[i]);
         SDL_DestroyTexture(PANEL_TEXTURES[i]);
@@ -364,30 +397,19 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
 void init_textures(struct Application *app)
 {
     // Allocate memory for array to hold pointers to all textures.
-    TILE_TEXTURES = malloc((size_t) NUM_UNIQUE_TILES * sizeof(*TILE_TEXTURES));
-    PANEL_TEXTURES = malloc((size_t) NUM_UNIQUE_TILES * sizeof(*PANEL_TEXTURES));
+    TILE_TEXTURES = malloc((size_t) NUM_TILE_TYPES * sizeof(*TILE_TEXTURES));
+    PANEL_TEXTURES = malloc((size_t) NUM_TILE_TYPES * sizeof(*PANEL_TEXTURES));
 
     // Load all tile textures.
-    TILE_TEXTURES[AIR] = load_texture(app, "assets/tiles/air.png");
-    TILE_TEXTURES[SAND] = load_texture(app, "assets/tiles/sand.png");
-    TILE_TEXTURES[WATER] = load_texture(app, "assets/tiles/water.png");
-    TILE_TEXTURES[WOOD] = load_texture(app, "assets/tiles/wood.png");
-    TILE_TEXTURES[STEAM] = load_texture(app, "assets/tiles/steam.png");
-    TILE_TEXTURES[FIRE] = load_texture(app, "assets/tiles/fire.png");
+    for (int i = 0; i < NUM_TILE_TYPES; i++)
+    {
+        TILE_TEXTURES[i] = load_texture(app, TILE_TEXTURE_FILENAMES[i]);
+    }
 
     // Load all panel textures.
-    PANEL_TEXTURES[AIR] = load_texture(app, "assets/panels/air_panel.png");
-    PANEL_TEXTURES[SAND] = load_texture(app, "assets/panels/sand_panel.png");
-    PANEL_TEXTURES[WATER] = load_texture(app, "assets/panels/water_panel.png");
-    PANEL_TEXTURES[WOOD] = load_texture(app, "assets/panels/wood_panel.png");
-    PANEL_TEXTURES[STEAM] = load_texture(app, "assets/panels/steam_panel.png");
-    PANEL_TEXTURES[FIRE] = load_texture(app, "assets/panels/fire_panel.png");
-
-    // Placeholder textures while other tiles are being implemented.
-    for (int i  = 6; i < NUM_UNIQUE_TILES; i++)
+    for (int i = 0; i < NUM_TILE_TYPES; i++)
     {
-        TILE_TEXTURES[i] = load_texture(app, "assets/tiles/air.png");
-        PANEL_TEXTURES[i] = load_texture(app, "assets/panels/air_panel.png");
+        PANEL_TEXTURES[i] = load_texture(app, PANEL_TEXTURE_FILENAMES[i]);
     }
 }
 
@@ -399,7 +421,7 @@ void quit_gui(struct Application *app)
 }
 
 
-SDL_Texture *load_texture(struct Application *app, char *filename)
+SDL_Texture *load_texture(struct Application *app, const char *filename)
 {
     // Call SDL_image to load image.
     SDL_Texture *texture = SDL_CHECK_PTR(IMG_LoadTexture(app->renderer, filename), __LINE__);
@@ -492,7 +514,6 @@ void get_input(struct Application *app)
     {
         switch (event.type)
         {
-            // Quit app and exit process on closing window input event.
             case SDL_QUIT:
                 quit_gui(app);
                 break;
@@ -503,6 +524,11 @@ void get_input(struct Application *app)
             case SDL_MOUSEMOTION:
                 app->mouse->x = event.motion.x;
                 app->mouse->y = event.motion.y;
+                break;
+            
+            // React to scrolling of mouse wheel.
+            case SDL_MOUSEWHEEL:
+                _do_mouse_wheel_motion(app, &event.wheel);
                 break;
 
             // Record player holding down mouse button by keeping track of
@@ -563,7 +589,7 @@ void handle_input(struct Application *app)
 void switch_selected_type(struct Mouse *mouse, enum tile_type new_type)
 {
     // For invalid tile types, do nothing.
-    if (new_type > NUM_UNIQUE_TILES - 1)
+    if (new_type > NUM_TILE_TYPES - 1)
     {
         return;
     }
