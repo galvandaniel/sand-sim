@@ -212,8 +212,18 @@ static void _do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *e
 static void _do_mouse_wheel_motion(struct Application *app, SDL_MouseWheelEvent *event)
 {
     // Amount of vertical scroll is platform dependent.
+    // Example: Scroll is +/- 1 on Linux, is +/- INT_MAX on Windows.
     int vertical_scroll = event->y;
-    return;
+
+    // Treating amount scrolled as a displacement, change tile type on scroll. 
+    // Prevent selecting AIR, whose selection should instead roll-over depending
+    // on direction of scroll.
+    int new_type = ((int) app->mouse->selected_type + vertical_scroll) % NUM_TILE_TYPES;
+    if (new_type == AIR)
+    {
+        new_type = (vertical_scroll > 0) ? SAND : NUM_TILE_TYPES - 1;
+    }
+    switch_selected_type(app->mouse, (enum tile_type) new_type);
 }
 
 
@@ -525,11 +535,6 @@ void get_input(struct Application *app)
                 app->mouse->x = event.motion.x;
                 app->mouse->y = event.motion.y;
                 break;
-            
-            // React to scrolling of mouse wheel.
-            case SDL_MOUSEWHEEL:
-                _do_mouse_wheel_motion(app, &event.wheel);
-                break;
 
             // Record player holding down mouse button by keeping track of
             // when it is pressed down and up.
@@ -539,6 +544,11 @@ void get_input(struct Application *app)
 
             case SDL_MOUSEBUTTONUP:
                 _do_mouse_button_up(app, &event.button);
+                break;
+
+            // React to scrolling of mouse wheel.
+            case SDL_MOUSEWHEEL:
+                _do_mouse_wheel_motion(app, &event.wheel);
                 break;
 
             // When a key gets pressed, perform any keyboard-related updates.

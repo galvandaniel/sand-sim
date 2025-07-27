@@ -64,7 +64,8 @@ Once SDL2 is installed, sand-sim can be run using the provided binary:
 
 Use the left mouse button the generate tiles into the world!
 
-The element type may be changed using the keyboard. The key controls are:
+The selected element type may be changed using the keyboard or the mouse scroll
+wheel. The key controls are:
 
 - 1 - Sand
 - 2 - Water
