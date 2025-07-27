@@ -31,8 +31,15 @@ const char *PANEL_TEXTURE_FILENAMES[] = {
 };
 
 
+// Constant SDL pixel format allocated for lifetime of any GUI application.
+// This format is guaranteed to support an alpha channel  no matter the
+// endianness of the running system.
+static SDL_PixelFormat *ALPHA_PIXEL_FORMAT = NULL;
+
+
 SDL_Texture **TILE_TEXTURES;
 SDL_Texture **PANEL_TEXTURES;
+SDL_Texture **HIGHLIGHT_TEXTURES;
 
 
 // ----- SDL API CALL WRAPPERS -----
@@ -296,7 +303,6 @@ static void _do_window_change(struct Application *app, SDL_WindowEvent *event)
         // Cover window with black to prevent resizing causing ugly stretching 
         // of content at border. 
         case SDL_WINDOWEVENT_RESIZED:
-
             set_black_background(app);
             SDL_UpdateWindowSurface(app->window);
             break;
@@ -309,6 +315,52 @@ static void _do_window_change(struct Application *app, SDL_WindowEvent *event)
 
 
 /**
+ * Draw the drawing-area highlight showing tiles around the mouse that are about
+ * to be placed/replaced/deleted.
+ * 
+ * The pixels drawn by this function must be displayed by SDL_RenderPresent()
+ * to show to screen.
+ * 
+ * @param app GUI Application to draw drawing-area highlight for.
+ */
+static void _draw_highlight(struct Application *app)
+{
+    // Convert mouse coordinate to and from sandbox coordinates to snap the
+    // location the texture is drawn on screen to nearest tile.
+    SDL_Texture *highlight_texture = get_highlight_texture(app->mouse->selected_type);
+    int sandbox_coords[2];
+    _scale_mouse_coords(app->mouse, app->sandbox, sandbox_coords);
+    int mouse_row = sandbox_coords[0];
+    int mouse_col = sandbox_coords[1];
+
+    int highlight_x = mouse_col * PIXEL_SCALE;
+    int highlight_y = mouse_row * PIXEL_SCALE;
+
+    // Do not show highlight ontop of non-empty tiles when placing.
+    if (!is_tile_empty(app->sandbox->grid[mouse_row][mouse_col]) && app->mouse->mode == PLACE)
+    {
+        return;
+    }
+
+    // Show a red color ontop of tiles about to be deleted.
+    // Query any highlight texture to get width/height data for red square.
+    if (app->mouse->mode == DELETE)
+    {
+        SDL_Rect dest;
+        dest.x = highlight_x;
+        dest.y = highlight_y;
+        SDL_CHECK_CODE(SDL_SetRenderDrawColor(app->renderer, 255, 0, 0, 128), __LINE__);
+        SDL_CHECK_CODE(SDL_QueryTexture(highlight_texture, NULL, NULL, &dest.w, &dest.h), __LINE__);
+        SDL_CHECK_CODE(SDL_RenderFillRect(app->renderer, &dest), __LINE__);
+        return;
+    }
+
+    blit_texture(app, highlight_texture, highlight_x, highlight_y);
+}
+
+
+
+/**
  * Unload all tile textures from memory, destroying them and freeing the array
  * of tile_textures.
  */
@@ -318,10 +370,12 @@ static void _destroy_textures(void)
     {
         SDL_DestroyTexture(TILE_TEXTURES[i]);
         SDL_DestroyTexture(PANEL_TEXTURES[i]);
+        SDL_DestroyTexture(HIGHLIGHT_TEXTURES[i]);
     }
 
     free(TILE_TEXTURES);
     free(PANEL_TEXTURES);
+    free(HIGHLIGHT_TEXTURES);
 }
 
 
@@ -340,8 +394,9 @@ void _cleanup(struct Application *app)
     free(app->mouse);
     free(app);
 
-    // Remove textures before exiting.
+    // Remove textures and the universal alpha format before exiting.
     _destroy_textures();
+    SDL_FreeFormat(ALPHA_PIXEL_FORMAT);
 
     // Quit SDL and SDL_Image.
     IMG_Quit();
@@ -397,7 +452,14 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
     new_mouse->selected_type = SAND;
     app->mouse = new_mouse;
 
-    // Allocate memory for all textures used by the 16 possible tile types.
+    // Allocate memory for all textures used by all possible tile types, and
+    // the universal alpha pixel format if not yet allocated.
+    // Enable alpha blending for transparent textures on renderer.
+    if (ALPHA_PIXEL_FORMAT == NULL)
+    {
+        ALPHA_PIXEL_FORMAT = SDL_CHECK_PTR(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32), __LINE__);
+    }
+    SDL_CHECK_CODE(SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND), __LINE__);
     init_textures(app);
 
     return app;
@@ -409,17 +471,25 @@ void init_textures(struct Application *app)
     // Allocate memory for array to hold pointers to all textures.
     TILE_TEXTURES = malloc((size_t) NUM_TILE_TYPES * sizeof(*TILE_TEXTURES));
     PANEL_TEXTURES = malloc((size_t) NUM_TILE_TYPES * sizeof(*PANEL_TEXTURES));
+    HIGHLIGHT_TEXTURES = malloc((size_t) NUM_TILE_TYPES * sizeof(*HIGHLIGHT_TEXTURES));
 
-    // Load all tile textures.
+    // Load all tile, panel, and highlight textures.
     for (int i = 0; i < NUM_TILE_TYPES; i++)
     {
-        TILE_TEXTURES[i] = load_texture(app, TILE_TEXTURE_FILENAMES[i]);
+        TILE_TEXTURES[i] = load_texture(app, TILE_TEXTURE_FILENAMES[i], false);
     }
 
-    // Load all panel textures.
     for (int i = 0; i < NUM_TILE_TYPES; i++)
     {
-        PANEL_TEXTURES[i] = load_texture(app, PANEL_TEXTURE_FILENAMES[i]);
+        PANEL_TEXTURES[i] = load_texture(app, PANEL_TEXTURE_FILENAMES[i], false);
+    }
+
+    for (int i = 0; i < NUM_TILE_TYPES; i++)
+    {
+        // Enable alpha blending on highlight textures and set 50% transparent.
+        // Highlight textures are based off tile textures.
+        HIGHLIGHT_TEXTURES[i] = load_texture(app, TILE_TEXTURE_FILENAMES[i], true);
+        SDL_CHECK_CODE(SDL_SetTextureAlphaMod(HIGHLIGHT_TEXTURES[i], 128), __LINE__);
     }
 }
 
@@ -431,10 +501,26 @@ void quit_gui(struct Application *app)
 }
 
 
-SDL_Texture *load_texture(struct Application *app, const char *filename)
+SDL_Texture *load_texture(struct Application *app, const char *filename, bool enable_alphablend)
 {
-    // Call SDL_image to load image.
-    SDL_Texture *texture = SDL_CHECK_PTR(IMG_LoadTexture(app->renderer, filename), __LINE__);
+    // For no blending support, can call SDL_image to load image.
+    if (!enable_alphablend)
+    {
+        SDL_Texture *texture = SDL_CHECK_PTR(IMG_LoadTexture(app->renderer, filename), __LINE__);
+        return texture;
+    }
+
+    // SDL_Image makes no guarantee on the image format of loaded textures.
+    //
+    // To guarantee alpha channel presence, temporarily load image as surface,
+    // then conver surface to a portable alpha channel format. Finally, convert
+    // back to texture, enable blending, and free the temporary surfaces.
+    SDL_Surface *raw_surface = SDL_CHECK_PTR(IMG_Load(filename), __LINE__);
+    SDL_Surface *alpha_surface = SDL_CHECK_PTR(SDL_ConvertSurface(raw_surface, ALPHA_PIXEL_FORMAT, 0), __LINE__);
+    SDL_Texture *texture = SDL_CHECK_PTR(SDL_CreateTextureFromSurface(app->renderer, alpha_surface), __LINE__);
+    SDL_CHECK_CODE(SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND), __LINE__);
+    SDL_FreeSurface(raw_surface);
+    SDL_FreeSurface(alpha_surface);
 
     return texture;
 }
@@ -462,10 +548,15 @@ SDL_Texture *get_tile_texture(unsigned char tile)
 }
 
 
-SDL_Texture *get_panel_texture(unsigned char tile)
+SDL_Texture *get_panel_texture(enum tile_type type)
 {
-    enum tile_type current_type = get_tile_type(tile);
-    return PANEL_TEXTURES[current_type];
+    return PANEL_TEXTURES[type];
+}
+
+
+SDL_Texture *get_highlight_texture(enum tile_type type)
+{
+    return HIGHLIGHT_TEXTURES[type];
 }
 
 
@@ -508,9 +599,10 @@ void draw_sandbox(struct Application *app)
 
 void draw_ui(struct Application *app)
 {
-    // Grab the panel texture for the currently selected tile, and blit to the
-    // topleft of the screen.
-    SDL_Texture *panel_texture = get_panel_texture((unsigned char) app->mouse->selected_type);
+    _draw_highlight(app);
+
+    // Draw panel texture and blit to topleft of screen.
+    SDL_Texture *panel_texture = get_panel_texture(app->mouse->selected_type);
     blit_texture(app, panel_texture, 0, 0);
 }
 

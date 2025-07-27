@@ -38,6 +38,10 @@ extern SDL_Texture **TILE_TEXTURES;
 // Panels display the element currently selected.
 extern SDL_Texture **PANEL_TEXTURES;
 
+
+// Array of pointers to textures used to draw transparent mouse highlight.
+extern SDL_Texture **HIGHLIGHT_TEXTURES;
+
 /**
  * Type descrbing GUI Application data controlled by a mouse input device.
  */
@@ -63,7 +67,7 @@ struct Mouse
  */
 struct Application
 {
-    // App GUI components.
+    // App GUI rendering components.
     SDL_Renderer *renderer;
     SDL_Window *window;
 
@@ -118,13 +122,20 @@ void quit_gui(struct Application *app);
 /**
  * Given the filename for a location to a JPG or PNG, load the image as an
  * SDL_Texture on the given application.
+ * 
+ * The loaded texture may optionally have alpha blending enabled for drawing
+ * with opacity. This will force the resulting texture to have an SDL format
+ * which supports an alpha channel.
  *
  * @param app App to load image on.
  * @param filename Filepath of image to load from, relative to program location.
+ * @param enable_alphablend If true, texture is loaded to support alpha blending.
+ * If false, texture may or may not support alpha blending, depending on the
+ * image contents of the file loaded.
  *
  * @return Image loaded as SDL_Texture
  */
-SDL_Texture *load_texture(struct Application *app, const char *filename);
+SDL_Texture *load_texture(struct Application *app, const char *filename, bool enable_alphablend);
 
 
 /**
@@ -149,14 +160,25 @@ SDL_Texture *get_tile_texture(unsigned char tile);
 
 
 /**
- * Obtain the panel texture for the given tile, to be used for showing the
- * tile as currently selected tile type.
+ * Obtain the panel texture for the given tile type, to be used for showing the
+ * tile type as currently selected tile type.
  *
- * @param tile Tile to fetch panel texture for.
+ * @param tile Tile type to fetch panel texture for.
  *
- * @return Panel texture corresponding to given tile, blittable to screen.
+ * @return Panel texture corresponding to given tile type, blittable to screen.
  */
-SDL_Texture *get_panel_texture(unsigned char tile);
+SDL_Texture *get_panel_texture(enum tile_type type);
+
+
+/**
+ * Obtain the texture used for the given tile type to show a single tile of 
+ * drawing-area highlight.
+ * 
+ * @param type Tile type to get highlight texture for.
+ * 
+ * @return Texture showing a single tile of highlight, blittable to screen.
+ */
+SDL_Texture *get_highlight_texture(enum tile_type type);
 
 
 /**

@@ -80,18 +80,6 @@ static bool _flip_coin(void)
 
 
 /**
- * Return whether the given tile is an empty space or not.
- * 
- * @param tile Tile to determine if is empty and replaceable or not.
- * @return True if tile is empty, false otherwise.
- */
-static bool _tile_is_empty(unsigned char tile)
-{
-    return get_tile_type(tile) == AIR;
-}
-
-
-/**
  * Determine wheter the two given tiles have the type tile type.
  * 
  * @param tile, other_tile Tiles to determine if they have same type.
@@ -532,8 +520,8 @@ void _slide_left_or_right(struct Sandbox *sandbox, int row, int col)
     int right_col = col + 1;
 
     // Only slide in a direction if there's an empty space, and it's not OOB.
-    bool can_slide_left = left_col != -1 && _tile_is_empty(sandbox->grid[row][left_col]);
-    bool can_slide_right = right_col != sandbox->width && _tile_is_empty(sandbox->grid[row][right_col]);
+    bool can_slide_left = left_col != -1 && is_tile_empty(sandbox->grid[row][left_col]);
+    bool can_slide_right = right_col != sandbox->width && is_tile_empty(sandbox->grid[row][right_col]);
 
     // If we can flow both directions, choose one at random on a coin flip.
     if (can_slide_left && can_slide_right)
@@ -600,7 +588,7 @@ static bool _can_lift(struct Sandbox *sandbox, int row, int col, int target_row,
 
     // Gases lift through liquids and other gases, but only if not passes
     // through own gas type.
-    return (_tile_is_empty(target_tile)
+    return (is_tile_empty(target_tile)
          || _tile_is_liquid(target_tile)
          || (_tile_is_gas(target_tile) && !_are_tiles_same_type(source_tile, target_tile)));
 }
@@ -693,7 +681,7 @@ void process_sandbox(struct Sandbox *sandbox)
             bool is_updated = is_tile_updated(current_tile, sandbox->lifetime);
 
             // Do not simulate an empty tile.
-            if (_tile_is_empty(current_tile))
+            if (is_tile_empty(current_tile))
             {
                 continue;
             }
@@ -782,6 +770,12 @@ enum tile_type get_tile_type(unsigned char tile)
 }
 
 
+bool is_tile_empty(unsigned char tile)
+{
+    return get_tile_type(tile) == AIR;
+}
+
+
 bool is_tile_updated(unsigned char tile, long long current_time)
 {
     unsigned char time_parity = get_time_parity(current_time);
@@ -826,7 +820,7 @@ void do_gravity(struct Sandbox *sandbox, int row, int col)
     bool can_sink_below = _can_sink(sandbox, row, col, next_row, col);
     unsigned char tile_below = sandbox->grid[next_row][col];
 
-    if (_tile_is_empty(tile_below) || can_sink_below)
+    if (is_tile_empty(tile_below) || can_sink_below)
     {
         _swap_tiles(row, col, next_row, col, sandbox->grid);
         return;
@@ -849,8 +843,8 @@ void do_gravity(struct Sandbox *sandbox, int row, int col)
     bool can_sink_bottomleft = _can_sink(sandbox, row, col, next_row, left_col);
     bool can_sink_bottomright = _can_sink(sandbox, row, col, next_row, right_col);
 
-    bool can_slide_bottomleft = !is_wall_on_left && _tile_is_empty(sandbox->grid[next_row][left_col]);
-    bool can_slide_bottomright = !is_wall_on_right && _tile_is_empty(sandbox->grid[next_row][right_col]);
+    bool can_slide_bottomleft = !is_wall_on_left && is_tile_empty(sandbox->grid[next_row][left_col]);
+    bool can_slide_bottomright = !is_wall_on_right && is_tile_empty(sandbox->grid[next_row][right_col]);
 
     // If we can both slide/sink down left and right, choose one at random.
     if ((can_slide_bottomleft && can_slide_bottomright)

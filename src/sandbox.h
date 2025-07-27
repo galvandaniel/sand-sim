@@ -98,6 +98,15 @@ enum tile_type get_tile_type(unsigned char tile);
 
 
 /**
+ * Return whether the given tile is an empty space or not.
+ * 
+ * @param tile Tile to determine if is empty and replaceable or not.
+ * @return True if tile is empty, false otherwise.
+ */
+bool is_tile_empty(unsigned char tile);
+
+
+/**
  * Determine whether the given tile has already been updated or not in the
  * current pass of the sandbox, as determined by current_time.
  *
