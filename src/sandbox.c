@@ -25,9 +25,6 @@
 #include <math.h>
 
 
-const double survival_chances[] = {0.50, 0.87, 0.95, 1.0};
-
-
 // ----- STATIC FUNCTIONS -----
 
 
@@ -104,6 +101,52 @@ static bool _tile_is_empty(unsigned char tile)
 static bool _are_tiles_same_type(unsigned char tile, unsigned char other_tile)
 {
     return get_tile_type(tile) == get_tile_type(other_tile);
+}
+
+
+/**
+ * Get the chance a tile particle has of surviving to the next frame of
+ * simulation.
+ * 
+ * If a tile does not survive, it is replaced by AIR.
+ * 
+ * 0.0 indicates 0% chance of survival, 1.0 indicates 100% chance. 
+ * A tile with 100% chance of survival will never disappear unless removed by
+ * the user.
+ * 
+ * @param tile Tile to get likelihood of survival.
+ * @return Double representing chance of survival to the next frame.
+ */
+static double _tile_survival_chance(unsigned char tile)
+{
+    enum tile_type current_type = get_tile_type(tile);
+
+    // Tile values that are not 0 or 1 have been chosen empirically based on
+    // what 'feels' right.
+    switch (current_type)
+    {
+        // AIR represents empty tile so 'surviving' has no significance for it.
+        case AIR:
+            return 1.0;
+
+        case SAND:
+            return 1.0;
+
+        case WATER:
+            return 1.0;
+
+        case WOOD:
+            return 1.0;
+
+        case STEAM:
+            return 0.95;
+
+        case FIRE:
+            return 0.87;
+
+        default:
+            return 1.0;
+    }
 }
 
 
@@ -387,25 +430,22 @@ static bool _tile_is_incendiary(unsigned char tile)
 
 /**
  * Perform a random roll on whether the given tile should survive to the next
- * frame of simulation or not. This depends on the tile's classification in
- * survival odds.
+ * frame of simulation or not. This depends on the tile's survival odds.
  * 
  * @param tile Tile to determine if should survive to next frame or not
  * @return True if tile survives, false if tile dies and is replaced by air.
  */
 static bool _roll_should_tile_survive(unsigned char tile)
 {
-    enum lifespan_duration lifespan = get_tile_lifespan(tile);
+    double chance_of_survival = _tile_survival_chance(tile);
 
-    // Tile with permanent duration always survives.
-    if (lifespan == PERMANENT)
+    // No need to check if a tile which always survives does so.
+    if (chance_of_survival == 1.0)
     {
         return true;
     }
 
     double random_value = (double) rand() / (double) RAND_MAX;
-    double chance_of_survival = survival_chances[lifespan];
-
     return random_value <= chance_of_survival;
 }
 
@@ -739,37 +779,6 @@ enum tile_type get_tile_type(unsigned char tile)
     enum tile_type type_id = tile_mask & tile;
 
     return type_id;
-}
-
-
-enum lifespan_duration get_tile_lifespan(unsigned char tile)
-{
-    enum tile_type current_type = get_tile_type(tile);
-
-    switch (current_type)
-    {
-        // AIR represents empty tile so lifespan has no significance for it.
-        case AIR:
-            return PERMANENT;
-
-        case SAND:
-            return PERMANENT;
-
-        case WATER:
-            return PERMANENT;
-
-        case WOOD:
-            return PERMANENT;
-
-        case STEAM:
-            return LONG;
-
-        case FIRE:
-            return AVERAGE;
-
-        default:
-            return PERMANENT;
-    }
 }
 
 
