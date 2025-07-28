@@ -31,16 +31,16 @@
 /**
  * Swap the tiles located at the two coordinates within sandbox grid.
  *
- * @param row_one, col_one Coordinates of first tile.
- * @param row_two, col_two Coordinates of second tile.
+ * @param coords Coordinates of first tile.
+ * @param other_coords Coordinates of second tile.
  * @param grid Sandbox 2D grid of bytes to mutate by swapping first and second 
  * tile.
  */
-static void _swap_tiles(int row_one, int col_one, int row_two, int col_two, unsigned char **grid)
+static void _swap_tiles(struct SandboxPoint coords, struct SandboxPoint other_coords, unsigned char **grid)
 {
-    unsigned char temp = grid[row_one][col_one];
-    grid[row_one][col_one] = grid[row_two][col_two];
-    grid[row_two][col_two] = temp;
+    unsigned char temp = grid[coords.row][coords.col];
+    grid[coords.row][coords.col] = grid[other_coords.row][other_coords.col];
+    grid[other_coords.row][other_coords.col] = temp;
 }
 
 
@@ -50,7 +50,6 @@ static void _swap_tiles(int row_one, int col_one, int row_two, int col_two, unsi
  * This function is not seeded and will always generate the same sequence.
  * 
  * @param min, max Inclusive bounds of the random integer to be generated.
- * 
  * @return Random integer in the interval [min, max].
  */
 static int randint(int min, int max)
@@ -60,9 +59,8 @@ static int randint(int min, int max)
 
 /**
  * Flip a coin, generating either heads or tails.
- *
  * This function is not seeded and will always generate the same sequence.
- *
+ * 
  * @return True for heads, false for tails.
  */
 static bool _flip_coin(void)
@@ -80,10 +78,9 @@ static bool _flip_coin(void)
 
 
 /**
- * Determine wheter the two given tiles have the type tile type.
+ * Determine whether the two given tiles have the type tile type.
  * 
  * @param tile, other_tile Tiles to determine if they have same type.
- * 
  * @return True if tiles have same tile type, false otherwise.
  */
 static bool _are_tiles_same_type(unsigned char tile, unsigned char other_tile)
@@ -143,7 +140,6 @@ static double _tile_survival_chance(unsigned char tile)
  * next frame when adjacent to any incendiary tile in the cardinal directions.
  * 
  * @param tile Tile to get flammability chance for.
- * 
  * @return Chance of being lit on fire, 0.0 indicating 0%, 1.0 indicating 100%.
  */
 static double _tile_flammability(unsigned char tile)
@@ -180,7 +176,6 @@ static double _tile_flammability(unsigned char tile)
  * Return whether the given tile is affected by gravity or not.
  *
  * @param tile Tile to determine if it has gravity or not.
- *
  * @return True if tile is affected by gravity, false otherwise.
  */
 static bool _tile_has_gravity(unsigned char tile)
@@ -223,7 +218,6 @@ static bool _tile_has_gravity(unsigned char tile)
  * For example, air and fire are not solid. Sand and wood are solid.
  *
  * @param tile Tile to determine if is solid or not.
- * 
  * @return True if tile is solid, false otherwise.
  */
 static bool _tile_is_solid(unsigned char tile)
@@ -265,7 +259,6 @@ static bool _tile_is_solid(unsigned char tile)
  * For example, water is a liquid. Wood and steam are not liquids.
  *
  * @param tile Tile to determine if is liquid or not.
- *
  * @return True if the tile type is liquid and there has flow, false otherwise.
  */
 static bool _tile_is_liquid(unsigned char tile)
@@ -304,9 +297,7 @@ static bool _tile_is_liquid(unsigned char tile)
  * A tile is considered a gas if lifts into the air and is able to permeate
  * through liquids and other gasses.
  *
- *
  * @param tile Tile to determine if is gas and has lift or not.
- *
  * @return True if tile is a gas and lifts into the air, false otherwise.
  */
 static bool _tile_is_gas(unsigned char tile)
@@ -345,7 +336,6 @@ static bool _tile_is_gas(unsigned char tile)
  * flow laterally through liquids.
  * 
  * @param tile Tile to determine if dissolves in liquid.
- * 
  * @return True if tile dissolves in liquids like water, false otherwise.
  */
 static bool _tile_dissolves(unsigned char tile)
@@ -383,7 +373,6 @@ static bool _tile_dissolves(unsigned char tile)
  * by being close to them.
  * 
  * @param tile Tile to determine if can light other tiles on fire or not.
- * 
  * @return True if tile can light others on fire, false otherwise.
  */
 static bool _tile_is_incendiary(unsigned char tile)
@@ -420,7 +409,7 @@ static bool _tile_is_incendiary(unsigned char tile)
  * Perform a random roll on whether the given tile should survive to the next
  * frame of simulation or not. This depends on the tile's survival odds.
  * 
- * @param tile Tile to determine if should survive to next frame or not
+ * @param tile Tile to determine if should survive to next frame or not.
  * @return True if tile survives, false if tile dies and is replaced by air.
  */
 static bool _roll_should_tile_survive(unsigned char tile)
@@ -439,19 +428,19 @@ static bool _roll_should_tile_survive(unsigned char tile)
 
 
 /**
- * Perform a random roll on whether or not the tile located at the given indices
- * in the sandbox should light on fire and be replaced by a fire tile.
+ * Perform a random roll on whether or not the tile located at the given 
+ * coordinates in the sandbox should light on fire and be replaced by a fire tile.
  * 
  * If the given tile cannot burn at all, no randomness or roll is performed.
  * 
  * @param sandbox Sandbox containing tile to test for burn condition.
- * @param row, col Indices of tile to determine if should convert to fire on 
+ * @param coords Coordinates of tile to determine if should convert to fire on 
  * next frame or not.
  * @return True if roll succeeds and tile should become fire, false otherwise.
  */
-static bool _roll_should_tile_burn(struct Sandbox *sandbox, int row, int col)
+static bool _roll_should_tile_burn(struct Sandbox *sandbox, struct SandboxPoint coords)
 {
-    double burn_chance = _tile_flammability(sandbox->grid[row][col]);
+    double burn_chance = _tile_flammability(sandbox->grid[coords.row][coords.col]);
 
     // FP comparison is inexact, but here inflammability is assigned the 
     // literal value of 0.0, which is exactly representable in IEEE 754
@@ -460,25 +449,24 @@ static bool _roll_should_tile_burn(struct Sandbox *sandbox, int row, int col)
         return false;
     }
 
-    int row_below = row + 1;
-    int row_above = row - 1;
-    int left_col = col - 1;
-    int right_col = col + 1;
+    struct SandboxPoint up = {coords.row - 1, coords.col};
+    struct SandboxPoint right = {coords.row, coords.col + 1};
+    struct SandboxPoint down = {coords.row + 1, coords.col};
+    struct SandboxPoint left = {coords.row, coords.col - 1};
     // Flammable tiles roll for burn if an incendiary tile is directly NSEW.
-    int search_area_indices[4][2] = {{row_above, col},
-                                     {row, right_col},
-                                     {row_below, col},
-                                     {row, left_col}};
+    struct SandboxPoint search_area[4] = {up,
+                                          right,
+                                          down,
+                                          left};
     // Search for incendiary tile. 
     // If search area goes OOB, default to not incendiary.
     bool is_next_to_incendiary = false;
     for (int i = 0; i < 4; i++)
     {
-        int search_row = search_area_indices[i][0];
-        int search_col = search_area_indices[i][1];
+        int search_row = search_area[i].row;
+        int search_col = search_area[i].col;
 
-        if (search_row < 0 || search_row == sandbox->height 
-         || search_col < 0 || search_col == sandbox->width)
+        if (is_coord_oob(sandbox, search_area[i]))
          {
             continue;
          }
@@ -509,19 +497,19 @@ static bool _roll_should_tile_burn(struct Sandbox *sandbox, int row, int col)
  *
  * This function does NOT check under what conditions a tile should slide.
  *
- * Helper function to do_liquid_flow.
- *
  * @param sandbox Sandbox to potentialy mutate by moving tiles for sliding.
- * @param row, col Coordinates of tile to slide.
+ * @param coords Coordinates of tile to slide.
  */
-void _slide_left_or_right(struct Sandbox *sandbox, int row, int col)
+void _slide_left_or_right(struct Sandbox *sandbox, struct SandboxPoint coords)
 {
-    int left_col = col - 1;
-    int right_col = col + 1;
+    struct SandboxPoint left = {coords.row, coords.col - 1};
+    struct SandboxPoint right = {coords.row, coords.col + 1};
 
     // Only slide in a direction if there's an empty space, and it's not OOB.
-    bool can_slide_left = left_col != -1 && is_tile_empty(sandbox->grid[row][left_col]);
-    bool can_slide_right = right_col != sandbox->width && is_tile_empty(sandbox->grid[row][right_col]);
+    bool can_slide_left = (!is_coord_oob(sandbox, left)
+                        && is_tile_empty(sandbox->grid[left.row][left.col]));
+    bool can_slide_right = (!is_coord_oob(sandbox, right)
+                         && is_tile_empty(sandbox->grid[right.row][right.col]));
 
     // If we can flow both directions, choose one at random on a coin flip.
     if (can_slide_left && can_slide_right)
@@ -530,11 +518,11 @@ void _slide_left_or_right(struct Sandbox *sandbox, int row, int col)
 
         if (heads)
         {
-            _swap_tiles(row, col, row, left_col, sandbox->grid);
+            _swap_tiles(coords, left, sandbox->grid);
         }
         else
         {
-            _swap_tiles(row, col, row, right_col, sandbox->grid);
+            _swap_tiles(coords, right, sandbox->grid);
         }
         return;
     }
@@ -542,12 +530,12 @@ void _slide_left_or_right(struct Sandbox *sandbox, int row, int col)
     // If only one option is available, do that.
     if (can_slide_left)
     {
-        _swap_tiles(row, col, row, left_col, sandbox->grid);
+        _swap_tiles(coords, left, sandbox->grid);
         return;
     }
     if (can_slide_right)
     {
-        _swap_tiles(row, col, row, right_col, sandbox->grid);
+        _swap_tiles(coords, right, sandbox->grid);
         return;
     }
 }
@@ -560,27 +548,25 @@ void _slide_left_or_right(struct Sandbox *sandbox, int row, int col)
  * lifted, coordinates are not checked for consistency with anti-gravity logic.
  *
  * @param sandbox Sandbox to determine if target coordinates can be lifted to.
- * @param row, col Source coordinates of tile to perform lift.
- * @param target_row, target_col Destination coordinates a tile is trying to
- * lift to.
- * 
- * @return True if the tile at (row, col) can be lifted to 
- * (target_row, target_col), False otherwise.
+ * @param source Source coordinates of tile to perform lift.
+ * @param target Destination coordinates a tile is trying to lift to.
+ * @return True if the source tile can be lifted to the target location, 
+ * False otherwise.
  */
-static bool _can_lift(struct Sandbox *sandbox, int row, int col, int target_row, int target_col)
+static bool _can_lift(struct Sandbox *sandbox, struct SandboxPoint source, struct SandboxPoint target)
 {
     // If attempting to lift OOB, reject.
-    if (target_row == -1 || target_col == -1 || target_col == sandbox->width)
+    if (is_coord_oob(sandbox, target))
     {
         return false;
     }
 
-    unsigned char source_tile = sandbox->grid[row][col];
-    unsigned char target_tile = sandbox->grid[target_row][target_col];
+    unsigned char source_tile = sandbox->grid[source.row][source.col];
+    unsigned char target_tile = sandbox->grid[target.row][target.col];
 
     // A tile can only lift through liquid by going upwards, not sideways.
-    bool is_left_or_right = (target_col == col - 1) || (target_col == col + 1);
-    bool is_parallel_horizontal = target_row == row && is_left_or_right;
+    bool is_left_or_right = (target.col == source.col - 1) || (target.col == source.col + 1);
+    bool is_parallel_horizontal = target.row == source.row && is_left_or_right;
     if (_tile_is_liquid(target_tile) && is_parallel_horizontal)
     {
         return false;
@@ -601,23 +587,21 @@ static bool _can_lift(struct Sandbox *sandbox, int row, int col, int target_row,
  * sunk to, coordinates are not checked for consistency with gravity logic.
  * 
  * @param sandbox Sandbox to determine if target coordinates can be sunk to.
- * @param row, col Source coordinates of tile to perform sink.
- * @param target_row, target_col Destination coordinates a tile is trying to
- * sink to.
- * 
- * @return True if the tile at (row, col) can sink to (target_row, target_col),
+ * @param source Source coordinates of tile to perform sink.
+ * @param target Destination coordinates a tile is trying to sink to.
+ * @return True if the source tile can sink to the target location
  * False otherwise.
  */
-static bool _can_sink(struct Sandbox *sandbox, int row, int col, int target_row, int target_col)
+static bool _can_sink(struct Sandbox *sandbox, struct SandboxPoint source, struct SandboxPoint target)
 {
     // Cannot sink if doing so goes OOB.
-    if (target_row == sandbox->height || target_col == -1 || target_col == sandbox->width)
+    if (is_coord_oob(sandbox, target))
     {
         return false;
     }
 
-    unsigned char source_tile = sandbox->grid[row][col];
-    unsigned char target_tile = sandbox->grid[target_row][target_col];
+    unsigned char source_tile = sandbox->grid[source.row][source.col];
+    unsigned char target_tile = sandbox->grid[target.row][target.col];
 
     // Can only sink through a liquid tile, and a liquid cannot sink through 
     // its own type.
@@ -678,6 +662,8 @@ void process_sandbox(struct Sandbox *sandbox)
         for (int col = 0; col < sandbox->width; col++)
         {
             unsigned char current_tile = grid[row][col];
+            struct SandboxPoint coords = {row, col};
+
             bool is_updated = is_tile_updated(current_tile, sandbox->lifetime);
 
             // Do not simulate an empty tile.
@@ -696,15 +682,15 @@ void process_sandbox(struct Sandbox *sandbox)
             bool should_survive = _roll_should_tile_survive(current_tile);
             if (!should_survive)
             {
-                grid[row][col] = AIR;
+                delete_tile(sandbox, coords);
                 continue;
             }
 
             // Perform burn check. Resulting fire tile should not be simulated.
-            bool should_burn = _roll_should_tile_burn(sandbox, row, col);
+            bool should_burn = _roll_should_tile_burn(sandbox, coords);
             if (should_burn)
             {
-                grid[row][col] = create_tile(sandbox, FIRE);
+                replace_tile(sandbox, coords, FIRE);
                 continue;
             }
 
@@ -716,25 +702,25 @@ void process_sandbox(struct Sandbox *sandbox)
             // Perform extinguish check. Only fire extinguishes. 
             if (get_tile_type(current_tile) == FIRE)
             {
-                do_extinguish(sandbox, row, col);
+                do_extinguish(sandbox, coords);
             }
 
             // Perform gravity on the tiles that need it.
             if (_tile_has_gravity(current_tile))
             {
-                do_gravity(sandbox, row, col);
+                do_gravity(sandbox, coords);
             }
 
             // Perform flow on liquid tiles.
             if (_tile_is_liquid(current_tile))
             {
-                do_liquid_flow(sandbox, row, col);
+                do_liquid_flow(sandbox, coords);
             }
 
             // Perform lift on gasses
             if (_tile_is_gas(current_tile))
             {
-                do_lift(sandbox, row, col);
+                do_lift(sandbox, coords);
             }
 
             // A swap could have just happened, so update the tile again to
@@ -748,6 +734,186 @@ void process_sandbox(struct Sandbox *sandbox)
 }
 
 
+void do_gravity(struct Sandbox *sandbox, struct SandboxPoint coords)
+{
+    struct SandboxPoint down = {coords.row + 1, coords.col};
+
+    // Don't simulate gravity if doing so would take us out of bounds.
+    if (is_coord_oob(sandbox, down))
+    {
+        return;
+    }
+
+    // First check if tile can sink through a liquid/fall directly down.
+    bool can_sink_below = _can_sink(sandbox, coords, down);
+
+    if (is_tile_empty(sandbox->grid[down.row][down.col]) || can_sink_below)
+    {
+        _swap_tiles(coords, down, sandbox->grid);
+        return;
+    }
+
+    struct SandboxPoint left = {coords.row, coords.col - 1};
+    struct SandboxPoint right = {coords.row, coords.col + 1};
+    struct SandboxPoint downleft = {down.row, left.col};
+    struct SandboxPoint downright = {down.row, right.col};
+
+    // The left and right borders of the sandbox are considered walls.
+    bool is_wall_left = (left.col == -1 
+                      || _tile_is_solid(sandbox->grid[left.row][left.col]));
+    bool is_wall_right = (right.col == sandbox->width 
+                       || _tile_is_solid(sandbox->grid[right.row][right.col]));
+
+    // Cannot slide or sink at all if there are walls both sides and below is
+    // not empty or liquid.
+    if (is_wall_left && is_wall_right)
+    {
+        return;
+    }
+
+    // Now check if tile can sink/slide diagonally instead.
+    bool can_sink_downleft = _can_sink(sandbox, coords, downleft);
+    bool can_sink_downright = _can_sink(sandbox, coords, downright);
+
+    bool can_slide_downleft = (!is_wall_left 
+                            && is_tile_empty(sandbox->grid[downleft.row][downleft.col]));
+    bool can_slide_downright = (!is_wall_right 
+                             && is_tile_empty(sandbox->grid[downright.row][downright.col]));
+
+    // If we can both slide/sink down left and right, choose one at random.
+    if ((can_slide_downleft && can_slide_downright)
+        || (can_sink_downleft && can_sink_downright))
+    {
+        bool heads = _flip_coin();
+
+        if (heads)
+        {
+            _swap_tiles(coords, downleft, sandbox->grid);
+        }
+        else
+        {
+            _swap_tiles(coords, downright, sandbox->grid);
+        }
+        return;
+    }
+
+    // If there is no choice in direction, do whichever is possible.
+    if (can_slide_downleft || can_sink_downleft)
+    {
+        _swap_tiles(coords, downleft, sandbox->grid);
+        return;
+    }
+    if (can_slide_downright || can_sink_downright)
+    {
+        _swap_tiles(coords, downright, sandbox->grid);
+        return;
+    }
+}
+
+
+void do_liquid_flow(struct Sandbox *sandbox, struct SandboxPoint coords)
+{
+    struct SandboxPoint below = {coords.row + 1, coords.col};
+
+    // Liquid can't flow if not on solid footing or not ontop of another liquid.
+    // Being on the botton of sandbox counts as being on solid footing.
+    bool on_solid_ground = below.row == sandbox->height || _tile_is_solid(sandbox->grid[below.row][below.col]);
+    if (!on_solid_ground && !_tile_is_liquid(sandbox->grid[below.row][below.col]))
+    {
+        return;
+    }
+
+    _slide_left_or_right(sandbox, coords);
+}
+
+
+void do_lift(struct Sandbox *sandbox, struct SandboxPoint coords)
+{
+    struct SandboxPoint left = {coords.row, coords.col - 1};
+    struct SandboxPoint right = {coords.row, coords.col + 1};
+    struct SandboxPoint up = {coords.row - 1, coords.col};
+    struct SandboxPoint upleft = {up.row, left.col};
+    struct SandboxPoint upright = {up.row, right.col};
+
+    // Capture possible coordinates to lift to and determine whether tile
+    // at each coordinates can be lifted to any of them.
+    struct SandboxPoint options[5] = {upleft, up, upright, left, right};
+    bool possibilities[5];
+
+    for (int i = 0; i < 5; i++)
+    {
+        possibilities[i] = _can_lift(sandbox, coords, options[i]);
+    }
+
+    // Collect the valid movement options into an array then pick one at random.
+    struct SandboxPoint targets[5];
+    int num_true = 0;
+    for (int i = 0; i < 5; i++)
+    {
+        if (possibilities[i])
+        {
+            targets[num_true] = options[i];
+            num_true++;
+        }
+    }
+
+    // No lift is possible if cannot move any way upwards.
+    if (num_true == 0)
+    {
+        return;
+    }
+
+    int rand_index = randint(0, num_true - 1);
+    _swap_tiles(coords, targets[rand_index], sandbox->grid);
+}
+
+
+void do_extinguish(struct Sandbox *sandbox, struct SandboxPoint coords)
+{
+    struct SandboxPoint up = {coords.row - 1, coords.col};
+    struct SandboxPoint left = {coords.row, coords.col - 1};
+    struct SandboxPoint right = {coords.row, coords.col + 1};
+    struct SandboxPoint down = {coords.row + 1, coords.col};
+
+    // Check for water in cardinal directions.
+    struct SandboxPoint search_area[4] = {up, right, down, left};
+    bool is_next_to_water = false;
+    for (int i = 0; i < 4; i++)
+    {
+        int search_row = search_area[i].row;
+        int search_col = search_area[i].col;
+
+        // If search area goes OOB, default to not water.
+        if (is_coord_oob(sandbox, search_area[i]))
+         {
+            continue;
+         }
+
+         if (get_tile_type(sandbox->grid[search_row][search_col]) == WATER)
+         {
+            is_next_to_water = true;
+            break;
+         }
+    }
+
+    if (!is_next_to_water)
+    {
+        return;
+    }
+
+    replace_tile(sandbox, coords, STEAM);
+}
+
+
+bool is_coord_oob(struct Sandbox *sandbox, struct SandboxPoint coords)
+{
+    return (coords.row < 0 
+         || coords.row >= sandbox->height
+         || coords.col < 0
+         || coords.col >= sandbox->width);
+}
+
+
 unsigned char create_tile(struct Sandbox *sandbox, enum tile_type new_type)
 {
     // New tiles are synced to time to prevent update until next frame.
@@ -757,6 +923,40 @@ unsigned char create_tile(struct Sandbox *sandbox, enum tile_type new_type)
     // TODO: Randomization of tile color will go here.
 
     return new_tile;
+}
+
+
+void place_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum tile_type type)
+{
+    // Only place new tiles ontop of air.
+    if (!is_tile_empty(sandbox->grid[coords.row][coords.col]))
+    {
+        return;
+    }
+    sandbox->grid[coords.row][coords.col] = create_tile(sandbox, type);
+}
+
+
+void delete_tile(struct Sandbox *sandbox, struct SandboxPoint coords)
+{
+    // Don't delete air tile, this would be redundant.
+    if (is_tile_empty(sandbox->grid[coords.row][coords.col]))
+    {
+        return;
+    }
+    sandbox->grid[coords.row][coords.col] = AIR;
+}
+
+
+void replace_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum tile_type type)
+{
+    // Don't replace a tile with its own type, this would be redundant.
+    enum tile_type source_type = get_tile_type(sandbox->grid[coords.row][coords.col]);
+    if (source_type == type)
+    {
+        return;
+    }
+    sandbox->grid[coords.row][coords.col] = create_tile(sandbox, type);
 }
 
 
@@ -803,183 +1003,6 @@ void set_tile_updated(unsigned char *tile, long long current_time)
     {
         *tile |= turn_on;
     }
-}
-
-
-void do_gravity(struct Sandbox *sandbox, int row, int col)
-{
-    int next_row = row + 1;
-
-    // Don't simulate gravity if doing so would take us out of bounds.
-    if (next_row == sandbox->height)
-    {
-        return;
-    }
-
-    // First check if tile can sink through a liquid/fall directly down.
-    bool can_sink_below = _can_sink(sandbox, row, col, next_row, col);
-    unsigned char tile_below = sandbox->grid[next_row][col];
-
-    if (is_tile_empty(tile_below) || can_sink_below)
-    {
-        _swap_tiles(row, col, next_row, col, sandbox->grid);
-        return;
-    }
-
-    int left_col = col - 1;
-    int right_col = col + 1;
-
-    // The left and right borders of the sandbox are considered walls.
-    bool is_wall_on_left = left_col == -1 || _tile_is_solid(sandbox->grid[row][left_col]);
-    bool is_wall_on_right = right_col == sandbox->width || _tile_is_solid(sandbox->grid[row][right_col]);
-
-    // Cannot slide or sink downward if there are blocking walls on left and right.
-    if (is_wall_on_left && is_wall_on_right)
-    {
-        return;
-    }
-
-    // Now check if tile can sink/slide diagonally instead.
-    bool can_sink_bottomleft = _can_sink(sandbox, row, col, next_row, left_col);
-    bool can_sink_bottomright = _can_sink(sandbox, row, col, next_row, right_col);
-
-    bool can_slide_bottomleft = !is_wall_on_left && is_tile_empty(sandbox->grid[next_row][left_col]);
-    bool can_slide_bottomright = !is_wall_on_right && is_tile_empty(sandbox->grid[next_row][right_col]);
-
-    // If we can both slide/sink down left and right, choose one at random.
-    if ((can_slide_bottomleft && can_slide_bottomright)
-        || (can_sink_bottomleft && can_sink_bottomright))
-    {
-        bool heads = _flip_coin();
-
-        if (heads)
-        {
-            _swap_tiles(row, col, next_row, left_col, sandbox->grid);
-        }
-        else
-        {
-            _swap_tiles(row, col, next_row, right_col, sandbox->grid);
-        }
-        return;
-    }
-
-    // If there is no choice in direction, do whichever is possible.
-    if (can_slide_bottomleft || can_sink_bottomleft)
-    {
-        _swap_tiles(row, col, next_row, left_col, sandbox->grid);
-        return;
-    }
-    if (can_slide_bottomright || can_sink_bottomright)
-    {
-        _swap_tiles(row, col, next_row, right_col, sandbox->grid);
-        return;
-    }
-}
-
-
-void do_liquid_flow(struct Sandbox *sandbox, int row, int col)
-{
-    int next_row = row + 1;
-
-    // Liquid can't flow if not on solid footing or not ontop of another liquid.
-    // Being on the botton of sandbox counts as being on solid footing.
-    bool on_solid_ground = next_row == sandbox->height || _tile_is_solid(sandbox->grid[next_row][col]);
-    if (!on_solid_ground && !_tile_is_liquid(sandbox->grid[next_row][col]))
-    {
-        return;
-    }
-
-    _slide_left_or_right(sandbox, row, col);
-}
-
-
-void do_lift(struct Sandbox *sandbox, int row, int col)
-{
-    int next_row = row - 1;
-    int left_col = col - 1;
-    int right_col = col + 1;
-
-    // Capture possible coordinates to lift to and determine whether tile
-    // at (row, col) can be lifted to any of them.
-    int movement_options[5][2] = {{next_row, col},
-                                  {next_row, left_col},
-                                  {next_row, right_col},
-                                  {row, left_col},
-                                  {row, right_col}};
-    bool movement_possibilities[5];
-
-    for (int i = 0; i < 5; i++)
-    {
-        movement_possibilities[i] = _can_lift(sandbox, 
-                                              row, 
-                                              col, 
-                                              movement_options[i][0], 
-                                              movement_options[i][1]);
-    }
-
-    // Collect the valid movement options into an array then pick one at random.
-    int target_indices[5][2];
-    int num_true = 0;
-    for (int i = 0; i < 5; i++)
-    {
-        if (movement_possibilities[i])
-        {
-            target_indices[num_true][0] = movement_options[i][0];
-            target_indices[num_true][1] = movement_options[i][1];
-            num_true++;
-        }
-    }
-
-    // No lift is possible if cannot move any way upwards.
-    if (num_true == 0)
-    {
-        return;
-    }
-
-    int random_index = randint(0, num_true - 1);
-    int target_row = target_indices[random_index][0];
-    int target_col = target_indices[random_index][1];
-    _swap_tiles(row, col, target_row, target_col, sandbox->grid);
-}
-
-
-void do_extinguish(struct Sandbox *sandbox, int row, int col)
-{
-    int row_below = row + 1;
-    int row_above = row - 1;
-    int left_col = col - 1;
-    int right_col = col + 1;
-    // Check for water in cardinal directions.
-    int search_area_indices[4][2] = {{row_above, col},
-                                     {row, right_col},
-                                     {row_below, col},
-                                     {row, left_col}}; 
-    bool is_next_to_water = false;
-    for (int i = 0; i < 4; i++)
-    {
-        int search_row = search_area_indices[i][0];
-        int search_col = search_area_indices[i][1];
-
-        // If search area goes OOB, default to not water.
-        if (search_row < 0 || search_row == sandbox->height 
-         || search_col < 0 || search_col == sandbox->width)
-         {
-            continue;
-         }
-
-         if (get_tile_type(sandbox->grid[search_row][search_col]) == WATER)
-         {
-            is_next_to_water = true;
-            break;
-         }
-    }
-
-    if (!is_next_to_water)
-    {
-        return;
-    }
-
-    sandbox->grid[row][col] = create_tile(sandbox, STEAM);
 }
 
 

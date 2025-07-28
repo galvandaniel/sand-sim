@@ -4,7 +4,7 @@
 /**
  * A collection of functions for defining and processing a sand simulation.
  *
- * Each tile shall be represented as a single unsigned big-endian byte.
+ * Each tile shall be represented as a single byte.
  *
  * The first 4 significant bits are reserved for tile flags.
  * The last 4 bits represent a tile type ID number, from 0 to 15.
@@ -44,6 +44,16 @@ struct Sandbox
 
 
 /**
+ * Type packing together a (row, col) coordinate in some sandbox.
+ */
+struct SandboxPoint
+{
+    int row;
+    int col;
+};
+
+
+/**
  * Generate and allocate memory for an empty 2D sandbox of tiles with dimension
  * width X height.
  *
@@ -51,7 +61,6 @@ struct Sandbox
  *
  * @param width Horizontal length of 2D sandbox in particle tiles.
  * @param height Vertical length of 2D sandbox in particles tiles.
- *
  * @return Pointer to allocated sandbox.
  */
 struct Sandbox *create_sandbox(int width, int height);
@@ -75,23 +84,128 @@ void process_sandbox(struct Sandbox *sandbox);
 
 
 /**
+ * Simulate gravity on the tile located at the given point by mutating the 
+ * sandbox.
+ * 
+ * Gravity is simulated on a tile by having the tile either fall down 1 tile or
+ * sink through a liquid tile.
+ * If neither of these are possible, then the tile will attempt to slide or sink
+ * diagonally down left or right, choosing at random if both are possible.
+ *
+ * @param sandbox 2D Sandbox of tiles to mutate and perform gravity within.
+ * @param coords Coordinates of tile to perform gravity on.
+ */
+void do_gravity(struct Sandbox *sandbox, struct SandboxPoint coords);
+
+
+/**
+ * Simulate flow on the tile at the given point as though it were a liquid.
+ *
+ * Flow is simulated on a tile by moving a left or right at random. 
+ * There must be space at the left/right the tile must be on top of a 
+ * solid floor or other liquids.
+ *
+ * @param sandbox 2D Sandbox of tiles to mutate and perform flow within.
+ * @param coords Coordinates of tile to perform flow on.
+ */
+void do_liquid_flow(struct Sandbox *sandbox, struct SandboxPoint coords);
+
+
+/**
+ * Simulate lift on the tile at the given point as though it were a gas.
+ *
+ * Lift is simulated on a tile by moving at random 1 tile left, right, up, 
+ * upleft, or upright, wherever possible.
+ *
+ * A lifted tile is free to potentially move to any one of the spaces above if
+ * the space is either empty or a gas. 
+ * Lift through a liquid can only occur upwards.
+ *
+ * @param sandbox 2D Sandbox of tiles to mutate and perform lift within.
+ * @param coords Coordinates of tile to perform lift on.
+ */
+void do_lift(struct Sandbox *sandbox, struct SandboxPoint coords);
+
+
+/**
+ * Simulate extinguishing of fire at the given point.
+ * 
+ * Extinguishing is simulated on a tile by checking if water is directly
+ * adjacent in any of the cardinal directions, and turning to smoke if so.
+ * 
+ * @param sandbox 2D Sandbox of tiles to simulate extinguishing within.
+ * @param coords Coordinates of tile to simulate extinguishing on.
+ */
+void do_extinguish(struct Sandbox *sandbox, struct SandboxPoint coords);
+
+
+/**
+ * Determine whether the given sandbox coordinates are OOB for given sandbox.
+ * 
+ * @param sandbox Sandbox determining the bounds on which to enforce on coords.
+ * @param coords (row, col) coordinates inside Sandbox packed into a point.
+ * @return True if coords are OOB, false otherwise.
+ */
+bool is_coord_oob(struct Sandbox *sandbox, struct SandboxPoint coords);
+
+
+/**
  * Create a new tile particle of the given tile type whose updated flag is 
  * synced to the parity of the given sandbox's lifetime as though put through
  * a call to set_tile_updated().
  * 
  * @param sandbox Sandbox with which the returned t
  * @param tile_type Type which the generated tile is given.
- * 
  * @return Tile particle, encoded as a single byte.
  */
 unsigned char create_tile(struct Sandbox *sandbox, enum tile_type new_type);
 
 
 /**
+ * Place a tile of the given tile type inside the sandbox at given coordinates.
+ * If a tile is already present at the given coordinates, this function does
+ * nothing.
+ * 
+ * The new tile, if created, is set to being updated.
+ *
+ * @param sandbox Sandbox to mutate and place tile in.
+ * @param coords Coordinate to place new tile.
+ * @param type Type of the new tile.
+ */
+void place_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum tile_type type);
+
+
+/**
+ * Remove the tile inside the sandbox at the given coordinates, replacing the
+ * tile already present with AIR.
+ * 
+ * If AIR is already present at the given coordinates, this function does
+ * nothing.
+ * 
+ * @param sandbox Sandbox to mutate and remove tile in.
+ * @param coords Coordinates at which to remove tile.
+ */
+void delete_tile(struct Sandbox *sandbox, struct SandboxPoint coords);
+
+
+/**
+ * Replace the tile inside the sandbox at the given coordinates with a new tile
+ * of the given type. The new tile is set to being updated.
+ * 
+ * If a tile of identical type is already present at the given coordinates, this
+ * function does nothing.
+ * 
+ * @param sandbox Sandbox to mutate and replace tile in.
+ * @param coords Coordinate to replace old tile with new tile.
+ * @param type Type of the new tile.
+ */
+void replace_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum tile_type type);
+
+
+/**
  * Return the type of a tile, describing its properties in simulation.
  *
  * @param tile Tile, represented as a byte, to fetch type of.
- *
  * @return Value from 0 to 15 representing the type of tile given.
  */
 enum tile_type get_tile_type(unsigned char tile);
@@ -115,7 +229,6 @@ bool is_tile_empty(unsigned char tile);
  *
  * @param tile Tile to determine whether it has been updated or not.
  * @param current_time Time that has passed in frames inside the simulation.
- *
  * @return True if the tile has already been updated, false otherwise.
  */
 bool is_tile_updated(unsigned char tile, long long current_time);
@@ -133,66 +246,9 @@ void set_tile_updated(unsigned char *tile, long long current_time);
 
 
 /**
- * Simulate gravity on the tile located at the given indices by mutating the 
- * sandbox.
- * 
- * Gravity is simulated on a tile by having the tile either fall down 1 tile or
- * sink through a liquid tile.
- * If neither of these are possible, then the tile will attempt to slide or sink
- * diagonally down left or right, choosing at random if both are possible.
- *
- * @param sandbox 2D Sandbox of tiles to mutate and perform gravity within.
- * @param row, col Coordinates of tile to perform gravity on.
- */
-void do_gravity(struct Sandbox *sandbox, int row, int col);
-
-
-/**
- * Simulate flow on the tile at the given indices as though it were a liquid.
- *
- * Flow is simulated on a tile by moving a left or right at random. 
- * There must be space at the left/right the tile must be on top of a 
- * solid floor or other liquids.
- *
- * @param sandbox 2D Sandbox of tiles to mutate and perform flow within.
- * @param row, col Coordinates of tile to perform flow on.
- */
-void do_liquid_flow(struct Sandbox *sandbox, int row, int col);
-
-
-/**
- * Simulate lift on the tile at the given indices as though it were a gas.
- *
- * Lift is simulated on a tile by moving at random 1 tile left, right, up, 
- * upleft, or upright, wherever possible.
- *
- * A lifted tile is free to potentially move to any one of the spaces above if
- * the space is either empty or a gas. 
- * Lift through a liquid can only occur upwards.
- *
- * @param sandbox 2D Sandbox of tiles to mutate and perform lift within.
- * @param row, col Coordinates of tile to perform lift on.
- */
-void do_lift(struct Sandbox *sandbox, int row, int col);
-
-
-/**
- * Simulate extinguishing of fire at the given indices.
- * 
- * Extinguishing is simulated on a tile by checking if water is directly
- * adjacent in any of the cardinal directions, and turning to smoke if so.
- * 
- * @param sandbox 2D Sandbox of tiles to simulate extinguishing within.
- * @param row, col Coordinate sof tile to simulate extinguishing on.
- */
-void do_extinguish(struct Sandbox *sandbox, int row, int col);
-
-
-/**
  * Determine the parity of the given current time.
  *
  * @param current_time Time that has passed in frames since the sim began.
- *
  * @return 0 if the time is even, 1 if the time is odd.
  */
 unsigned char get_time_parity(long long current_time);
@@ -208,7 +264,6 @@ unsigned char get_time_parity(long long current_time);
  * Use is_tile_updated() to determine whether a tile is updated or not.
  *
  * @param tile Tile to get updated flag from.
- * 
  * @return True if updated flag is set, false otherwise.
  */
 bool get_updated_flag(unsigned char tile);

@@ -11,14 +11,22 @@
 #include <stdlib.h>
 
 
-// The value of this constant must be consistent with the (n x n) dimensions of
-// assets/tiles/*.png for the sandbox to display correctly.
-// Ex: If sand.png is 8x8, TILE_SCALE must be 8.
+/**
+ * The value of this constant must be consistent with the (n x n) dimensions of
+ * assets/tiles/$(tile_type).png for the sandbox to display as intended.
+ * Ex: If sand.png is 8x8, TILE_SCALE should be 8.
+ *
+ * If TILE_SCALE < n, tiles will display on top of eachother.
+ * If TILE_SCALE > n, tiles will display with empty space between eachother.
+ */
 const int TILE_SCALE = 8;
 
+const int MAX_TARGET_RADIUS = 5;
 
-// The order of these filepaths must be consistent with the order of
-// enum tile_type, otherwise the wrong colors will display for tiles.
+/**
+ * The order of these filepaths must be consistent with the order of
+ * enum tile_type, otherwise the wrong colors will display for tiles.
+ */
 const char *TILE_TEXTURE_FILENAMES[] = {
     "assets/tiles/air.png",
     "assets/tiles/sand.png",
@@ -37,9 +45,11 @@ const char *PANEL_TEXTURE_FILENAMES[] = {
 };
 
 
-// Constant SDL pixel format allocated for lifetime of any GUI application.
-// This format is guaranteed to support an alpha channel  no matter the
-// endianness of the running system.
+/**
+ * Constant SDL pixel format allocated for lifetime of any GUI application.
+ * This format is guaranteed to support an alpha channel no matter the
+ * endianness of the running system.
+ */
 static SDL_PixelFormat *ALPHA_PIXEL_FORMAT = NULL;
 
 
@@ -106,15 +116,12 @@ static void *SDL_CHECK_PTR(void *sdl_ptr, int line_number)
  * x is scaled w.r.t sandbox width to get a col index in the range [0, width].
  * y is scaled w.r.t sandbox height to get a row index in the range [0, height].
  * 
- * The sandbox coordinates are given as an output parameter in order [row, col]
- * 
- * @param window_coords (x,y) coordinates in a window packed into an SDL point.
+ * @param window_coords (x, y) coordinates in a window packed into an SDL point.
  * @param sandbox Sandbox whose dimensions will be used to scale down window
- * coodinates
- * @param sandbox_coords Out-parameter array of size at least 2 to place 
- * resulting sandbox coordinates in.
+ * coodinates.
+ * @return (x, y) scaled to (row, col) coordinates packed into a point.
  */
-static void _scale_screen_coords(SDL_Point *window_coords, struct Sandbox *sandbox, int *sandbox_coords)
+static struct SandboxPoint _scale_screen_coords(SDL_Point *window_coords, struct Sandbox *sandbox)
 {
     int x = window_coords->x;
     int y = window_coords->y;
@@ -135,8 +142,8 @@ static void _scale_screen_coords(SDL_Point *window_coords, struct Sandbox *sandb
     row = (row < 0) ? 0 : row;
     col = (col < 0) ? 0 : col;
 
-    sandbox_coords[0] = row;
-    sandbox_coords[1] = col;
+    struct SandboxPoint sandbox_coords = {row, col};
+    return sandbox_coords;
 }
 
 
@@ -144,23 +151,20 @@ static void _scale_screen_coords(SDL_Point *window_coords, struct Sandbox *sandb
  * Scale the (x, y) location of the given mouse located in some window down to 
  * (row, col) sandbox coordinates.
  * 
- * The sandbox coordinates are given as an output parameter in order [row, col]
- * 
  * @param mouse Mouse whose window coordinates will be scaled down to sandbox.
  * @param sandbox Sandbox whose dimensions will be used to scale down mouse
- * coodinates
- * @param sandbox_coords Out-parameter array of size at least 2 to place 
- * resulting sandbox coordinates in.
+ * coodinates.
+ * @return Mouse coordinates scaled to (row, col) coordinates packed into point.
  */
-static void _scale_mouse_coords(struct Mouse *mouse, struct Sandbox *sandbox, int *sandbox_coords)
+static struct SandboxPoint _scale_mouse_coords(struct Mouse *mouse, struct Sandbox *sandbox)
 {
     SDL_Point mouse_coords = {mouse->x, mouse->y};
-    _scale_screen_coords(&mouse_coords, sandbox, sandbox_coords);
+    return _scale_screen_coords(&mouse_coords, sandbox);
 }
 
 
 /**
- * Scale the given (row, col) coordinates located in some sandbox up to 
+ * Scale the given (row, col) sandbox coordinates located in some sandbox up to 
  * (x, y) SDL window coordinates.
  * 
  * row is scaled by TILE_SCALE up to a y screen coordinate.
@@ -169,14 +173,13 @@ static void _scale_mouse_coords(struct Mouse *mouse, struct Sandbox *sandbox, in
  * This function assumes the given coordinates are valid for whatever sandbox
  * they came from.
  * 
- * @param row, col Coordinates into some sandbox.
- * 
- * @return x,y Screen coordinates packed into an SDL point.
+ * @param sandbox_coords Coordinates into some sandbox packed as a point.
+ * @return x, y Screen coordinates packed into an SDL point.
  */
-static SDL_Point _scale_sandbox_coords(int row, int col)
+static SDL_Point _scale_sandbox_coords(struct SandboxPoint sandbox_coords)
 {
-    int x = col * TILE_SCALE;
-    int y = row * TILE_SCALE;
+    int x = sandbox_coords.col * TILE_SCALE;
+    int y = sandbox_coords.row * TILE_SCALE;
     SDL_Point window_coords = {x, y};
     return window_coords;
 }
@@ -246,12 +249,25 @@ static void _do_mouse_wheel_motion(struct Application *app, SDL_MouseWheelEvent 
 {
     // Amount of vertical scroll is platform dependent.
     // Example: Scroll is +/- 1 on Linux, is +/- INT_MAX on Windows.
+    // To account for this, apply sign function on scroll value to limit to
+    // +/- 1. (scroll is never 0 if SDL Mousewheel event is triggered)
     int vertical_scroll = event->y;
+    int scroll_sign = (vertical_scroll > 0) ? 1 : -1;
+
+    // Holding lctrl enables changing brush size.
+    // Clamp target_radius to stay within inclusive range [0, MAX_TARGET_RADIUS].
+    if (app->mouse->is_holding_lctrl)
+    {
+        app->mouse->target_radius += scroll_sign;
+        app->mouse->target_radius = (app->mouse->target_radius < 0) ? 0 : app->mouse->target_radius;
+        app->mouse->target_radius = (app->mouse->target_radius > MAX_TARGET_RADIUS) ? MAX_TARGET_RADIUS : app->mouse->target_radius;
+        return;
+    }
 
     // Treating amount scrolled as a displacement, change tile type on scroll. 
     // Prevent selecting AIR, whose selection should instead roll-over depending
     // on direction of scroll.
-    int new_type = ((int) app->mouse->selected_type + vertical_scroll) % NUM_TILE_TYPES;
+    int new_type = ((int) app->mouse->selected_type + scroll_sign) % NUM_TILE_TYPES;
     if (new_type == AIR)
     {
         new_type = (vertical_scroll > 0) ? SAND : NUM_TILE_TYPES - 1;
@@ -298,6 +314,10 @@ static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event
             switch_selected_type(app_mouse, FIRE);
             break;
 
+        case SDLK_LCTRL:
+            app_mouse->is_holding_lctrl = true;
+            break;        
+
         // In the case of pressing ESC, the app will quit.
         case SDLK_ESCAPE:
             quit_gui(app);
@@ -305,7 +325,34 @@ static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event
         // In an unhandled keypress, do nothing.
         default:
             break;
+    }
+}
 
+
+/**
+ * Perform any application updates that need to occur as a result of any
+ * keyboard key release.
+ *
+ * @param app App to mutate as a result of key release.
+ * @param event Keyboard event containing data on what key was released.
+ */
+static void _do_keyboard_release(struct Application *app, SDL_KeyboardEvent *event)
+{
+    struct Mouse *app_mouse = app->mouse;
+
+    // Gather information about the key released.
+    SDL_Keysym key_data = event->keysym;
+    SDL_Keycode keycode = key_data.sym;
+
+    switch (keycode)
+    {
+        case SDLK_LCTRL:
+            app_mouse->is_holding_lctrl = false;
+            break;
+
+        // In an unhandled key release, do nothing.
+        default:
+            break;
     }
 }
 
@@ -341,6 +388,147 @@ static void _do_window_change(struct Application *app, SDL_WindowEvent *event)
 
 
 /**
+ * Compute the sidelength of a square target area in terms of sandbox tiles given
+ * a radius.
+ * 
+ * @param radius Radius of target area.
+ * @return Sidelength of target area in terms of sandbox tiles.
+ */
+static int _compute_target_area_sidelength(int radius)
+{
+    return (radius * 2) + 1;
+}
+
+
+/**
+ * Compute the size of a square target area in terms of sandbox tiles given a 
+ * radius.
+ * 
+ * @param radius Radius of target area.
+ * @return Size of target area in terms of sandbox tiles.
+ */
+static int _compute_target_area_size(int radius)
+{
+    // Careful for negative radius which, when cast to size_t for malloc() or
+    // passed into a VLA, will cause malloc() to return NULL or cause UB.
+    if (radius < 0)
+    {
+        SDL_Log("\nWARNING: %s:%d\nReason: Attempted to compute target area size of negative radius!\n", __FILE__, __LINE__);
+        return 0;
+    }
+
+    // Zero radius is a special case of 1-tile size draw area.
+    if (radius == 0)
+    {
+        return 1;
+    }
+
+    // Compute square area of draw area.
+    int sidelength = _compute_target_area_sidelength(radius);
+    return sidelength * sidelength;
+}
+
+
+/**
+ * Compute a target area inside a given sandbox which surrounds and includes the 
+ * given origin point in terms of sandbox (row, col) coordinates.
+ * 
+ * Any target area points which would go OOB the given sandbox are not included
+ * in the output array of points.
+ * 
+ * The space for array of coordinates is allocated by the caller as the output
+ * parameter target_area. 
+ * This array must be of size _compute_target_area_size() + 1, though the contents 
+ * of the array are not guaranteed to be this long.
+ * 
+ * The output array is terminated by the (row, col) coordinates (-1, -1) to 
+ * indicate the end of array.
+ * 
+ * @param sandbox Sandbox bounding points within computed target area.
+ * @param origin_coords Origin of target area in terms of sandbox coordinates.
+ * @param radius Radius of the target area computed.
+ * @param target_area Output to place computed target area sandbox coordonates.
+ */
+static void _get_sandbox_target_area(struct Sandbox *sandbox, 
+                                     struct SandboxPoint origin_coords, 
+                                     int radius,
+                                     struct SandboxPoint *target_area)
+{
+    struct SandboxPoint terminator = {-1, -1};
+
+    // Zero radius is a special case of 1-tile size draw area.
+    if (radius == 0)
+    {
+        target_area[0] = origin_coords;
+        target_area[1] = terminator;
+        return;
+    }
+
+    // Compute non-OOB square of target area by starting from topleft of square
+    // and going through the tiles in row-major order.
+    // Maintain an index into the array to terminate the end.
+    int sidelength = _compute_target_area_sidelength(radius);
+    struct SandboxPoint topleft = {origin_coords.row - radius, origin_coords.col - radius};
+    int flattened_index = 0;
+
+    for (int row_offset = 0; row_offset < sidelength; row_offset++)
+    {
+        for (int col_offset = 0; col_offset < sidelength; col_offset++)
+        {
+            struct SandboxPoint next_point = {topleft.row + row_offset, topleft.col + col_offset};
+
+            if (is_coord_oob(sandbox, next_point))
+            {
+                continue;
+            }
+
+            target_area[flattened_index] = next_point;
+            flattened_index++;
+        }
+    }
+    target_area[flattened_index] = terminator;
+}
+
+
+/**
+ * Draw the target area highlight for the single tile located at the given 
+ * sandbox coordinates. 
+ * 
+ * @param app GUI application to draw a single tile of target area highlight.
+ * @param coords Sandbox coordinates of tile to draw highlight for.
+ */
+static void _draw_tile_highlight(struct Application *app, struct SandboxPoint coords)
+{
+    SDL_Texture *highlight_texture = get_highlight_texture(app->mouse->selected_type);
+    SDL_Point highlight_coords = _scale_sandbox_coords(coords);
+
+    // Do not show highlight ontop of non-empty tiles when placing.
+    if (!is_tile_empty(app->sandbox->grid[coords.row][coords.col]) 
+     && app->mouse->mode == PLACE)
+    {
+        return;
+    }
+
+    // Show a red outline ontop of tiles about to be deleted.
+    // Query any highlight texture to get width/height data for red square.
+    if (app->mouse->mode == DELETE)
+    {
+        SDL_Rect dest;
+        dest.x = highlight_coords.x;
+        dest.y = highlight_coords.y;
+
+        SDL_CHECK_CODE(SDL_SetRenderDrawColor(app->renderer, 255, 0, 0, 128), __LINE__);
+        SDL_CHECK_CODE(SDL_QueryTexture(highlight_texture, NULL, NULL, &dest.w, &dest.h), __LINE__);
+        SDL_CHECK_CODE(SDL_RenderDrawRect(app->renderer, &dest), __LINE__);
+
+        return;
+    }
+
+    blit_texture(app, highlight_texture, highlight_coords);
+}
+
+
+/**
  * Draw the drawing-area highlight showing tiles around the mouse that are about
  * to be placed/replaced/deleted.
  * 
@@ -351,36 +539,23 @@ static void _do_window_change(struct Application *app, SDL_WindowEvent *event)
  */
 static void _draw_highlight(struct Application *app)
 {
-    // Convert mouse coordinate to and from sandbox coordinates to snap the
-    // location the texture is drawn on screen to nearest tile.
-    SDL_Texture *highlight_texture = get_highlight_texture(app->mouse->selected_type);
-    int sandbox_coords[2];
-    _scale_mouse_coords(app->mouse, app->sandbox, sandbox_coords);
-    int mouse_row = sandbox_coords[0];
-    int mouse_col = sandbox_coords[1];
+    // Snap mouse coordinate to nearest sandbox coordinates.
+    struct SandboxPoint sandbox_coords = _scale_mouse_coords(app->mouse, app->sandbox);
 
-    SDL_Point highlight_coords = _scale_sandbox_coords(mouse_row, mouse_col);
-
-    // Do not show highlight ontop of non-empty tiles when placing.
-    if (!is_tile_empty(app->sandbox->grid[mouse_row][mouse_col]) && app->mouse->mode == PLACE)
+    // Get target area and draw a single tile highlight over all coordinates.
+    // Allocate 1 extra element for target area to account for terminator.
+    int target_area_size = _compute_target_area_size(app->mouse->target_radius);
+    struct SandboxPoint target_area[target_area_size + 1];
+    _get_sandbox_target_area(app->sandbox, 
+                             sandbox_coords, 
+                             app->mouse->target_radius, 
+                             target_area);
+    int i = 0;
+    while (target_area[i].row != -1)
     {
-        return;
+        _draw_tile_highlight(app, target_area[i]);
+        i++;
     }
-
-    // Show a red color ontop of tiles about to be deleted.
-    // Query any highlight texture to get width/height data for red square.
-    if (app->mouse->mode == DELETE)
-    {
-        SDL_Rect dest;
-        dest.x = highlight_coords.x;
-        dest.y = highlight_coords.y;
-        SDL_CHECK_CODE(SDL_SetRenderDrawColor(app->renderer, 255, 0, 0, 128), __LINE__);
-        SDL_CHECK_CODE(SDL_QueryTexture(highlight_texture, NULL, NULL, &dest.w, &dest.h), __LINE__);
-        SDL_CHECK_CODE(SDL_RenderFillRect(app->renderer, &dest), __LINE__);
-        return;
-    }
-
-    blit_texture(app, highlight_texture, highlight_coords.x, highlight_coords.y);
 }
 
 
@@ -472,7 +647,7 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
     app->renderer = SDL_CHECK_PTR(SDL_CreateRenderer(app->window, -1, renderer_flags), __LINE__);
     SDL_CHECK_CODE(SDL_RenderSetLogicalSize(app->renderer, app->min_window_width, app->min_window_height), __LINE__);
 
-    // Zero-out mouse to start selected tile as being sand.
+    // Zero-out mouse to start out with non-left clicking and mode PLACE.
     struct Mouse *new_mouse = calloc(1, sizeof(*new_mouse));
     new_mouse->selected_type = SAND;
     app->mouse = new_mouse;
@@ -551,12 +726,12 @@ SDL_Texture *load_texture(struct Application *app, const char *filename, bool en
 }
 
 
-void blit_texture(struct Application *app, SDL_Texture *texture, int x, int y)
+void blit_texture(struct Application *app, SDL_Texture *texture, SDL_Point window_coords)
 {
     // Setup rectangle to draw texture.
     SDL_Rect dest;
-    dest.x = x;
-    dest.y = y;
+    dest.x = window_coords.x;
+    dest.y = window_coords.y;
 
     // Fill in rectangle dimension data by querying the texture.
     SDL_CHECK_CODE(SDL_QueryTexture(texture, NULL, NULL, &dest.w, &dest.h), __LINE__);
@@ -601,20 +776,21 @@ void draw_sandbox(struct Application *app)
     {
         for (int col = 0; col < app->sandbox->width; col++)
         {
+            struct SandboxPoint sandbox_coords = {row, col};
             unsigned char current_tile = app->sandbox->grid[row][col];
 
-            // Don't draw air.
-            if (get_tile_type(current_tile) == AIR)
+            // Don't draw empty tiles.
+            if (is_tile_empty(current_tile))
             {
                 continue;
             }
 
             // Compute the screen coordinates that a tile should be blitted at.
-            SDL_Point tile_coords = _scale_sandbox_coords(row, col);
+            SDL_Point window_coords = _scale_sandbox_coords(sandbox_coords);
 
             // Grab the associated tile texture and blit it to screen.
             SDL_Texture *tile_texture = get_tile_texture(current_tile);
-            blit_texture(app, tile_texture, tile_coords.x, tile_coords.y);
+            blit_texture(app, tile_texture, window_coords);
         }
     }
 }
@@ -626,7 +802,8 @@ void draw_ui(struct Application *app)
 
     // Draw panel texture and blit to topleft of screen.
     SDL_Texture *panel_texture = get_panel_texture(app->mouse->selected_type);
-    blit_texture(app, panel_texture, 0, 0);
+    SDL_Point topleft = {0, 0};
+    blit_texture(app, panel_texture, topleft);
 }
 
 
@@ -656,7 +833,6 @@ void get_input(struct Application *app)
             case SDL_MOUSEBUTTONDOWN:
                 _do_mouse_button_down(app, &event.button);
                 break;
-
             case SDL_MOUSEBUTTONUP:
                 _do_mouse_button_up(app, &event.button);
                 break;
@@ -666,16 +842,17 @@ void get_input(struct Application *app)
                 _do_mouse_wheel_motion(app, &event.wheel);
                 break;
 
-            // When a key gets pressed, perform any keyboard-related updates.
+            // When a key gets pressed/released, perform any keyboard updates.
             case SDL_KEYDOWN:
                 _do_keyboard_press(app, &event.key);
                 break;
+            case SDL_KEYUP:
+                _do_keyboard_release(app, &event.key);
+                break;
 
-            
             case SDL_WINDOWEVENT:
                 _do_window_change(app, &event.window);
                 break;
-    
 
             default:
                 break;
@@ -689,23 +866,45 @@ void handle_input(struct Application *app)
     // Left clicking controls placing/deleting tiles on the owned sandbox.
     if (app->mouse->is_left_clicking)
     {
-        switch (app->mouse->mode)
+        alter_tile(app->mouse, app->sandbox);
+    }
+}
+
+
+void alter_tile(struct Mouse *mouse, struct Sandbox *sandbox)
+{
+    // Snap mouse coordinate to nearest sandbox coordinates.
+    struct SandboxPoint sandbox_coords = _scale_mouse_coords(mouse, sandbox);
+
+    // Get target area and perform mouse mode operation for all tiles in target
+    // area.
+    int target_area_size = _compute_target_area_size(mouse->target_radius);
+    struct SandboxPoint target_area[target_area_size + 1];
+    _get_sandbox_target_area(sandbox, 
+                             sandbox_coords, 
+                             mouse->target_radius,
+                             target_area);
+    int i = 0;
+    while (target_area[i].row != -1)
+    {
+        switch (mouse->mode)
         {
             case PLACE:
-                place_tile(app->mouse, app->sandbox);
+                place_tile(sandbox, target_area[i], mouse->selected_type);
                 break;
             
             case DELETE:
-                delete_tile(app->mouse, app->sandbox);
+                delete_tile(sandbox, target_area[i]);
                 break;
             
             case REPLACE:
-                replace_tile(app->mouse, app->sandbox);
+                replace_tile(sandbox, target_area[i], mouse->selected_type);
                 break;
 
             default:
                 break;
         }
+        i++;
     }
 }
 
@@ -720,57 +919,5 @@ void switch_selected_type(struct Mouse *mouse, enum tile_type new_type)
     }
     
     mouse->selected_type = new_type;
-}
-
-
-void place_tile(struct Mouse *mouse, struct Sandbox *sandbox)
-{
-    int sandbox_coords[2];
-    _scale_mouse_coords(mouse, sandbox, sandbox_coords);
-    int row = sandbox_coords[0];
-    int col = sandbox_coords[1];
-
-    // Only place new tiles ontop of air.
-    if (get_tile_type(sandbox->grid[row][col]) != AIR)
-    {
-        return;
-    }
-
-    sandbox->grid[row][col] = create_tile(sandbox, mouse->selected_type);
-}
-
-
-void delete_tile(struct Mouse *mouse, struct Sandbox *sandbox)
-{
-    // Scale down mouse window coordinates to sandbox coordinates.
-    int sandbox_coords[2];
-    _scale_mouse_coords(mouse, sandbox, sandbox_coords);
-    int row = sandbox_coords[0];
-    int col = sandbox_coords[1];
-
-    // Don't delete air tile, this would be redundant.
-    if (get_tile_type(sandbox->grid[row][col]) == AIR)
-    {
-        return;
-    }
-
-    sandbox->grid[row][col] = AIR;
-}
-
-void replace_tile(struct Mouse *mouse, struct Sandbox *sandbox)
-{
-    int sandbox_coords[2];
-    _scale_mouse_coords(mouse, sandbox, sandbox_coords);
-    int row = sandbox_coords[0];
-    int col = sandbox_coords[1];
-
-    // Don't replace a tile with its own type, this would be redundant.
-    enum tile_type source_type = get_tile_type(sandbox->grid[row][col]);
-    if (source_type == mouse->selected_type)
-    {
-        return;
-    }
-
-    sandbox->grid[row][col] = create_tile(sandbox, mouse->selected_type);
 }
 

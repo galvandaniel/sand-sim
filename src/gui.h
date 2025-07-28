@@ -4,6 +4,9 @@
 /**
  * A collection of functions for displaying a sand simulation using SDL2 and
  * the logic presented in sandbox.h
+ * 
+ * If any API call to SDL2 fails, the functions defined here will call exit()
+ * and quit the running program.
  */
 
 #include "sandbox.h"
@@ -20,6 +23,11 @@
 extern const int TILE_SCALE;
 
 /**
+ * Maximum allowed value for target_radius field of Mouse.
+ */
+extern const int MAX_TARGET_RADIUS;
+
+/**
  * Unique modes the mouse can be in when placing tiles in the sandbox with LMB.
  * 
  * PLACE: Place tile only on empty spaces.
@@ -29,25 +37,25 @@ extern const int TILE_SCALE;
 enum mouse_mode {PLACE, DELETE, REPLACE, NUM_MOUSE_MODES};
 
 
-// Arrays of length NUM_TILE_TYPES to NULL-terminates strings indicating 
-// relative filepaths of textures used by tiles and panels.
+/**
+ * Arrays of length NUM_TILE_TYPES to NULL-terminated strings indicating 
+ * relative filepaths of textures used by tiles and panels.
+ */
 extern const char *TILE_TEXTURE_FILENAMES[];
 extern const char *PANEL_TEXTURE_FILENAMES[];
 
 
-// Array of pointers to all textures used by tiles.
+/**
+ * Array of pointers to all textures used by tiles, panels, and transparent
+ * mouse highlight.
+ */
 extern SDL_Texture **TILE_TEXTURES;
-
-// Array of pointers to all textures used by panels. 
-// Panels display the element currently selected.
 extern SDL_Texture **PANEL_TEXTURES;
-
-
-// Array of pointers to textures used to draw transparent mouse highlight.
 extern SDL_Texture **HIGHLIGHT_TEXTURES;
 
+
 /**
- * Type descrbing GUI Application data controlled by a mouse input device.
+ * Type describing GUI Application data controlled by a mouse input device.
  */
 struct Mouse
 {
@@ -55,8 +63,14 @@ struct Mouse
     int x;
     int y;
 
-    // Whether LMB is currently held down or not.
+    // Radius of square target area in sandbox.
+    // The target area determines where tiles are placed.
+    int target_radius;
+
+    // Whether LMB or LCTRL are currently held down or not.
+    // LCTRL enables controlling size of target_radius.
     bool is_left_clicking;
+    bool is_holding_lctrl;
 
     // Selected particle tile type to place down.
     enum tile_type selected_type;
@@ -94,9 +108,9 @@ struct Application
  *
  * @param title NULL-terminated bytestring to name the application window.
  * @param sandbox Sandbox to be owned by the initialized GUI application.
- *
  * @return Pointer to created GUI application which renders and owns the passed
  * sandbox object.
+ * 
  * This function will call exit() if any part of the app initialization fails.
  */
 struct Application *init_gui(const char *title, struct Sandbox *sandbox);
@@ -136,28 +150,25 @@ void quit_gui(struct Application *app);
  * @param enable_alphablend If true, texture is loaded to support alpha blending.
  * If false, texture may or may not support alpha blending, depending on the
  * image contents of the file loaded.
- *
  * @return Image loaded as SDL_Texture
  */
 SDL_Texture *load_texture(struct Application *app, const char *filename, bool enable_alphablend);
 
 
 /**
- * Draw the given SDL texture on the given app at the given x and y screen
- * coordinates
+ * Draw the given SDL texture on the given app at the given screen coordinates
  *
  * @param app Application to draw texture on.
  * @param texture Loaded texture to draw.
- * @param x, y Coordinates to draw texture at.
+ * @param window_coords x,y screen coordinates to draw texture at.
  */
-void blit_texture(struct Application *app, SDL_Texture *texture, int x, int y);
+void blit_texture(struct Application *app, SDL_Texture *texture, SDL_Point window_coords);
 
 
 /**
  * Obtain the texture a tile must render to based on its type.
  *
  * @param tile Tile to fetch texture for.
- *
  * @return Texture of tile that can be blit to screen.
  */
 SDL_Texture *get_tile_texture(unsigned char tile);
@@ -168,7 +179,6 @@ SDL_Texture *get_tile_texture(unsigned char tile);
  * tile type as currently selected tile type.
  *
  * @param tile Tile type to fetch panel texture for.
- *
  * @return Panel texture corresponding to given tile type, blittable to screen.
  */
 SDL_Texture *get_panel_texture(enum tile_type type);
@@ -179,7 +189,6 @@ SDL_Texture *get_panel_texture(enum tile_type type);
  * drawing-area highlight.
  * 
  * @param type Tile type to get highlight texture for.
- * 
  * @return Texture showing a single tile of highlight, blittable to screen.
  */
 SDL_Texture *get_highlight_texture(enum tile_type type);
@@ -248,36 +257,17 @@ void switch_selected_type(struct Mouse *mouse, enum tile_type new_type);
 
 
 /**
- * Place a tile of the given mouse's currently selected type at its screen
- * location, scaled down the dimensions of the passed sandbox according to
- * TILE_SCALE.
- *
- *
- * @param mouse Mouse whose coordinates and selected tile type will be used.
- * @param sandbox Sandbox to mutate and place tile in according to mouse data.
- */
-void place_tile(struct Mouse *mouse, struct Sandbox *sandbox);
-
-
-/**
- * Remove the tile located at the given mouse's screen location, scaled down to
- * the dimensions of the passed sandbox according to TILE_SCALE.
+ * Alter the sandbox by changing the tile located at the mouse's screen 
+ * location, scaled down sandbox coordinates via TILE_SCALE, according to the
+ * mouse mode. 
  * 
- * @param mouse Mouse whose coordinates will be used to delete a tile.
- * @param sandbox Sandbox to mutate and delete tile in.
- */
-void delete_tile(struct Mouse *mouse, struct Sandbox *sandbox);
-
-
-/**
- * Replace the tile located at the given mouse's screen location, scaled down to
- * the dimensions of the passed sandbox according to TILE_SCALE, with the
- * mouse's currently selected type.
+ * Typically, this is the logic which runs when LMB is pressed.
  * 
- * @param mouse Mouse whose coordinates and selected tile type will be used.
- * @param sandbox Sandbox to mutate and replace tile in.
+ * @param mouse Mouse whose coordiantes and selected tile type will be used
+ * to mutate a tile in the given sandbox.
+ * @param sandbox Sandbox to mutate and alter tile in according to mouse data.
  */
-void replace_tile(struct Mouse *mouse, struct Sandbox *sandbox);
+void alter_tile(struct Mouse *mouse, struct Sandbox *sandbox);
 
 
 #endif // GUI_H
