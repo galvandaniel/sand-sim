@@ -11,6 +11,12 @@
 #include <stdlib.h>
 
 
+// The value of this constant must be consistent with the (n x n) dimensions of
+// assets/tiles/*.png for the sandbox to display correctly.
+// Ex: If sand.png is 8x8, TILE_SCALE must be 8.
+const int TILE_SCALE = 8;
+
+
 // The order of these filepaths must be consistent with the order of
 // enum tile_type, otherwise the wrong colors will display for tiles.
 const char *TILE_TEXTURE_FILENAMES[] = {
@@ -100,25 +106,22 @@ static void *SDL_CHECK_PTR(void *sdl_ptr, int line_number)
  * x is scaled w.r.t sandbox width to get a col index in the range [0, width].
  * y is scaled w.r.t sandbox height to get a row index in the range [0, height].
  * 
- * The given window coordinates are expected to be placed in an array of size
- * at least 2 in order [x, y].
- * 
  * The sandbox coordinates are given as an output parameter in order [row, col]
  * 
- * @param window_coords Array of size at least 2, holding (x, y) window coords.
+ * @param window_coords (x,y) coordinates in a window packed into an SDL point.
  * @param sandbox Sandbox whose dimensions will be used to scale down window
  * coodinates
  * @param sandbox_coords Out-parameter array of size at least 2 to place 
  * resulting sandbox coordinates in.
  */
-static void _scale_screen_coords(int *window_coords, struct Sandbox *sandbox, int *sandbox_coords)
+static void _scale_screen_coords(SDL_Point *window_coords, struct Sandbox *sandbox, int *sandbox_coords)
 {
-    int x = window_coords[0];
-    int y = window_coords[1];
+    int x = window_coords->x;
+    int y = window_coords->y;
 
     // Downscale the window coordinates to floating sandbox coordinates.
-    float raw_row = (float) y / PIXEL_SCALE;
-    float raw_col = (float) x / PIXEL_SCALE;
+    float raw_row = (float) y / (float) TILE_SCALE;
+    float raw_col = (float) x / (float) TILE_SCALE;
 
     // Chop off decimal portion to obtain valid sandbox indices.
     int row = (int) raw_row;
@@ -143,7 +146,7 @@ static void _scale_screen_coords(int *window_coords, struct Sandbox *sandbox, in
  * 
  * The sandbox coordinates are given as an output parameter in order [row, col]
  * 
- * @param mouse Mouse whose window coordinates will 
+ * @param mouse Mouse whose window coordinates will be scaled down to sandbox.
  * @param sandbox Sandbox whose dimensions will be used to scale down mouse
  * coodinates
  * @param sandbox_coords Out-parameter array of size at least 2 to place 
@@ -151,8 +154,31 @@ static void _scale_screen_coords(int *window_coords, struct Sandbox *sandbox, in
  */
 static void _scale_mouse_coords(struct Mouse *mouse, struct Sandbox *sandbox, int *sandbox_coords)
 {
-    int mouse_coords[] = {mouse->x, mouse->y};
-    _scale_screen_coords(mouse_coords, sandbox, sandbox_coords);
+    SDL_Point mouse_coords = {mouse->x, mouse->y};
+    _scale_screen_coords(&mouse_coords, sandbox, sandbox_coords);
+}
+
+
+/**
+ * Scale the given (row, col) coordinates located in some sandbox up to 
+ * (x, y) SDL window coordinates.
+ * 
+ * row is scaled by TILE_SCALE up to a y screen coordinate.
+ * col is scaled by TILE_SCALE up to a x screen coordinate.
+ * 
+ * This function assumes the given coordinates are valid for whatever sandbox
+ * they came from.
+ * 
+ * @param row, col Coordinates into some sandbox.
+ * 
+ * @return x,y Screen coordinates packed into an SDL point.
+ */
+static SDL_Point _scale_sandbox_coords(int row, int col)
+{
+    int x = col * TILE_SCALE;
+    int y = row * TILE_SCALE;
+    SDL_Point window_coords = {x, y};
+    return window_coords;
 }
 
 
@@ -333,8 +359,7 @@ static void _draw_highlight(struct Application *app)
     int mouse_row = sandbox_coords[0];
     int mouse_col = sandbox_coords[1];
 
-    int highlight_x = mouse_col * PIXEL_SCALE;
-    int highlight_y = mouse_row * PIXEL_SCALE;
+    SDL_Point highlight_coords = _scale_sandbox_coords(mouse_row, mouse_col);
 
     // Do not show highlight ontop of non-empty tiles when placing.
     if (!is_tile_empty(app->sandbox->grid[mouse_row][mouse_col]) && app->mouse->mode == PLACE)
@@ -347,15 +372,15 @@ static void _draw_highlight(struct Application *app)
     if (app->mouse->mode == DELETE)
     {
         SDL_Rect dest;
-        dest.x = highlight_x;
-        dest.y = highlight_y;
+        dest.x = highlight_coords.x;
+        dest.y = highlight_coords.y;
         SDL_CHECK_CODE(SDL_SetRenderDrawColor(app->renderer, 255, 0, 0, 128), __LINE__);
         SDL_CHECK_CODE(SDL_QueryTexture(highlight_texture, NULL, NULL, &dest.w, &dest.h), __LINE__);
         SDL_CHECK_CODE(SDL_RenderFillRect(app->renderer, &dest), __LINE__);
         return;
     }
 
-    blit_texture(app, highlight_texture, highlight_x, highlight_y);
+    blit_texture(app, highlight_texture, highlight_coords.x, highlight_coords.y);
 }
 
 
@@ -414,8 +439,8 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
 
     // Initialize window screen dimensions as a scale of the sandbox dimensions.
     app->sandbox = sandbox;
-    app->min_window_width = sandbox->width * PIXEL_SCALE;
-    app->min_window_height = sandbox->height * PIXEL_SCALE;
+    app->min_window_width = sandbox->width * TILE_SCALE;
+    app->min_window_height = sandbox->height * TILE_SCALE;
 
     // Let SDL pick the first suitable renderer.
     unsigned int renderer_flags = 0;
@@ -584,14 +609,12 @@ void draw_sandbox(struct Application *app)
                 continue;
             }
 
-            // Compute the coordinates that a tile should be blitted at by
-            // scaling up their position as dictated by the scale factor.
-            int tile_x = col * PIXEL_SCALE;
-            int tile_y = row * PIXEL_SCALE;
+            // Compute the screen coordinates that a tile should be blitted at.
+            SDL_Point tile_coords = _scale_sandbox_coords(row, col);
 
             // Grab the associated tile texture and blit it to screen.
             SDL_Texture *tile_texture = get_tile_texture(current_tile);
-            blit_texture(app, tile_texture, tile_x, tile_y);
+            blit_texture(app, tile_texture, tile_coords.x, tile_coords.y);
         }
     }
 }

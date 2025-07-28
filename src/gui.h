@@ -12,8 +12,12 @@
 #include <SDL_image.h>
 #include <stdbool.h>
 
-// Upscaling for individual pixels when drawing to screen.
-#define PIXEL_SCALE 8
+/**
+ * Scale-factor which determines how many screen pixels it takes to draw 1 side 
+ * of 1 particle tile in the sandbox.
+ * Ex: TILE_SCALE = 8 indicates 1 tile particle takes up 64 screen pixels.
+ */
+extern const int TILE_SCALE;
 
 /**
  * Unique modes the mouse can be in when placing tiles in the sandbox with LMB.
@@ -193,7 +197,7 @@ void set_black_background(struct Application *app);
 
 /**
  * Draw a passed GUI application's currently owned sandbox, where each tile 
- * represents one pixel onscreen, scaled in size according to PIXEL_SCALE.
+ * represents one pixel onscreen, scaled in size according to TILE_SCALE.
  *
  * SDL_RenderPresent() is NOT called inside this function.
  *
@@ -246,7 +250,7 @@ void switch_selected_type(struct Mouse *mouse, enum tile_type new_type);
 /**
  * Place a tile of the given mouse's currently selected type at its screen
  * location, scaled down the dimensions of the passed sandbox according to
- * PIXEL_SCALE.
+ * TILE_SCALE.
  *
  *
  * @param mouse Mouse whose coordinates and selected tile type will be used.
@@ -257,7 +261,7 @@ void place_tile(struct Mouse *mouse, struct Sandbox *sandbox);
 
 /**
  * Remove the tile located at the given mouse's screen location, scaled down to
- * the dimensions of the passed sandbox according to PIXEL_SCALE.
+ * the dimensions of the passed sandbox according to TILE_SCALE.
  * 
  * @param mouse Mouse whose coordinates will be used to delete a tile.
  * @param sandbox Sandbox to mutate and delete tile in.
@@ -267,7 +271,7 @@ void delete_tile(struct Mouse *mouse, struct Sandbox *sandbox);
 
 /**
  * Replace the tile located at the given mouse's screen location, scaled down to
- * the dimensions of the passed sandbox according to PIXEL_SCALE, with the
+ * the dimensions of the passed sandbox according to TILE_SCALE, with the
  * mouse's currently selected type.
  * 
  * @param mouse Mouse whose coordinates and selected tile type will be used.
