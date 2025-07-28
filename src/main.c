@@ -14,7 +14,7 @@
 #define SANDBOX_LARGE_HEIGHT 90
 
 
-static const char *APP_NAME = "Sandbox";
+static const char *APP_NAME = "sand-sim";
 
 
 /**

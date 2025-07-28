@@ -7,8 +7,8 @@ CFLAGS = -std=c17 -Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -pedanti
 LDFLAGS_LINUX = -lSDL2_image -lm
 LDFLAGS_WINDOWS = -lm
 
-OUTPUT_LINUX = sand
-OUTPUT_WINDOWS = sandwin
+OUTPUT_LINUX = sand-sim
+OUTPUT_WINDOWS = sand-sim-win
 
 # Use SDL2 built-in package config to get SDL2 flags.
 SDL_CFLAGS_LINUX = `sdl2-config --cflags --libs`

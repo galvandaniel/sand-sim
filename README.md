@@ -1,9 +1,9 @@
 # Sand Simulation (sand-sim)
 An implementation of a sandbox cellular automata.
 
-In the sandbox, a tile interacts with the tiles immediately surrounding it, depending on what element the tile is.
+In the sandbox, a tile particle interacts with the tiles immediately surrounding it, depending on what element the tile is.
 
-Sand falls, water flows, steam rises, wood burns, etc!
+Sand falls, water flows, steam rises, wood burns, fire extinguishes!
 
 Written in C using [SDL2](https://www.libsdl.org/).
 
@@ -33,16 +33,16 @@ sand-sim must be executed with its "assets" directory in the same location as th
 
 SDL2 is required for sand-sim to run.
 
-For Windows users, this means the provided "SDL2.dll" and "SDL2_image.dll" must be present in the same directory as "sandwin.exe". Inside the "sand-sim-win" directory, this structure is already setup correctly.
+For Windows users, this means the provided "SDL2.dll" and "SDL2_image.dll" must be present in the same directory as "sand-sim-win.exe". Inside the "sand-sim-win" directory, this structure is already setup correctly.
 
-sand-sim can then be run using the "sandwin.exe" executable. 
+sand-sim can then be run using the "sand-sim-win.exe" executable. 
 
 > [!IMPORTANT]
-> Windows Defender may pop up with a [warning message](https://superuser.com/questions/1553842/windows-protected-your-pc) regarding "sandwin.exe" being an unrecognized app. Clicking "More info" and then "Run anyway" will enable the app to run. (sand-sim is not malicious, the well-documented source code can checked to verify this) 
+> Windows Defender may pop up with a [warning message](https://superuser.com/questions/1553842/windows-protected-your-pc) regarding "sand-sim-win.exe" being an unrecognized app. Clicking "More info" and then "Run anyway" will enable the app to run. (sand-sim is not malicious, the well-documented source code can checked to verify this) 
 
 For Linux users, SDL2 must be installed system-wide. 
 
-To do this, run the following command:
+To do this, on a Debian-based distribution, run the following command:
 
 ```bash
 sudo apt-get install libsdl2-2.0-0
@@ -57,12 +57,12 @@ sudo apt-get install libsdl2-image-2.0-0
 Once SDL2 is installed, sand-sim can be run using the provided binary:
 
 ```bash
-./sand
+./sand-sim
 ```
 
 ### Controls
 
-Use the left mouse button the generate tiles into the world!
+Use the left mouse button the generate tile particles into the world!
 
 The selected element type may be changed using the keyboard or the mouse scroll
 wheel. The key controls are:
@@ -72,6 +72,8 @@ wheel. The key controls are:
 - 3 - Wood
 - 4 - Steam
 - 5 - Fire
+
+Holding LEFT CONTROL enables changing brush size when scrolling the mouse.
 
 The panel in the topleft represents your currently selected element.
 
@@ -84,7 +86,7 @@ The size of the sandbox simulation can be customized at the command-line with
 a simple command-line interface:
 
 ```bash
-Usage: ./sand [options]
+Usage: ./sand-sim [options]
 Options:
   -h/--help      This message.
   --size         Size preset of sandbox, either "small", "medium", or "large".
@@ -98,24 +100,24 @@ which is platform dependent.
 For example, on Linux, to set the sandbox to be a size of 50 x 80 would look like the following:
 
 ```bash
-./sand --width 50 --height 80
+./sand-sim --width 50 --height 80
 ```
 
 Similarly on Windows:
 
 ```bash
-.\sandwin.exe --width 50 --height 80
+.\sand-sim-win.exe --width 50 --height 80
 ```
 
 As another example, to use the "large" setting sandbox on Linux:
 
 ```bash
-./sand --size large
+./sand-sim --size large
 ```
 
 And on Windows:
 ```bash
-.\sandwin.exe --size large
+.\sand-sim-win.exe --size large
 ```
 
 If no command-line arguments are passed, sand-sim defaults to a 'medium' size
@@ -154,7 +156,7 @@ Once clang is installed, sand-sim can be built from the project root directory w
 make
 ```
 
-This will produce a binary called "sand" which can be executed to run the program.
+This will produce a binary called "sand-sim" which can be executed to run the program.
 
 ### Windows
 
@@ -171,13 +173,13 @@ sudo apt-get install pkg-config
 Once these are installed, sand-sim can be built from the project root directory with the command:
 
 ```bash
-make sandwin
+make sand-sim-win
 ```
 
 The necessary SDL2 Windows compiled libraries are provided with the source of sand-sim and
 no external installation of SDL2 is necessary for Windows compilation.
 
-As a reminder, in order to run the output Windows binary, "sandwin.exe" must be placed
+As a reminder, in order to run the output Windows binary, "sand-sim-win.exe" must be placed
 next to the SDL2 and SDL2_image DLLs. (along with the "assets" directory)
 
 These DLL files can be obtained from the [SDL2](https://github.com/libsdl-org/SDL/releases/tag/release-2.28.5) and [SDL2_image](https://github.com/libsdl-org/SDL_image/releases/tag/release-2.6.3) repositories within the "win32-x64" archives.
