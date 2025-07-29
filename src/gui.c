@@ -585,7 +585,7 @@ static void _destroy_textures(void)
  *
  * @param app Owning GUI application to free.
  */
-void _cleanup(struct Application *app)
+static void _cleanup(struct Application *app)
 {
     // Shut down SDL and free memory taken up by app.
     SDL_DestroyWindow(app->window);

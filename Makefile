@@ -3,7 +3,7 @@ CC_WINDOWS = x86_64-w64-mingw32-gcc
 SRCS = $(wildcard src/*.c)
 HDRS = $(wildcard src/*.h)
 
-CFLAGS = -std=c17 -Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -pedantic -O2
+CFLAGS = -std=c17 -Wall -Wextra -Wpedantic -Wconversion -Wdouble-promotion -Wfloat-equal -Wmultichar -Wnull-dereference -Wshadow -Wstrict-prototypes -Wold-style-definition -Wmissing-include-dirs -Wmissing-prototypes -Wredundant-decls -Wnested-externs -Wunused-macros -Wbad-function-cast -Wcast-qual -Wwrite-strings -Wabi -O2
 LDFLAGS_LINUX = -lSDL2_image -lm
 LDFLAGS_WINDOWS = -lm
 

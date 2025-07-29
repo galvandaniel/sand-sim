@@ -36,4 +36,13 @@ double random(void);
 bool flip_coin(void);
 
 
+/**
+ * Compare the two given floating point values for approximate equality.
+ * 
+ * @param a,b Floating point values to check for relative equality.
+ * @return True if the two passed values are roughly equal, false otherwise.
+ */
+bool approx_equal(double a, double b);
+
+
 #endif // UTILS_H

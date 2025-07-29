@@ -385,7 +385,7 @@ static bool _roll_should_tile_survive(unsigned char tile)
     double chance_of_survival = _tile_survival_chance(tile);
 
     // No need to check if a tile which always survives does so.
-    if (chance_of_survival == 1.0)
+    if (approx_equal(chance_of_survival, 1.0))
     {
         return true;
     }
@@ -410,9 +410,7 @@ static bool _roll_should_tile_burn(struct Sandbox *sandbox, struct SandboxPoint 
 {
     double burn_chance = _tile_flammability(sandbox->grid[coords.row][coords.col]);
 
-    // FP comparison is inexact, but here inflammability is assigned the 
-    // literal value of 0.0, which is exactly representable in IEEE 754
-    if (burn_chance == 0.0)
+    if (approx_equal(burn_chance, 0.0))
     {
         return false;
     }
@@ -468,7 +466,7 @@ static bool _roll_should_tile_burn(struct Sandbox *sandbox, struct SandboxPoint 
  * @param sandbox Sandbox to potentialy mutate by moving tiles for sliding.
  * @param coords Coordinates of tile to slide.
  */
-void _slide_left_or_right(struct Sandbox *sandbox, struct SandboxPoint coords)
+static void _slide_left_or_right(struct Sandbox *sandbox, struct SandboxPoint coords)
 {
     struct SandboxPoint left = {coords.row, coords.col - 1};
     struct SandboxPoint right = {coords.row, coords.col + 1};

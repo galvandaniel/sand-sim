@@ -190,4 +190,5 @@ These DLL files can be obtained from the [SDL2](https://github.com/libsdl-org/SD
 - "libs/" - Pre-compiled third-party library code and headers.
 - "src/sandbox.c" - Core sandbox simulation logic.
 - "src/gui.c" - Implementation of GUI for displaying sandbox in SDL2.
+- "src/utils.c" - General-purpose utility functions.
 
