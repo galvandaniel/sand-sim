@@ -19,6 +19,7 @@
  */
 
 #include "sandbox.h"
+#include "utils.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -41,39 +42,6 @@ static void _swap_tiles(struct SandboxPoint coords, struct SandboxPoint other_co
     unsigned char temp = grid[coords.row][coords.col];
     grid[coords.row][coords.col] = grid[other_coords.row][other_coords.col];
     grid[other_coords.row][other_coords.col] = temp;
-}
-
-
-/**
- * Generate a integer between the given ranges, inclusive.
- * 
- * This function is not seeded and will always generate the same sequence.
- * 
- * @param min, max Inclusive bounds of the random integer to be generated.
- * @return Random integer in the interval [min, max].
- */
-static int randint(int min, int max)
-{
-    return min + (rand() % (max + 1 - min));
-}
-
-/**
- * Flip a coin, generating either heads or tails.
- * This function is not seeded and will always generate the same sequence.
- * 
- * @return True for heads, false for tails.
- */
-static bool _flip_coin(void)
-{
-    // Generate a random number between 0 and 1.
-    float random_value = (float) rand() / (float) RAND_MAX;
-
-    if (random_value > 0.5)
-    {
-        return 1;
-    }
-
-    return 0;
 }
 
 
@@ -422,7 +390,7 @@ static bool _roll_should_tile_survive(unsigned char tile)
         return true;
     }
 
-    double random_value = (double) rand() / (double) RAND_MAX;
+    double random_value = random();
     return random_value <= chance_of_survival;
 }
 
@@ -482,7 +450,7 @@ static bool _roll_should_tile_burn(struct Sandbox *sandbox, struct SandboxPoint 
     {
         return false;
     }
-    double random_value = (double) rand() / (double) RAND_MAX;
+    double random_value = random();
     return random_value <= burn_chance;
 }
 
@@ -514,7 +482,7 @@ void _slide_left_or_right(struct Sandbox *sandbox, struct SandboxPoint coords)
     // If we can flow both directions, choose one at random on a coin flip.
     if (can_slide_left && can_slide_right)
     {
-        bool heads = _flip_coin();
+        bool heads = flip_coin();
 
         if (heads)
         {
@@ -784,7 +752,7 @@ void do_gravity(struct Sandbox *sandbox, struct SandboxPoint coords)
     if ((can_slide_downleft && can_slide_downright)
         || (can_sink_downleft && can_sink_downright))
     {
-        bool heads = _flip_coin();
+        bool heads = flip_coin();
 
         if (heads)
         {
