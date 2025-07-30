@@ -19,8 +19,12 @@
  * Scale-factor which determines how many screen pixels it takes to draw 1 side 
  * of 1 particle tile in the sandbox.
  * Ex: TILE_SCALE = 8 indicates 1 tile particle takes up 64 screen pixels.
+ * 
+ * This is equivalent to the n x n dimensions of all tile PNGs. As such, this
+ * property assumes that all assets/tiles/$(tile_type).png are the same square 
+ * size.
  */
-extern const int TILE_SCALE;
+extern int TILE_SCALE;
 
 /**
  * Maximum allowed value for target_radius field of Mouse.
@@ -43,15 +47,6 @@ enum mouse_mode {PLACE, DELETE, REPLACE, NUM_MOUSE_MODES};
  */
 extern const char *TILE_TEXTURE_FILENAMES[];
 extern const char *PANEL_TEXTURE_FILENAMES[];
-
-
-/**
- * Array of pointers to all textures used by tiles, panels, and transparent
- * mouse highlight.
- */
-extern SDL_Texture **TILE_TEXTURES;
-extern SDL_Texture **PANEL_TEXTURES;
-extern SDL_Texture **HIGHLIGHT_TEXTURES;
 
 
 /**
@@ -117,17 +112,6 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox);
 
 
 /**
- * Loads into memory all textures used by tiles and panels in the sandbox.
- *
- * Use get_tile_texture to retrieve the texture a tile should use.
- * Use get_panel_texture to retrieve the texture a panel should use.
- *
- * @param app Owning GUI application holding renderer to load textures onto.
- */
-void init_textures(struct Application *app);
-
-
-/**
  * Quit the sandbox application, freeing any memory it takes up, shutting down
  * any libraries initialized by init_gui(), and exiting the running process
  * gracefully.
@@ -140,19 +124,30 @@ void quit_gui(struct Application *app);
 /**
  * Given the filename for a location to a JPG or PNG, load the image as an
  * SDL_Texture on the given application.
- * 
- * The loaded texture may optionally have alpha blending enabled for drawing
- * with opacity. This will force the resulting texture to have an SDL format
- * which supports an alpha channel.
  *
  * @param app App to load image on.
  * @param filename Filepath of image to load from, relative to program location.
- * @param enable_alphablend If true, texture is loaded to support alpha blending.
- * If false, texture may or may not support alpha blending, depending on the
- * image contents of the file loaded.
  * @return Image loaded as SDL_Texture
  */
-SDL_Texture *load_texture(struct Application *app, const char *filename, bool enable_alphablend);
+SDL_Texture *load_texture(struct Application *app, const char *filename);
+
+
+
+/**
+ * Given the filename of a JPG or PNG, load the image as an SDL_Texture on the
+ * given application with the given alpha value set.
+ * 
+ * The loaded texture will have alpha blending enabled for drawing with opacity.
+ * This will force the resulting texture to have an SDL pixel format which
+ * supports an alpha channel.
+ * 
+ * @param app App to load image on.
+ * @param filename Filepath of image to load from, relative to program location.
+ * @param alpha Alpha value of returned SDL_Texture for displaying with opacity.
+ * @return Transparent image loaded as SDL_Texture.
+ */
+SDL_Texture *load_texture_alpha(struct Application *app, const char *filename, unsigned char alpha);
+
 
 
 /**
@@ -166,32 +161,16 @@ void blit_texture(struct Application *app, SDL_Texture *texture, SDL_Point windo
 
 
 /**
- * Obtain the texture a tile must render to based on its type.
- *
- * @param tile Tile to fetch texture for.
- * @return Texture of tile that can be blit to screen.
- */
-SDL_Texture *get_tile_texture(unsigned char tile);
-
-
-/**
- * Obtain the panel texture for the given tile type, to be used for showing the
- * tile type as currently selected tile type.
- *
- * @param tile Tile type to fetch panel texture for.
- * @return Panel texture corresponding to given tile type, blittable to screen.
- */
-SDL_Texture *get_panel_texture(enum tile_type type);
-
-
-/**
- * Obtain the texture used for the given tile type to show a single tile of 
- * drawing-area highlight.
+ * Draw a rectangle of the given dimensions and RGBA value to the screen of
+ * the given GUI application at the rectangle's (x,y) window coordinates.
  * 
- * @param type Tile type to get highlight texture for.
- * @return Texture showing a single tile of highlight, blittable to screen.
+ * @param app Application to draw rectangle on.
+ * @param rect Dimensions of rectangle to draw packed in an SDL_Rect.
+ * @param color RGBA color of rectangle packed as an SDL_Color.
+ * @param do_fill If true, rectangle is filled with color. If false, only
+ * outline of rectangle with color is drawn.
  */
-SDL_Texture *get_highlight_texture(enum tile_type type);
+void blit_rectangle(struct Application *app, const SDL_Rect rect, SDL_Color color, bool do_fill);
 
 
 /**
@@ -213,6 +192,19 @@ void set_black_background(struct Application *app);
  * @param app App whose owned sandbox will be drawn.
  */
 void draw_sandbox(struct Application *app);
+
+
+/**
+ * Draw the tile located at the given sandbox coordinates which lives inside
+ * the passed GUI application's owned sandbox to the application's screen.
+ * 
+ * If the tile located at the given indices is empty, this function does
+ * nothing.
+ * 
+ * @param app 
+ * @param coords 
+ */
+void draw_tile(struct Application *app, struct SandboxPoint coords);
 
 
 /**
