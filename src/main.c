@@ -161,17 +161,16 @@ int main(int argc, char **argv)
 
     while (true)
     {
-        set_black_background(app);
+        // Do 1 frame of sandbox processing before any input is obtained..
+        process_sandbox(sandbox);
 
         // Update application state and its sandbox state w.r.t user input.
         get_input(app);
         handle_input(app);
 
-        // Do 1 frame of sandbox processing and draw the result to the renderer.
-        process_sandbox(sandbox);
+        // Clear canvas, draw sandbox, then draw UI above sandbox.
+        set_black_background(app);
         draw_sandbox(app);
-
-        // Draw UI after the sandbox so that its above all tiles.
         draw_ui(app);
 
         // Display all rendered graphics.

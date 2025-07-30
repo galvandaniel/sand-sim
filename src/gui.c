@@ -202,14 +202,11 @@ static SDL_Color _get_pixel(SDL_Surface *surface, SDL_Point surface_coords)
  * coodinates.
  * @return (x, y) scaled to (row, col) coordinates packed into a point.
  */
-static struct SandboxPoint _scale_screen_coords(SDL_Point *window_coords, struct Sandbox *sandbox)
+static struct SandboxPoint _scale_screen_coords(SDL_Point window_coords, struct Sandbox *sandbox)
 {
-    int x = window_coords->x;
-    int y = window_coords->y;
-
     // Downscale the window coordinates to floating sandbox coordinates.
-    float raw_row = (float) y / (float) TILE_SCALE;
-    float raw_col = (float) x / (float) TILE_SCALE;
+    float raw_row = (float) window_coords.y / (float) TILE_SCALE;
+    float raw_col = (float) window_coords.x / (float) TILE_SCALE;
 
     // Chop off decimal portion to obtain valid sandbox indices.
     int row = (int) raw_row;
@@ -223,7 +220,7 @@ static struct SandboxPoint _scale_screen_coords(SDL_Point *window_coords, struct
     row = (row < 0) ? 0 : row;
     col = (col < 0) ? 0 : col;
 
-    struct SandboxPoint sandbox_coords = {row, col};
+    struct SandboxPoint sandbox_coords = {.row = row, .col = col};
     return sandbox_coords;
 }
 
@@ -239,8 +236,8 @@ static struct SandboxPoint _scale_screen_coords(SDL_Point *window_coords, struct
  */
 static struct SandboxPoint _scale_mouse_coords(struct Mouse *mouse, struct Sandbox *sandbox)
 {
-    SDL_Point mouse_coords = {mouse->x, mouse->y};
-    return _scale_screen_coords(&mouse_coords, sandbox);
+    SDL_Point mouse_coords = {.x = mouse->x, .y = mouse->y};
+    return _scale_screen_coords(mouse_coords, sandbox);
 }
 
 
@@ -261,7 +258,7 @@ static SDL_Point _scale_sandbox_coords(struct SandboxPoint sandbox_coords)
 {
     int x = sandbox_coords.col * TILE_SCALE;
     int y = sandbox_coords.row * TILE_SCALE;
-    SDL_Point window_coords = {x, y};
+    SDL_Point window_coords = {.x = x, .y = y};
     return window_coords;
 }
 
@@ -535,7 +532,7 @@ static void _get_sandbox_target_area(struct Sandbox *sandbox,
                                      int radius,
                                      struct SandboxPoint *target_area)
 {
-    struct SandboxPoint terminator = {-1, -1};
+    struct SandboxPoint terminator = {.row = -1, .col = -1};
 
     // Zero radius is a special case of 1-tile size draw area.
     if (radius == 0)
@@ -929,7 +926,7 @@ void draw_ui(struct Application *app)
 
     // Draw panel texture and blit to topleft of screen.
     SDL_Texture *panel_texture = PANEL_TEXTURES[app->mouse->selected_type];
-    SDL_Point topleft = {0, 0};
+    SDL_Point topleft = {.x = 0, .y = 0};
     blit_texture(app, panel_texture, topleft);
 }
 
