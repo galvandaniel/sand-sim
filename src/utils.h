@@ -45,4 +45,14 @@ bool flip_coin(void);
 bool approx_equal(double a, double b);
 
 
+/**
+ * Clamp the given value to lie within the inclusive integer range [min, max].
+ * 
+ * @param min Lower bound of clamping range.
+ * @param max Upper bound of clampign range.
+ * @return If val in [min, max], val. If val < min, min. If val > max, max.
+ */
+int clamp(int val, int min, int max);
+
+
 #endif // UTILS_H

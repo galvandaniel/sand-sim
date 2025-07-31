@@ -1,17 +1,24 @@
 #include "gui.h"
 #include "sandbox.h"
+#include "utils.h"
 
 #include <SDL.h>
 #include <stdlib.h>
 #include <string.h>
 
 // Preset sizes for sandbox, in tiles.
-#define SANDBOX_SMALL_WIDTH 16
-#define SANDBOX_SMALL_HEIGHT 9
-#define SANDBOX_MEDIUM_WIDTH 80
-#define SANDBOX_MEDIUM_HEIGHT 45
-#define SANDBOX_LARGE_WIDTH 160
-#define SANDBOX_LARGE_HEIGHT 90
+static const int SANDBOX_SMALL_WIDTH = 40;
+static const int SANDBOX_SMALL_HEIGHT = 23;
+static const int SANDBOX_MEDIUM_WIDTH = 80;
+static const int SANDBOX_MEDIUM_HEIGHT = 45;
+static const int SANDBOX_LARGE_WIDTH = 160;
+static const int SANDBOX_LARGE_HEIGHT = 90;
+
+// Allowable sandbox dimensions.
+static const int SANDBOX_MIN_WIDTH = SANDBOX_SMALL_WIDTH;
+static const int SANDBOX_MIN_HEIGHT = SANDBOX_SMALL_HEIGHT;
+static const int SANDBOX_MAX_WIDTH = 200;
+static const int SANDBOX_MAX_HEIGHT = 100;
 
 
 static const char *APP_NAME = "sand-sim";
@@ -100,7 +107,6 @@ static void parse_args(int argc, char **argv, int *dimensions)
             print_usage_string(argv[0]);
             exit(EXIT_FAILURE);
         }
-
     }
 
     // Never valid if only 3 arguments are supplied.
@@ -120,7 +126,7 @@ static void parse_args(int argc, char **argv, int *dimensions)
             exit(EXIT_FAILURE);  
         }
 
-        // Must specify width and height flags.
+        // Must specify BOTH width and height flags.
         if (strcmp("--width", argv[1]) != 0 || strcmp("--height", argv[3]) != 0)
         {
             print_usage_string(argv[0]);
@@ -138,8 +144,9 @@ static void parse_args(int argc, char **argv, int *dimensions)
             exit(EXIT_FAILURE);
         }
 
-        dimensions[width_index] = user_width;
-        dimensions[height_index] = user_height;
+        // Auto scale within bounds of allowable dimensions.
+        dimensions[width_index] = clamp(user_width, SANDBOX_MIN_WIDTH, SANDBOX_MAX_WIDTH);
+        dimensions[height_index] = clamp(user_height, SANDBOX_MIN_HEIGHT, SANDBOX_MAX_HEIGHT);
     }
 }
 

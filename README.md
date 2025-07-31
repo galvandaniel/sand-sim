@@ -94,8 +94,11 @@ Options:
   --height       Set tile height of the sandbox. Overrides --size. If specified, width must be specified too.
 ```
 
-Custom widths and heights are supported up to INT_MAX as defined in limits.h,
-which is platform dependent.
+Custom widths can range anywhere from 40 to 200. 
+Custom heights can range anywhere from 23 to 100.
+
+Non-negative, non-zero custom dimensions which exceed these bounds are bound to
+these limits.
 
 For example, on Linux, to set the sandbox to be a size of 50 x 80 would look like the following:
 
@@ -125,6 +128,9 @@ sandbox.
 
 If any command-line arguments are invalid for any reason, sand-sim will repeat
 its usage string.
+
+Any valid non-zero non-negative custom widths/heights passed to sand-sim through
+the CLI will be bound by the minimum heights and
 
 
 ## Building From Source

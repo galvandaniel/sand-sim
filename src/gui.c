@@ -5,6 +5,7 @@
 
 #include "gui.h"
 #include "sandbox.h"
+#include "utils.h"
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -72,7 +73,7 @@ static SDL_Texture **PANEL_TEXTURES = NULL;
 /**
  * Wrapper for all SDL calls which can fail on returning a negative error code.
  * 
- * Not intended to be called on a raw pointer.
+ * Not intended to be called on any other value.
  * 
  * @param status_code Code returned from an SDL API call.
  * @param line_number The expanded value of __LINE__ when API call is made.
@@ -212,13 +213,9 @@ static struct SandboxPoint _scale_screen_coords(SDL_Point window_coords, struct 
     int row = (int) raw_row;
     int col = (int) raw_col;
 
-    // If window coordinates go outside sandbox, clamp targeted indices to edge
-    // of sandbox.
-    row = (row >= sandbox->height) ? sandbox->height - 1 : row;
-    col = (col >= sandbox->width) ? sandbox->width - 1 : col;
-
-    row = (row < 0) ? 0 : row;
-    col = (col < 0) ? 0 : col;
+    // Prevent indices from going OOB.
+    row = clamp(row, 0, sandbox->height - 1);
+    col = clamp(col, 0, sandbox->width - 1);
 
     struct SandboxPoint sandbox_coords = {.row = row, .col = col};
     return sandbox_coords;
@@ -333,12 +330,10 @@ static void _do_mouse_wheel_motion(struct Application *app, SDL_MouseWheelEvent 
     int scroll_sign = (vertical_scroll > 0) ? 1 : -1;
 
     // Holding lctrl enables changing brush size.
-    // Clamp target_radius to stay within inclusive range [0, MAX_TARGET_RADIUS].
     if (app->mouse->is_holding_lctrl)
     {
         app->mouse->target_radius += scroll_sign;
-        app->mouse->target_radius = (app->mouse->target_radius < 0) ? 0 : app->mouse->target_radius;
-        app->mouse->target_radius = (app->mouse->target_radius > MAX_TARGET_RADIUS) ? MAX_TARGET_RADIUS : app->mouse->target_radius;
+        app->mouse->target_radius = clamp(app->mouse->target_radius, 0, MAX_TARGET_RADIUS);
         return;
     }
 

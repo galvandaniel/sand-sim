@@ -47,3 +47,11 @@ bool approx_equal(double a, double b)
     // failed. Taken from "The Art of Computer Programming" (Addison-Wesley 1969)
     return (fabs(a - b) <= (fmax(fabs(a), fabs(b)) * relative_epsilon));
 }
+
+
+int clamp(int val, int min, int max)
+{
+    val = (val < min) ? min : val;
+    val = (val > max) ? max : val;
+    return val;
+}
