@@ -21,6 +21,7 @@ enum tile_type {AIR,
                 WOOD, 
                 STEAM, 
                 FIRE,
+                FUEL,
                 NUM_TILE_TYPES};
 
 

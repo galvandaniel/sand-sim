@@ -14,6 +14,7 @@
  * 3 - Wood
  * 4 - Steam
  * 5 - Fire
+ * 6 - Fuel
  * 6-15 - (UNUSED)
  *
  */
@@ -96,6 +97,9 @@ static double _tile_survival_chance(unsigned char tile)
 
         case FIRE:
             return 0.87;
+        
+        case FUEL:
+            return 1.0;
 
         default:
             return 1.0;
@@ -126,13 +130,16 @@ static double _tile_flammability(unsigned char tile)
             return 0.0;
 
         case WOOD:
-            return 0.75;
+            return 0.50;
 
         case STEAM:
             return 0.0;
 
         case FIRE:
             return 0.0;            
+
+        case FUEL:
+            return 0.75;
 
         default:
             return 0.0;
@@ -169,6 +176,9 @@ static bool _tile_has_gravity(unsigned char tile)
 
         case FIRE:
             return false;
+        
+        case FUEL:
+            return true;
 
         default:
             return false;
@@ -211,6 +221,9 @@ static bool _tile_is_solid(unsigned char tile)
 
         case FIRE:
             return false;
+        
+        case FUEL:
+            return false;
 
         default:
             return false;
@@ -252,6 +265,9 @@ static bool _tile_is_liquid(unsigned char tile)
 
         case FIRE:
             return false;
+        
+        case FUEL:
+            return true;
 
         default:
             return false;
@@ -292,6 +308,10 @@ static bool _tile_is_gas(unsigned char tile)
 
         case FIRE:
             return true;
+        
+        // Fuel is gasoline ('gas'), but it is not a gaseous fluid.
+        case FUEL:
+            return false;
 
         default:
             return false;
@@ -328,6 +348,9 @@ static bool _tile_dissolves(unsigned char tile)
             return false;
 
         case FIRE:
+            return false;
+        
+        case FUEL:
             return false;
 
         default:
@@ -366,6 +389,9 @@ static bool _tile_is_incendiary(unsigned char tile)
 
         case FIRE:
             return true;
+        
+        case FUEL:
+            return false;
 
         default:
             return false;
@@ -454,56 +480,29 @@ static bool _roll_should_tile_burn(struct Sandbox *sandbox, struct SandboxPoint 
 
 
 /**
- * Perform a slide on the given tile coordinates within the sandbox, if possible.
+ * Determine if the given sandbox coordinates can flow like liquid to the
+ * target coordinates
  *
- * A slide is possible if the tile in question has room to move to the left
- * or to the right one tile, without going out of bounds.
+ * Liquid can flow to some target location if the tile at that location is empty
+ * or another liquid not of the same tile type.
  *
- * If both are possible, perform one at random.
- *
- * This function does NOT check under what conditions a tile should slide.
- *
- * @param sandbox Sandbox to potentialy mutate by moving tiles for sliding.
- * @param coords Coordinates of tile to slide.
+ * @param sandbox Sandbox to determine if target coordinates can flow to.
+ * @param coords Source coordinates of tile to perform flow.
+ * @param target Destination coordinates tile is trying to flow to.
+ * @return True if the tile at coords can flow to target, false otherwise.
  */
-static void _slide_left_or_right(struct Sandbox *sandbox, struct SandboxPoint coords)
+static bool _can_flow(struct Sandbox *sandbox, struct SandboxPoint source, struct SandboxPoint target)
 {
-    struct SandboxPoint left = {coords.row, coords.col - 1};
-    struct SandboxPoint right = {coords.row, coords.col + 1};
-
-    // Only slide in a direction if there's an empty space, and it's not OOB.
-    bool can_slide_left = (!is_coord_oob(sandbox, left)
-                        && is_tile_empty(sandbox->grid[left.row][left.col]));
-    bool can_slide_right = (!is_coord_oob(sandbox, right)
-                         && is_tile_empty(sandbox->grid[right.row][right.col]));
-
-    // If we can flow both directions, choose one at random on a coin flip.
-    if (can_slide_left && can_slide_right)
+    if (is_coord_oob(sandbox, target))
     {
-        bool heads = flip_coin();
-
-        if (heads)
-        {
-            _swap_tiles(coords, left, sandbox->grid);
-        }
-        else
-        {
-            _swap_tiles(coords, right, sandbox->grid);
-        }
-        return;
+        return false;
     }
 
-    // If only one option is available, do that.
-    if (can_slide_left)
-    {
-        _swap_tiles(coords, left, sandbox->grid);
-        return;
-    }
-    if (can_slide_right)
-    {
-        _swap_tiles(coords, right, sandbox->grid);
-        return;
-    }
+    unsigned char source_tile = sandbox->grid[source.row][source.col];
+    unsigned char target_tile = sandbox->grid[target.row][target.col];
+    
+    return (is_tile_empty(target_tile) ||
+           (_tile_is_liquid(target_tile) && !_are_tiles_same_type(source_tile, target_tile)));
 }
 
 
@@ -789,7 +788,39 @@ void do_liquid_flow(struct Sandbox *sandbox, struct SandboxPoint coords)
         return;
     }
 
-    _slide_left_or_right(sandbox, coords);
+    struct SandboxPoint left = {coords.row, coords.col - 1};
+    struct SandboxPoint right = {coords.row, coords.col + 1};
+
+    bool can_flow_left = _can_flow(sandbox, coords, left);
+    bool can_flow_right = _can_flow(sandbox, coords, right);
+
+    // If we can flow both directions, choose one at random on a coin flip.
+    if (can_flow_left && can_flow_right)
+    {
+        bool heads = flip_coin();
+
+        if (heads)
+        {
+            _swap_tiles(coords, left, sandbox->grid);
+        }
+        else
+        {
+            _swap_tiles(coords, right, sandbox->grid);
+        }
+        return;
+    }
+
+    // If only one option is available, do that.
+    if (can_flow_left)
+    {
+        _swap_tiles(coords, left, sandbox->grid);
+        return;
+    }
+    if (can_flow_right)
+    {
+        _swap_tiles(coords, right, sandbox->grid);
+        return;
+    }
 }
 
 

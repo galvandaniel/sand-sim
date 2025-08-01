@@ -31,7 +31,8 @@ const char *TILE_TEXTURE_FILENAMES[] = {
     "assets/tiles/water.png",
     "assets/tiles/wood.png",
     "assets/tiles/steam.png",
-    "assets/tiles/fire.png"
+    "assets/tiles/fire.png",
+    "assets/tiles/fuel.png"
 };
 const char *PANEL_TEXTURE_FILENAMES[] = {
     "assets/panels/air_panel.png",
@@ -39,7 +40,8 @@ const char *PANEL_TEXTURE_FILENAMES[] = {
     "assets/panels/water_panel.png",
     "assets/panels/wood_panel.png",
     "assets/panels/steam_panel.png",
-    "assets/panels/fire_panel.png"
+    "assets/panels/fire_panel.png",
+    "assets/panels/fuel_panel.png"
 };
 
 
@@ -385,6 +387,10 @@ static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event
 
         case SDLK_5:
             switch_selected_type(app_mouse, FIRE);
+            break;
+        
+        case SDLK_6:
+            switch_selected_type(app_mouse, FUEL);
             break;
 
         case SDLK_LCTRL:
