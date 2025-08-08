@@ -6,19 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Preset sizes for sandbox, in tiles.
-static const int SANDBOX_SMALL_WIDTH = 40;
-static const int SANDBOX_SMALL_HEIGHT = 23;
+// Preset sizes for sandbox and size limits, in tiles.
+static const int SANDBOX_SMALL_WIDTH = 53;
+static const int SANDBOX_SMALL_HEIGHT = 30;
 static const int SANDBOX_MEDIUM_WIDTH = 80;
 static const int SANDBOX_MEDIUM_HEIGHT = 45;
 static const int SANDBOX_LARGE_WIDTH = 160;
 static const int SANDBOX_LARGE_HEIGHT = 90;
-
-// Allowable sandbox dimensions.
-static const int SANDBOX_MIN_WIDTH = SANDBOX_SMALL_WIDTH;
-static const int SANDBOX_MIN_HEIGHT = SANDBOX_SMALL_HEIGHT;
-static const int SANDBOX_MAX_WIDTH = 200;
-static const int SANDBOX_MAX_HEIGHT = 100;
 
 
 static const char *APP_NAME = "sand-sim";
@@ -144,9 +138,9 @@ static void parse_args(int argc, char **argv, int *dimensions)
             exit(EXIT_FAILURE);
         }
 
-        // Auto scale within bounds of allowable dimensions.
-        dimensions[width_index] = clamp(user_width, SANDBOX_MIN_WIDTH, SANDBOX_MAX_WIDTH);
-        dimensions[height_index] = clamp(user_height, SANDBOX_MIN_HEIGHT, SANDBOX_MAX_HEIGHT);
+        // Auto scale within bounds of smallest and largest dimensions.
+        dimensions[width_index] = clamp(user_width, SANDBOX_SMALL_WIDTH, SANDBOX_LARGE_WIDTH);
+        dimensions[height_index] = clamp(user_height, SANDBOX_SMALL_HEIGHT, SANDBOX_LARGE_HEIGHT);
     }
 }
 
@@ -160,10 +154,9 @@ int main(int argc, char **argv)
     int sandbox_dimensions[2];
     parse_args(argc, argv, sandbox_dimensions);
 
-    // Form a sandbox of user's desired dimensions.
+    // Form a sandbox of user's desired dimensions along with GUI app which
+    // owns this sandbox.
     struct Sandbox *sandbox = create_sandbox(sandbox_dimensions[0], sandbox_dimensions[1]);
-
-    // Initialize SDL, create an app, and load in textures.
     struct Application *app = init_gui(APP_NAME, sandbox);
 
     while (true)

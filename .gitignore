@@ -60,3 +60,6 @@ dkms.conf
 
 # Ignore sand binaries
 sand*
+
+# Ignore Valgrind massif log files.
+massif.out.*
