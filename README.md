@@ -129,8 +129,9 @@ sandbox.
 If any command-line arguments are invalid for any reason, sand-sim will repeat
 its usage string.
 
-Any valid non-zero non-negative custom widths/heights passed to sand-sim through
-the CLI will be bound by the minimum heights and
+Any custom widths/heights greater than 0 passed to sand-sim through
+the CLI will be bound by the width and height of the "small" and "large" size
+sandboxes.
 
 
 ## Building From Source
@@ -143,20 +144,20 @@ can be used to compile sand-sim once the required dependencies are in place.
 
 ### Linux
 
-Compiling sand-sim's Linux version requires the development versions of SDL2 and SDL2_image, which can be installed on Linux with the commands:
+Compiling sand-sim's Linux version requires the development versions of SDL2 and SDL2_image, which can be installed on Debian-based systems with the commands:
 
 ```bash
 sudo apt-get install libsdl2-dev
 sudo apt-get install libsdl2-image-dev
 ```
 
-Compilation of the Linux/Unix version requires clang, which can be installed with the command:
+Compilation of the Linux version requires clang, which can be installed with the command:
 
 ```bash
 sudo apt-get install clang
 ```
 
-Once clang is installed, sand-sim can be built from the project root directory with the command:
+Once clang is installed, sand-sim can be built from the project root directory using Make and the provided Makefile:
 
 ```bash
 make
@@ -182,13 +183,16 @@ Once these are installed, sand-sim can be built from the project root directory 
 make sand-sim-win
 ```
 
-The necessary SDL2 Windows compiled libraries are provided with the source of sand-sim and
+The necessary SDL2 Windows headers are provided with the source of sand-sim and
 no external installation of SDL2 is necessary for Windows compilation.
 
 As a reminder, in order to run the output Windows binary, "sand-sim-win.exe" must be placed
-next to the SDL2 and SDL2_image DLLs. (along with the "assets" directory)
+next to the correct SDL2 and SDL2_image DLLs. (along with the "assets" directory)
 
-These DLL files can be obtained from the [SDL2](https://github.com/libsdl-org/SDL/releases/tag/release-2.28.5) and [SDL2_image](https://github.com/libsdl-org/SDL_image/releases/tag/release-2.6.3) repositories within the "win32-x64" archives.
+The DLLs for the versions of SDL2 and its extensions used to compile sand-sim for
+Windows can be found at each library's repository within the "win32-x64" archives:
+- [SDL2 2.28.5](https://github.com/libsdl-org/SDL/releases/tag/release-2.28.5)
+- [SDL2_image 2.8.8](https://github.com/libsdl-org/SDL_image/releases/tag/release-2.8.8)
 
 ## Project and Source File Organization
 

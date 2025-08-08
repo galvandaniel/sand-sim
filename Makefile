@@ -13,7 +13,7 @@ OUTPUT_WINDOWS = sand-sim-win
 # Use SDL2 built-in package config to get SDL2 flags.
 SDL_CFLAGS_LINUX = `sdl2-config --cflags --libs`
 SDL_CFLAGS_WINDOWS = `libs/mingw/SDL2-2.28.5/x86_64-w64-mingw32/bin/sdl2-config --cflags --libs`
-SDL_IM_CFLAGS_WINDOWS = `pkg-config --cflags --libs libs/mingw/SDL2_image-2.6.3/x86_64-w64-mingw32/lib/pkgconfig/SDL2_image.pc`
+SDL_IM_CFLAGS_WINDOWS = `pkg-config --cflags --libs libs/mingw/SDL2_image-2.8.8/x86_64-w64-mingw32/lib/pkgconfig/SDL2_image.pc`
 
 .PHONY: clean
 
