@@ -626,6 +626,9 @@ void process_sandbox(struct Sandbox *sandbox)
     {
         for (int col = 0; col < sandbox->width; col++)
         {
+            // Any mutation made to the current tile stops all other updates.
+            // For 1 simulation step, a tile may only move 1 space xor convert 
+            // into another tile exactly once
             unsigned char current_tile = grid[row][col];
             struct SandboxPoint coords = {row, col};
 
@@ -644,53 +647,46 @@ void process_sandbox(struct Sandbox *sandbox)
             }
 
             // Perform survival check.
-            bool should_survive = _roll_should_tile_survive(current_tile);
-            if (!should_survive)
+            if (!_roll_should_tile_survive(current_tile))
             {
                 delete_tile(sandbox, coords);
                 continue;
             }
 
-            // Perform burn check. Resulting fire tile should not be simulated.
-            bool should_burn = _roll_should_tile_burn(sandbox, coords);
-            if (should_burn)
+            // Perform burn check.
+            if (_roll_should_tile_burn(sandbox, coords))
             {
                 replace_tile(sandbox, coords, FIRE);
                 continue;
             }
 
-            // Reaching this point means an update-check MUST occur, even if
-            // it results in nothing changing, so we mark the tile as updated.
+            // Mark the tile as updated before checking for any movement.
             // Take care to mutate the array element, NOT the stack-variable.
             set_tile_updated(&grid[row][col], sandbox->lifetime);
 
             // Perform extinguish check. Only fire extinguishes. 
-            if (get_tile_type(current_tile) == FIRE)
+            if (get_tile_type(current_tile) == FIRE && do_extinguish(sandbox, coords))
             {
-                do_extinguish(sandbox, coords);
+                continue;
             }
 
             // Perform gravity on the tiles that need it.
-            if (_tile_has_gravity(current_tile))
+            if (_tile_has_gravity(current_tile) && do_gravity(sandbox, coords))
             {
-                do_gravity(sandbox, coords);
+                continue;
             }
 
             // Perform flow on liquid tiles.
-            if (_tile_is_liquid(current_tile))
+            if (_tile_is_liquid(current_tile) && do_flow(sandbox,coords))
             {
-                do_liquid_flow(sandbox, coords);
+                continue;
             }
 
             // Perform lift on gasses
-            if (_tile_is_gas(current_tile))
+            if (_tile_is_gas(current_tile) && do_lift(sandbox, coords))
             {
-                do_lift(sandbox, coords);
+                continue;
             }
-
-            // A swap could have just happened, so update the tile again to
-            // prevent updating a swapped tile.
-            set_tile_updated(&grid[row][col], sandbox->lifetime);
         }
     }
 
@@ -699,14 +695,14 @@ void process_sandbox(struct Sandbox *sandbox)
 }
 
 
-void do_gravity(struct Sandbox *sandbox, struct SandboxPoint coords)
+bool do_gravity(struct Sandbox *sandbox, struct SandboxPoint coords)
 {
     struct SandboxPoint down = {coords.row + 1, coords.col};
 
     // Don't simulate gravity if doing so would take us out of bounds.
     if (is_coord_oob(sandbox, down))
     {
-        return;
+        return false;
     }
 
     // First check if tile can sink through a liquid/fall directly down.
@@ -715,7 +711,7 @@ void do_gravity(struct Sandbox *sandbox, struct SandboxPoint coords)
     if (is_tile_empty(sandbox->grid[down.row][down.col]) || can_sink_below)
     {
         _swap_tiles(coords, down, sandbox->grid);
-        return;
+        return true;
     }
 
     struct SandboxPoint left = {coords.row, coords.col - 1};
@@ -733,7 +729,7 @@ void do_gravity(struct Sandbox *sandbox, struct SandboxPoint coords)
     // not empty or liquid.
     if (is_wall_left && is_wall_right)
     {
-        return;
+        return false;
     }
 
     // Now check if tile can sink/slide diagonally instead.
@@ -746,37 +742,31 @@ void do_gravity(struct Sandbox *sandbox, struct SandboxPoint coords)
                              && is_tile_empty(sandbox->grid[downright.row][downright.col]));
 
     // If we can both slide/sink down left and right, choose one at random.
+    struct SandboxPoint target = {.row = coords.row, .col = coords.col};
+
     if ((can_slide_downleft && can_slide_downright)
         || (can_sink_downleft && can_sink_downright))
     {
-        bool heads = flip_coin();
-
-        if (heads)
-        {
-            _swap_tiles(coords, downleft, sandbox->grid);
-        }
-        else
-        {
-            _swap_tiles(coords, downright, sandbox->grid);
-        }
-        return;
+        target = flip_coin() ? downleft : downright;
+        _swap_tiles(coords, target, sandbox->grid);
+        return true;
     }
 
     // If there is no choice in direction, do whichever is possible.
-    if (can_slide_downleft || can_sink_downleft)
+    target = (can_slide_downleft || can_sink_downleft) ? downleft : target;
+    target = (can_slide_downright || can_sink_downright) ? downright : target;
+
+    if (target.row != coords.row || target.col != coords.col)
     {
-        _swap_tiles(coords, downleft, sandbox->grid);
-        return;
+        _swap_tiles(coords, target, sandbox->grid);
+        return true;
     }
-    if (can_slide_downright || can_sink_downright)
-    {
-        _swap_tiles(coords, downright, sandbox->grid);
-        return;
-    }
+
+    return false;
 }
 
 
-void do_liquid_flow(struct Sandbox *sandbox, struct SandboxPoint coords)
+bool do_flow(struct Sandbox *sandbox, struct SandboxPoint coords)
 {
     struct SandboxPoint below = {coords.row + 1, coords.col};
 
@@ -785,7 +775,7 @@ void do_liquid_flow(struct Sandbox *sandbox, struct SandboxPoint coords)
     bool on_solid_ground = below.row == sandbox->height || _tile_is_solid(sandbox->grid[below.row][below.col]);
     if (!on_solid_ground && !_tile_is_liquid(sandbox->grid[below.row][below.col]))
     {
-        return;
+        return false;
     }
 
     struct SandboxPoint left = {coords.row, coords.col - 1};
@@ -795,36 +785,29 @@ void do_liquid_flow(struct Sandbox *sandbox, struct SandboxPoint coords)
     bool can_flow_right = _can_flow(sandbox, coords, right);
 
     // If we can flow both directions, choose one at random on a coin flip.
+    struct SandboxPoint target = {.row = coords.row, .col = coords.col};
     if (can_flow_left && can_flow_right)
     {
-        bool heads = flip_coin();
-
-        if (heads)
-        {
-            _swap_tiles(coords, left, sandbox->grid);
-        }
-        else
-        {
-            _swap_tiles(coords, right, sandbox->grid);
-        }
-        return;
+        target = flip_coin() ? left : right;
+        _swap_tiles(coords, target, sandbox->grid);
+        return true;
     }
 
     // If only one option is available, do that.
-    if (can_flow_left)
+    target = can_flow_left ? left : target;
+    target = can_flow_right ? right : target;
+
+    if (target.col != coords.col)
     {
-        _swap_tiles(coords, left, sandbox->grid);
-        return;
+        _swap_tiles(coords, target, sandbox->grid);
+        return true;
     }
-    if (can_flow_right)
-    {
-        _swap_tiles(coords, right, sandbox->grid);
-        return;
-    }
+
+    return false;
 }
 
 
-void do_lift(struct Sandbox *sandbox, struct SandboxPoint coords)
+bool do_lift(struct Sandbox *sandbox, struct SandboxPoint coords)
 {
     struct SandboxPoint left = {coords.row, coords.col - 1};
     struct SandboxPoint right = {coords.row, coords.col + 1};
@@ -857,15 +840,16 @@ void do_lift(struct Sandbox *sandbox, struct SandboxPoint coords)
     // No lift is possible if cannot move any way upwards.
     if (num_true == 0)
     {
-        return;
+        return false;
     }
 
     int rand_index = randint(0, num_true - 1);
     _swap_tiles(coords, targets[rand_index], sandbox->grid);
+    return true;
 }
 
 
-void do_extinguish(struct Sandbox *sandbox, struct SandboxPoint coords)
+bool do_extinguish(struct Sandbox *sandbox, struct SandboxPoint coords)
 {
     struct SandboxPoint up = {coords.row - 1, coords.col};
     struct SandboxPoint left = {coords.row, coords.col - 1};
@@ -895,10 +879,11 @@ void do_extinguish(struct Sandbox *sandbox, struct SandboxPoint coords)
 
     if (!is_next_to_water)
     {
-        return;
+        return false;
     }
 
     replace_tile(sandbox, coords, STEAM);
+    return true;
 }
 
 

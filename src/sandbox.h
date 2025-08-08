@@ -95,8 +95,10 @@ void process_sandbox(struct Sandbox *sandbox);
  *
  * @param sandbox 2D Sandbox of tiles to mutate and perform gravity within.
  * @param coords Coordinates of tile to perform gravity on.
+ * @return True if the tile at the given coordinates moved to a different 
+ * location in the sandbox due to gravity, false otherwise
  */
-void do_gravity(struct Sandbox *sandbox, struct SandboxPoint coords);
+bool do_gravity(struct Sandbox *sandbox, struct SandboxPoint coords);
 
 
 /**
@@ -108,8 +110,10 @@ void do_gravity(struct Sandbox *sandbox, struct SandboxPoint coords);
  *
  * @param sandbox 2D Sandbox of tiles to mutate and perform flow within.
  * @param coords Coordinates of tile to perform flow on.
+ * @return True if the tile at the given coordinates moved to a different 
+ * location in the sandbox due to flow, false otherwise
  */
-void do_liquid_flow(struct Sandbox *sandbox, struct SandboxPoint coords);
+bool do_flow(struct Sandbox *sandbox, struct SandboxPoint coords);
 
 
 /**
@@ -124,8 +128,10 @@ void do_liquid_flow(struct Sandbox *sandbox, struct SandboxPoint coords);
  *
  * @param sandbox 2D Sandbox of tiles to mutate and perform lift within.
  * @param coords Coordinates of tile to perform lift on.
+ * @return True if the tile at the given coordinates moved to a different 
+ * location in the sandbox due to lift, false otherwise
  */
-void do_lift(struct Sandbox *sandbox, struct SandboxPoint coords);
+bool do_lift(struct Sandbox *sandbox, struct SandboxPoint coords);
 
 
 /**
@@ -135,9 +141,11 @@ void do_lift(struct Sandbox *sandbox, struct SandboxPoint coords);
  * adjacent in any of the cardinal directions, and turning to smoke if so.
  * 
  * @param sandbox 2D Sandbox of tiles to simulate extinguishing within.
- * @param coords Coordinates of tile to simulate extinguishing on.
+ * @param coords Coordinates of tile to simulate extinguishing on. 
+ * @return True if the tile at the given coordinates extinguished and turned to
+ * smoke, false otherwise.
  */
-void do_extinguish(struct Sandbox *sandbox, struct SandboxPoint coords);
+bool do_extinguish(struct Sandbox *sandbox, struct SandboxPoint coords);
 
 
 /**
