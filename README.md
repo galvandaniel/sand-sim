@@ -11,13 +11,13 @@ Personal project by Daniel Galvan.
 
 ![Demo of Program](assets/demo/demo.gif)
 
-This project, while presentable in its current form, is planned to be further extended with additional customization options, elements, and toy features.
+This project, while presentable in its current form, is planned to be further extended with additional customization options, elements, and compile targets.
 
 
 ## Usage
 ### Prerequisites
 
-If running on a Linux Distribution:
+If running on a Debian-based Linux Distribution:
 - Contents of "sand-sim" directory as downloaded from the "releases" tab.
 - [SDL2](https://github.com/libsdl-org/SDL/tree/SDL2)
 - [SDL2_image](https://github.com/libsdl-org/SDL_image/tree/SDL2)
@@ -40,7 +40,7 @@ sand-sim can then be run using the "sand-sim-win.exe" executable.
 > [!IMPORTANT]
 > Windows Defender may pop up with a [warning message](https://superuser.com/questions/1553842/windows-protected-your-pc) regarding "sand-sim-win.exe" being an unrecognized app. Clicking "More info" and then "Run anyway" will enable the app to run. (sand-sim is not malicious, the well-documented source code can checked to verify this) 
 
-For Linux users, SDL2 must be installed system-wide. 
+For Linux users, SDL2 can be installed system-wide. 
 
 To do this, on a Debian-based distribution, run the following command:
 
@@ -73,7 +73,7 @@ wheel. The key controls are:
 - 4 - Steam
 - 5 - Fire
 
-Holding LEFT CONTROL enables changing brush size when scrolling the mouse.
+Holding L-CTRL enables changing brush size when scrolling the mouse wheel.
 
 The panel in the topleft represents your currently selected element.
 
@@ -139,7 +139,7 @@ sandboxes.
 > [!NOTE]
 > The compilation instructions below assume a Debian-based Linux enviroment. 
 
-After cloning the source code, the provided Makefile present at the project root 
+After cloning the project repository, the provided Makefile present at the project root 
 can be used to compile sand-sim once the required dependencies are in place.
 
 ### Linux
@@ -180,19 +180,17 @@ sudo apt-get install pkg-config
 Once these are installed, sand-sim can be built from the project root directory with the command:
 
 ```bash
-make sand-sim-win
+make sand-sim.exe
 ```
 
-The necessary SDL2 Windows headers are provided with the source of sand-sim and
-no external installation of SDL2 is necessary for Windows compilation.
+The necessary SDL2 Windows pre-compiled binaries are provided with the source of
+sand-sim and no external installation of SDL2 is necessary for Windows compilation.
 
-As a reminder, in order to run the output Windows binary, "sand-sim-win.exe" must be placed
+As a reminder, in order to run the output Windows binary, "sand-sim.exe" must be placed
 next to the correct SDL2 and SDL2_image DLLs. (along with the "assets" directory)
 
-The DLLs for the versions of SDL2 and its extensions used to compile sand-sim for
-Windows can be found at each library's repository within the "win32-x64" archives:
-- [SDL2 2.28.5](https://github.com/libsdl-org/SDL/releases/tag/release-2.28.5)
-- [SDL2_image 2.8.8](https://github.com/libsdl-org/SDL_image/releases/tag/release-2.8.8)
+The provided Makefile sets this structure by generating the necessary DLLs next
+to "sand-sim.exe" at the project root.
 
 ## Project and Source File Organization
 
@@ -201,4 +199,5 @@ Windows can be found at each library's repository within the "win32-x64" archive
 - "src/sandbox.c" - Core sandbox simulation logic.
 - "src/gui.c" - Implementation of GUI for displaying sandbox in SDL2.
 - "src/utils.c" - General-purpose utility functions.
+- Makefile.common - Build definitions common to both Linux and Windows ports.
 

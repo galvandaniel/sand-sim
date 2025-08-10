@@ -10,6 +10,7 @@
 # Vim editor files
 *.swp
 *.swo
+*~
 
 # Linker output
 *.ilk
@@ -19,18 +20,6 @@
 # Precompiled Headers
 *.gch
 *.pch
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
 
 # Executables
 *.exe
@@ -58,8 +47,10 @@ dkms.conf
 # VS Code Folder
 .vscode
 
-# Ignore sand binaries
+# sand binaries and DLLs as produced by build commands.
 sand*
+/SDL2.dll
+/SDL2_image.dll
 
-# Ignore Valgrind massif log files.
+# Valgrind massif log files.
 massif.out.*

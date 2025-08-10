@@ -1,0 +1,12 @@
+# Common definitions in use between NMAKE and GNUMake Makefiles.
+
+# Binary executable name.
+OUTPUT = sand-sim
+
+CC = clang
+
+# Use C17 standard, level 2 optimization level, and very high warning level.
+CFLAGS = -std=c17 -O2 -Wall -Wextra -Wpedantic -Wconversion -Wdouble-promotion -Wfloat-equal -Wmultichar -Wnull-dereference -Wshadow -Wstrict-prototypes -Wold-style-definition -Wmissing-include-dirs -Wmissing-prototypes -Wredundant-decls -Wnested-externs -Wunused-macros -Wbad-function-cast -Wcast-qual -Wwrite-strings -Wabi
+
+# Additional linker flags.
+LDFLAGS = -lm
