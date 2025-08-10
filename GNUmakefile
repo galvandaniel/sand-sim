@@ -2,8 +2,8 @@ include Makefile.common
 
 # Makefile as called by GNUmake to compile sand-sim in a Unix-like environment.
 #
-# To compile the Linux version: make
-# To cross-compile the Windows version on Linux: make sand-sim.exe
+# To compile Linux version: make
+# To cross-compile Windows version on Linux: make sand-sim.exe
 
 CC_MINGW = x86_64-w64-mingw32-gcc
 
