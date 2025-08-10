@@ -10,3 +10,13 @@ CFLAGS = -std=c17 -O2 -Wall -Wextra -Wpedantic -Wconversion -Wdouble-promotion -
 
 # Additional linker flags.
 LDFLAGS = -lm
+
+# Manually listed source files. 
+#
+# GNUmake Keyword 'wildcard' is an extension and therefore not portable across 
+# nmake and BSD make. For this reason, source files are listed manually here.
+SRCS = src/main.c src/sandbox.c src/gui.c src/utils.c
+HDRS = src/sandbox.h src/gui.h src/utils.h
+
+# Targets to delete on clean.
+RM_TARGETS = *.out *.obj *.exe *.dll sand*

@@ -1,36 +1,23 @@
-include Makefile.common
+!include Makefile.common
 
-# Makefile as called by GNUMake to compile sand-sim in a Unix-like environment.
+# Makefile as called by NMAKE to compile sand-sim in Windows.
 #
-# To compile the Linux version: make
-# To cross-compile the Windows version on Linux: make sand-sim.exe
+# This Makefile is not intended to be called directly, but instead used by
+# the auxiliary build script, build.bat, in order for clang to be visible.
 
-CC_MINGW = x86_64-w64-mingw32-gcc
+# Path to SDL dependencies as used by clang + MSVC.
+SDL_PATH_VC = libs\VC\SDL2-2.28.5
+SDL_IM_PATH_VC = libs\VC\SDL2_image-2.8.8
 
-SRCS = $(wildcard src/*.c)
-HDRS = $(wildcard src/*.h)
-
-SDL_PATH_MINGW = libs/mingw/SDL2-2.28.5/x86_64-w64-mingw32
-SDL_IM_PATH_MINGW = libs/mingw/SDL2_image-2.8.8/x86_64-w64-mingw32
-
-# Use SDL2 built-in package config to get SDL2 linker flags.
-SDL_CFLAGS_LINUX = `sdl2-config --cflags --libs`
-SDL_CFLAGS_MINGW = `$(SDL_PATH_MINGW)/bin/sdl2-config --cflags --libs`
-
-SDL_IM_CFLAGS_LINUX = -lSDL2_image
-SDL_IM_CFLAGS_MINGW = `pkg-config --cflags --libs $(SDL_IM_PATH_MINGW)/lib/pkgconfig/SDL2_image.pc`
-
-.PHONY: clean
-
-# Linux and Windows compile commands. Default to Linux.
-$(OUTPUT): $(SRCS) $(HDRS)
-	$(CC) $(CFLAGS) $(SRCS) $(SDL_CFLAGS_LINUX) $(SDL_IM_CFLAGS_LINUX) $(LDFLAGS) -o $(@)
+# Manually add SDL2 linker flags due to absence of sdl2-config on Windows.
+SDL_CFLAGS_VC = -I$(SDL_PATH_VC)\include -Dmain=SDL_main -L$(SDL_PATH_VC)\lib\x86 -lSDL2main -lSDL2 -mwindows
+SDL_IM_CFLAGS_VC = -D_REENTRANT -I$(SDL_IM_PATH_VC)\include -L$(SDL_IM_PATH_VC)\lib\x64 -lSDL2_image
 
 # Windows version depends on DLLs which must be copied over to root.
 $(OUTPUT).exe: $(SRCS) $(HDRS)
-	$(CC_MINGW) $(CFLAGS) $(SRCS) $(SDL_CFLAGS_MINGW) $(SDL_IM_CFLAGS_MINGW) $(LDFLAGS) -o $(@)
-	cp $(SDL_PATH_MINGW)/bin/SDL2.dll .
-	cp $(SDL_IM_PATH_MINGW)/bin/SDL2_image.dll .
+	$(CC) $(CFLAGS) $(SRCS) $(SDL_CFLAGS_VC) $(SDL_IM_CFLAGS_VC) $(LDFLAGS) -o $(@)
+	copy $(SDL_PATH_VC)\lib\x64\SDL2.dll .
+	copy $(SDL_IM_PATH_MINGW)\lib\x64\SDL2_image.dll .
 
 clean:
-	rm -rf *.out *sand* *.dll
+	del /f $(RM_TARGETS)
