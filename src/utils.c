@@ -1,8 +1,36 @@
 #include "utils.h"
 
 #include <stdlib.h>
+#include <stdio.h>
+#include <stddef.h>
 #include <stdbool.h>
 #include <math.h>
+
+
+void *xmalloc(size_t size, const char *file, int line)
+{
+    void *user_ptr = malloc(size);
+
+    if (user_ptr == NULL)
+    {
+        fprintf(stderr, "ERROR: %s:%d\nReason: Unable to allocate requested (%zu) bytes in malloc().\n", file, line, size);
+        exit(EXIT_FAILURE);
+    }
+    return user_ptr;
+}
+
+
+void* xcalloc( size_t num, size_t size, const char *file, int line)
+{
+    void *user_ptr = calloc(num, size);
+
+    if (user_ptr == NULL)
+    {
+        fprintf(stderr, "ERROR: %s:%d\nReason: Unable to allocate requested (%zu) bytes in calloc().\n", file, line, size);
+        exit(EXIT_FAILURE);  
+    }
+    return user_ptr;
+}
 
 
 int randint(int min, int max)

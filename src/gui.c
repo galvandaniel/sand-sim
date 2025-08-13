@@ -651,8 +651,8 @@ static void _init_textures(struct Application *app)
     }
 
     // Allocate memory for array to hold pointers to all textures.
-    TILE_TEXTURES = malloc((size_t) NUM_TILE_TYPES * sizeof(*TILE_TEXTURES));
-    PANEL_TEXTURES = malloc((size_t) NUM_TILE_TYPES * sizeof(*PANEL_TEXTURES));
+    TILE_TEXTURES = SAFE_MALLOC((size_t) NUM_TILE_TYPES * sizeof(*TILE_TEXTURES));
+    PANEL_TEXTURES = SAFE_MALLOC((size_t) NUM_TILE_TYPES * sizeof(*PANEL_TEXTURES));
 
     // Load all tile, panel, and highlight textures.
     for (int i = 0; i < NUM_TILE_TYPES; i++)
@@ -685,7 +685,7 @@ static void _init_tile_blit_data(void)
 
     // Initialize all colors used by tiles. 
     // Take pixel RGB at (0, 0) as representative of color of whole tile.
-    TILE_COLORS = malloc((size_t) NUM_TILE_TYPES * sizeof(*TILE_COLORS));
+    TILE_COLORS = SAFE_MALLOC((size_t) NUM_TILE_TYPES * sizeof(*TILE_COLORS));
     SDL_Point topleft = {.x = 0, .y = 0};
 
     for (int i = 0; i < NUM_TILE_TYPES; i++)
@@ -765,7 +765,7 @@ static void _cleanup(struct Application *app)
 struct Application *init_gui(const char *title, struct Sandbox *sandbox)
 {
     _init_tile_blit_data();
-    struct Application *app = malloc(sizeof(*app));
+    struct Application *app = SAFE_MALLOC(sizeof(*app));
 
     // Initialize window screen dimensions as a scale of the sandbox dimensions.
     app->sandbox = sandbox;
@@ -804,7 +804,7 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
 
     // Zero-out mouse to start out with non-left clicking, mode PLACE, and 
     // target radius size 0.
-    struct Mouse *new_mouse = calloc(1, sizeof(*new_mouse));
+    struct Mouse *new_mouse = SAFE_CALLOC(1, sizeof(*new_mouse));
     new_mouse->selected_type = SAND;
     app->mouse = new_mouse;
 

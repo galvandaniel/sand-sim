@@ -582,23 +582,23 @@ static bool _can_sink(struct Sandbox *sandbox, struct SandboxPoint source, struc
 struct Sandbox *create_sandbox(int width, int height)
 {
     // Lifetime sandbox has existed for begins at 0 frames, 0 seconds.
-    struct Sandbox *new_sandbox = malloc(sizeof(*new_sandbox));
+    struct Sandbox *new_sandbox = SAFE_MALLOC(sizeof(*new_sandbox));
+
     new_sandbox->width = width;
     new_sandbox->height = height;
     new_sandbox->lifetime = 0;
 
     // Allocate grid, starting by allocating memory for each row of grid.
-    unsigned char **new_grid = malloc((size_t) height * sizeof(*new_grid));
-
+    unsigned char **new_grid = SAFE_MALLOC((size_t) height * sizeof(*new_grid));
+    
     // Then allocate memory for each tile within each row, setting each tile to
     // 0, which corresponds to air.
     for (int row = 0; row < height; row++)
     {
-        new_grid[row] = calloc((size_t) width, sizeof(**new_grid));
+        new_grid[row] = SAFE_CALLOC((size_t) width, sizeof(**new_grid));
     }
 
     new_sandbox->grid = new_grid;
-
     return new_sandbox;
 }
 

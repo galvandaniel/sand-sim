@@ -9,7 +9,44 @@
  * 
  */
 
+#include <stddef.h>
 #include <stdbool.h>
+
+// malloc/calloc-wrappers which checks for NULL-failure and report to stderr.
+#define SAFE_MALLOC(size) (xmalloc(size, __FILE__, __LINE__))
+#define SAFE_CALLOC(num, size) (xcalloc(num, size, __FILE__, __LINE__))
+
+
+/**
+ * Allocate as many bytes of uninitialized storage as requested.
+ * 
+ * If this function is unable to allocate the number of bytes given, this
+ * function will exit() the calling program, in a "succeed or die" approach
+ * to memory allocation, printing the passed calling file and line number.
+ * 
+ * @param size Number of bytes to allocate.
+ * @param file, line The expanded values of __FILE__ and __LINE__.
+ * @return The pointer to the beginning of newly allocated memory. 
+ * To avoid a memory leak, the returned pointer must be deallocated with free().
+ */
+void *xmalloc(size_t size, const char *file, int line);
+
+
+/**
+ * Allocates memory for an array of num objects of size and initializes all 
+ * bytes in the allocated storage to zero.
+ * 
+ * If this function is unable to allocate the total number of bytes required, 
+ * this function will exit() the calling program, in a "succeed or die" approach
+ * to memory allocation, printing the passed calling file and line number.
+ * 
+ * @param num Number of objects to allocate.
+ * @param size Size of each object.
+ * @param file, line The expanded values of __FILE__ and __LINE__.
+ * @return The pointer to the beginning of newly allocated memory. 
+ * To avoid a memory leak, the returned pointer must be deallocated with free().
+ */
+void* xcalloc( size_t num, size_t size, const char *file, int line);
 
 
 /**

@@ -22,7 +22,7 @@ This project, while presentable in its current form, is planned to be further ex
 - [SDL2](https://github.com/libsdl-org/SDL/tree/SDL2)
 - [SDL2_image](https://github.com/libsdl-org/SDL_image/tree/SDL2)
 
-#### Windows:
+#### Windows
 - Contents of "sand-sim-mingw" or "sand-sim-msvc" directory as downloaded from the "releases" tab.
 - (For MSVC port only) [Microsoft Visual C++ 2015-2022 Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)
 
@@ -239,5 +239,8 @@ package.
 - "src/sandbox.c" - Core sandbox simulation logic.
 - "src/gui.c" - Implementation of GUI for displaying sandbox in SDL2.
 - "src/utils.c" - General-purpose utility functions.
+- "src/main.c" - Program entry-point and parser of command-line arguments.
+- GNUmakefile + Makefile - Makefiles specific to GNUmake and Microsoft's NMAKE.
 - Makefile.common - Build definitions common to both Linux and Windows ports.
+- build.bat - Auxiliary script driving Windows compilation using clang in MSVC-mode.
 
