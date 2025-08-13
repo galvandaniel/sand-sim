@@ -242,8 +242,9 @@ void draw_sandbox(struct Application *app);
  * If the tile located at the given indices is empty, this function does
  * nothing.
  * 
- * @param app 
- * @param coords 
+ * @param app GUI application to draw tile on.
+ * @param coords Coordinates of some tile located inside the sandbox owned by
+ * the passed app.
  */
 void draw_tile(struct Application *app, struct SandboxPoint coords);
 

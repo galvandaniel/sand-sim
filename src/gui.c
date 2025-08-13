@@ -70,6 +70,15 @@ static SDL_PixelFormat *ALPHA_PIXEL_FORMAT = NULL;
 static SDL_Color *TILE_COLORS = NULL;
 static SDL_Color RED = {.r = 255, .g = 0, .b = 0, .a = 255};
 
+/**
+ * Cosntants which determine what tile color variations looks like. 
+ * Each color variation has its color modulated by an empirically chosen value
+ * for each color code.
+ * Ex: Color code 0 is modulated by 0, color code 3 is modulated by 21.
+ */
+static const SDL_Color WHITE = {.r = 255, .g = 255, .b = 255, .a = 255};
+static const unsigned char COLOR_MOD_FACTOR = 7;
+
 
 /**
  * Array of pointers to all textures used by tiles and panels, indexed by
@@ -952,8 +961,15 @@ void draw_tile(struct Application *app, struct SandboxPoint coords)
     // Compute the screen coordinates that a tile should be blitted at.
     SDL_Point window_coords = _scale_sandbox_coords(coords);
 
-    // Grab the associated tile texture and blit it to screen.
+    // Grab the associated tile texture, apply tile color variation, then blit.
     SDL_Texture *tile_texture = TILE_TEXTURES[get_tile_type(tile)];
+
+    unsigned char color_mod = COLOR_MOD_FACTOR * get_tile_color(tile);
+    SDL_Color variant = {.r = WHITE.r - color_mod, 
+                         .g = WHITE.g - color_mod, 
+                         .b = WHITE.b - color_mod,
+                         .a = WHITE.a};
+    SDL_CHECK_CODE(SDL_SetTextureColorMod(tile_texture, variant.r, variant.g, variant.b));
     blit_texture(app, tile_texture, window_coords);
 }
 

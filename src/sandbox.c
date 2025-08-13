@@ -1,22 +1,12 @@
 /**
- * Tiles have the following 4 bit flags, starting from most significant bit:
- *
- * 1. Update - If the tile has already been updated in the current update pass.
- * 2. (UNUSED)
- * 3. (UNUSED)
- * 4. (UNUSED)
- *
- * The remaining 4 bits are used for tile type identifiers, going as follow:
- *
- * 0 - Air (empty tile)
- * 1 - Sand
- * 2 - Water
- * 3 - Wood
- * 4 - Steam
- * 5 - Fire
- * 6 - Fuel
- * 6-15 - (UNUSED)
- *
+ * Tiles are encoding as unsigned bytes in the following bit layout: uccUtttt
+ * 
+ * u - Update flag. 1 If the tile has already been updated in the current 
+ * simulation step, 0 otherwise.
+ * c - Color code. A value from 0 to 3 representing a unique color variation
+ * on the tile's color as determined by tile type.
+ * U - (UNUSED)
+ * t - Tile type identifier, a value from 0 to 15.
  */
 
 #include "sandbox.h"
@@ -902,8 +892,9 @@ unsigned char create_tile(struct Sandbox *sandbox, enum tile_type new_type)
     unsigned char new_tile = (unsigned char) new_type;
     set_tile_updated(&new_tile, sandbox->lifetime);
 
-    // TODO: Randomization of tile color will go here.
-
+    // Give newly created tile a random color variation code within [0, 3].
+    unsigned char color_variant = (unsigned char) randint(0, 3);
+    set_tile_color(&new_tile, color_variant);
     return new_tile;
 }
 
@@ -944,11 +935,26 @@ void replace_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum tile
 
 enum tile_type get_tile_type(unsigned char tile)
 {
-    // Use a mask of (0000 1111) to extract the first 4 bits.
+    // Use a mask of (0000 1111) to extract the 4 least significant bits.
     unsigned char tile_mask = 0x0f;
     enum tile_type type_id = tile_mask & tile;
-
     return type_id;
+}
+
+
+unsigned char get_tile_color(unsigned char tile)
+{
+    // Use a mask of (0110 0000) and push value to front.
+    unsigned char color_mask = 0x60;
+    unsigned char color_code = color_mask & tile;
+    return color_code >> 5;
+}
+
+
+bool get_updated_flag(unsigned char tile)
+{
+    // The updated flag is the last bit of a tile.
+    return tile >> 7;
 }
 
 
@@ -962,7 +968,6 @@ bool is_tile_updated(unsigned char tile, long long current_time)
 {
     unsigned char time_parity = get_time_parity(current_time);
     unsigned char updated_flag = get_updated_flag(tile);
-
     return updated_flag == time_parity;
 }
 
@@ -988,17 +993,21 @@ void set_tile_updated(unsigned char *tile, long long current_time)
 }
 
 
+void set_tile_color(unsigned char *tile, unsigned char color)
+{
+    // Bring 2-bit color value into format (0cc0 0000) (chopping off int bits), 
+    // erase old 2-bit color value using mask of (1001 1111) and copy new one.
+    unsigned char delete_color_mask = 0x9f;
+    unsigned char new_color_mask = (unsigned char) (color << 5);
+
+    *tile &= delete_color_mask;
+    *tile |= new_color_mask;
+}
+
+
 unsigned char get_time_parity(long long current_time)
 {
     // Use a mask of (0000 ... 0001) to extract the first bit, granting parity.
     return current_time & 1;
 }
-
-bool get_updated_flag(unsigned char tile)
-{
-    // The updated flag is the last bit of a tile.
-    return tile >> 7;
-}
-
-
 

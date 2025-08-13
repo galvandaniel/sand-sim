@@ -6,8 +6,8 @@
  *
  * Each tile shall be represented as a single byte.
  *
- * The first 4 significant bits are reserved for tile flags.
- * The last 4 bits represent a tile type ID number, from 0 to 15.
+ * The 4 most significant bits are reserved for tile flags.
+ * The 4 least significant bits represent a tile type ID number, from 0 to 15.
  */
 
  
@@ -221,6 +221,32 @@ enum tile_type get_tile_type(unsigned char tile);
 
 
 /**
+ * Obtain the updated flag from a tile, synced to the parity of the time from
+ * when it was last updated.
+ *
+ * The updated flag on its own does NOT say whether the tile is currently
+ * updated or not. The flag represents a parity, it is NOT a boolean.
+ *
+ * Use is_tile_updated() to determine whether a tile is updated or not.
+ *
+ * @param tile Tile to get updated flag from.
+ * @return True if updated flag is set, false otherwise.
+ */
+bool get_updated_flag(unsigned char tile);
+
+
+/**
+ * Return the color code of the given tile, a value from 0 to 3 encoding a
+ * color variation of the tile type color.
+ * 
+ * @param tile Tile to get color code from.
+ * @return A value from 0 to 3, each representing a unique color variation.
+ */
+unsigned char get_tile_color(unsigned char tile);
+
+
+
+/**
  * Return whether the given tile is an empty space or not.
  * 
  * @param tile Tile to determine if is empty and replaceable or not.
@@ -248,10 +274,21 @@ bool is_tile_updated(unsigned char tile, long long current_time);
  * This syncs the tile's flag to match the parity of the current simulation 
  * time.
  *
- * @param tile Pointer to tile to whose flag will be set.
+ * @param tile Tile whose updated flag will be set.
  * @param current_time Time that has passed in frames inside the simulation.
  */
 void set_tile_updated(unsigned char *tile, long long current_time);
+
+
+/**
+ * Mutate the given tile's color code value to the given color code.
+ * 
+ * @param tile Tile whose color code will be mutated.
+ * @param color Value from 0 to 3 encoding a color variation on the tile which
+ * will be set on the tile given.
+ */
+void set_tile_color(unsigned char *tile, unsigned char color);
+
 
 
 /**
@@ -261,21 +298,6 @@ void set_tile_updated(unsigned char *tile, long long current_time);
  * @return 0 if the time is even, 1 if the time is odd.
  */
 unsigned char get_time_parity(long long current_time);
-
-
-/**
- * Obtain the updated flag from a tile, synced to the parity of the time from
- * when it was last updated.
- *
- * The updated flag on its own does NOT say whether the tile is currently
- * updated or not. The flag represents a parity, it is NOT a boolean.
- *
- * Use is_tile_updated() to determine whether a tile is updated or not.
- *
- * @param tile Tile to get updated flag from.
- * @return True if updated flag is set, false otherwise.
- */
-bool get_updated_flag(unsigned char tile);
 
 
 #endif // SANDBOX_H
