@@ -11,6 +11,10 @@
 #include <SDL_image.h>
 #include <stdlib.h>
 
+// Wrappers around all SDL API calls to check for and report on failure.
+#define SDL_CHECK_CODE(status_code) (_sdl_check_code(status_code, __FILE__, __LINE__))
+#define SDL_CHECK_PTR(sdl_ptr) (_sdl_check_ptr(sdl_ptr, __FILE__, __LINE__))
+
 
 /**
  * The value of this constant is consistent with the (n x n) dimensions of
@@ -78,19 +82,20 @@ static SDL_Texture **PANEL_TEXTURES = NULL;
  * Not intended to be called on any other value.
  * 
  * @param status_code Code returned from an SDL API call.
- * @param line_number The expanded value of __LINE__ when API call is made.
+ * @param file The expanded value of __FILE__ when API call is made.
+ * @param line The expanded value of __LINE__ when API call is made.
  */
-static int SDL_CHECK_CODE(int status_code, int line_number)
+static int _sdl_check_code(int status_code, const char *file, int line)
 {
     if (status_code < 0)
     {
-        SDL_Log("\nSDL ERROR: %s:%d\nReason: %s\n",
-                __FILE__,
-                line_number,
-                SDL_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                     "\nSDL FAILURE: %s:%d\nReason: %s\n",
+                     file,
+                     line,
+                     SDL_GetError());
         exit(EXIT_FAILURE);
     }
-    
     return status_code;
 }
 
@@ -100,19 +105,20 @@ static int SDL_CHECK_CODE(int status_code, int line_number)
  * Not intended to be called on a raw pointer.
  * 
  * @param sdl_ptr A pointer to an SDL type as returned from an SDL API call.
- * @param line_number The expanded value of __LINE__ when API call is made.
+ * @param file The expanded value of __FILE__ when API call is made.
+ * @param line The expanded value of __LINE__ when API call is made.
  */
-static void *SDL_CHECK_PTR(void *sdl_ptr, int line_number)
+static void *_sdl_check_ptr(void *sdl_ptr, const char *file, int line)
 {
    if (sdl_ptr == NULL)
    {
-       SDL_Log("\nSDL ERROR: %s:%d\nReason: %s\n",
-               __FILE__,
-               line_number,
-               SDL_GetError());
+       SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                    "\nSDL FAILURE: %s:%d\nReason: %s\n",
+                    file,
+                    line,
+                    SDL_GetError());
        exit(EXIT_FAILURE);
    }
-
    return sdl_ptr;
 }
 
@@ -136,7 +142,7 @@ static SDL_Color _get_pixel(SDL_Surface *surface, SDL_Point surface_coords)
     // Lock surface for directly reading off pixel data, if necessary.
     if (SDL_MUSTLOCK(surface))
     {
-        SDL_CHECK_CODE(SDL_LockSurface(surface), __LINE__);
+        SDL_CHECK_CODE(SDL_LockSurface(surface));
     }
 
     // Credit of implemetantion goes to:
@@ -678,8 +684,8 @@ static void _init_tile_blit_data(void)
 
     // Allocate the universal alpha pixel format and tile window dimensions.
     // Use size of first tile texture (AIR) as reprentative of all tiles.
-    ALPHA_PIXEL_FORMAT = SDL_CHECK_PTR(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32), __LINE__);
-    SDL_Surface *reference_surface = SDL_CHECK_PTR(IMG_Load(TILE_TEXTURE_FILENAMES[0]), __LINE__);
+    ALPHA_PIXEL_FORMAT = SDL_CHECK_PTR(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32));
+    SDL_Surface *reference_surface = SDL_CHECK_PTR(IMG_Load(TILE_TEXTURE_FILENAMES[0]));
     TILE_SCALE = reference_surface->w;
     SDL_FreeSurface(reference_surface);
 
@@ -690,7 +696,7 @@ static void _init_tile_blit_data(void)
 
     for (int i = 0; i < NUM_TILE_TYPES; i++)
     {
-        SDL_Surface *tile_surface = SDL_CHECK_PTR(IMG_Load(TILE_TEXTURE_FILENAMES[i]), __LINE__);
+        SDL_Surface *tile_surface = SDL_CHECK_PTR(IMG_Load(TILE_TEXTURE_FILENAMES[i]));
         TILE_COLORS[i] = _get_pixel(tile_surface, topleft);
         SDL_FreeSurface(tile_surface);
     }
@@ -778,19 +784,17 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
     // Window creation flags.
     unsigned int window_flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
 
-    // Attempt to initialize SDL2 video subsystem.
-    SDL_CHECK_CODE(SDL_Init(SDL_INIT_VIDEO), __LINE__);
-
-    // Init SDL_Image for use with PNGs and JPGs
+    // Init all SDL subsystems and library extensions.
+    SDL_CHECK_CODE(SDL_Init(SDL_INIT_VIDEO));
     IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
 
     // Create app window once video is initialized.
     app->window = SDL_CHECK_PTR(SDL_CreateWindow(title, 
-                                SDL_WINDOWPOS_UNDEFINED,
-                                SDL_WINDOWPOS_UNDEFINED,
-                                app->min_window_width,
-                                app->min_window_height,
-                                window_flags), __LINE__);
+                                                 SDL_WINDOWPOS_UNDEFINED,
+                                                 SDL_WINDOWPOS_UNDEFINED,
+                                                 app->min_window_width,
+                                                 app->min_window_height,
+                                                 window_flags));
     SDL_SetWindowMinimumSize(app->window, app->min_window_width, app->min_window_height);
 
     // Use nearest interpolation to scale resolution for pixel-perfect tiles.
@@ -799,8 +803,8 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
     // Create renderer using the first graphics acceleration device found.
     // Set a logical drawing area for automatic resolution scaling of rendered contents.
     // Logical area is big enough to render sandbox at full resolution.
-    app->renderer = SDL_CHECK_PTR(SDL_CreateRenderer(app->window, -1, renderer_flags), __LINE__);
-    SDL_CHECK_CODE(SDL_RenderSetLogicalSize(app->renderer, app->min_window_width, app->min_window_height), __LINE__);
+    app->renderer = SDL_CHECK_PTR(SDL_CreateRenderer(app->window, -1, renderer_flags));
+    SDL_CHECK_CODE(SDL_RenderSetLogicalSize(app->renderer, app->min_window_width, app->min_window_height));
 
     // Zero-out mouse to start out with non-left clicking, mode PLACE, and 
     // target radius size 0.
@@ -810,7 +814,7 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
 
     // Enable alpha blending for transparent textures on renderer and allocate
     // all textures.
-    SDL_CHECK_CODE(SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND), __LINE__);
+    SDL_CHECK_CODE(SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND));
     _init_textures(app);
     return app;
 }
@@ -826,7 +830,7 @@ void quit_gui(struct Application *app)
 SDL_Texture *load_texture(struct Application *app, const char *filename)
 {
     // Call to SDL_image to load image.
-    SDL_Texture *texture = SDL_CHECK_PTR(IMG_LoadTexture(app->renderer, filename), __LINE__);
+    SDL_Texture *texture = SDL_CHECK_PTR(IMG_LoadTexture(app->renderer, filename));
     return texture;
 }
 
@@ -836,13 +840,13 @@ SDL_Texture *load_texture_alpha(struct Application *app, const char *filename, u
     // SDL_Image makes no guarantee on the image format of loaded textures.
     //
     // To guarantee alpha channel presence, temporarily load image as surface,
-    // then conver surface to a portable alpha channel format. Finally, convert
+    // then convert surface to a portable alpha channel format. Finally, convert
     // to texture, enable + set alpha blending, and free the surfaces.
-    SDL_Surface *raw_surface = SDL_CHECK_PTR(IMG_Load(filename), __LINE__);
-    SDL_Surface *alpha_surface = SDL_CHECK_PTR(SDL_ConvertSurface(raw_surface, ALPHA_PIXEL_FORMAT, 0), __LINE__);
-    SDL_Texture *texture = SDL_CHECK_PTR(SDL_CreateTextureFromSurface(app->renderer, alpha_surface), __LINE__);
-    SDL_CHECK_CODE(SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND), __LINE__);
-    SDL_CHECK_CODE(SDL_SetTextureAlphaMod(texture, alpha), __LINE__);
+    SDL_Surface *raw_surface = SDL_CHECK_PTR(IMG_Load(filename));
+    SDL_Surface *alpha_surface = SDL_CHECK_PTR(SDL_ConvertSurface(raw_surface, ALPHA_PIXEL_FORMAT, 0));
+    SDL_Texture *texture = SDL_CHECK_PTR(SDL_CreateTextureFromSurface(app->renderer, alpha_surface));
+    SDL_CHECK_CODE(SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND));
+    SDL_CHECK_CODE(SDL_SetTextureAlphaMod(texture, alpha));
 
     SDL_FreeSurface(raw_surface);
     SDL_FreeSurface(alpha_surface);
@@ -858,35 +862,30 @@ void blit_texture(struct Application *app, SDL_Texture *texture, SDL_Point windo
     dest.y = window_coords.y;
 
     // Fill in rectangle dimension data by querying the texture.
-    SDL_CHECK_CODE(SDL_QueryTexture(texture, NULL, NULL, &dest.w, &dest.h), __LINE__);
+    SDL_CHECK_CODE(SDL_QueryTexture(texture, NULL, NULL, &dest.w, &dest.h));
 
     // Draw texture, passing in NULL to copy whole texture.
-    SDL_CHECK_CODE(SDL_RenderCopy(app->renderer, texture, NULL, &dest), __LINE__);
+    SDL_CHECK_CODE(SDL_RenderCopy(app->renderer, texture, NULL, &dest));
 }
 
 
 void blit_rectangle(struct Application *app, const SDL_Rect rect, SDL_Color color, bool do_fill)
 {
-    SDL_CHECK_CODE(SDL_SetRenderDrawColor(app->renderer, color.r, color.g, color.b, color.a), __LINE__);
-
-    if (do_fill)
-    {
-        SDL_CHECK_CODE(SDL_RenderFillRect(app->renderer, &rect), __LINE__);    
-    }
-    else
-    {
-        SDL_CHECK_CODE(SDL_RenderDrawRect(app->renderer, &rect), __LINE__);
-    }
+    // Draw a fill rectangle or rectangle outline, depending on parameter.
+    SDL_CHECK_CODE(SDL_SetRenderDrawColor(app->renderer, color.r, color.g, color.b, color.a));
+    int (*rect_blitter)(SDL_Renderer *, const SDL_Rect *);
+    rect_blitter = do_fill ? SDL_RenderFillRect : SDL_RenderDrawRect;
+    SDL_CHECK_CODE(rect_blitter(app->renderer, &rect));
 }
 
 
 void set_black_background(struct Application *app)
 {
     // Set color to black.
-    SDL_CHECK_CODE(SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255), __LINE__);
+    SDL_CHECK_CODE(SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255));
 
     // Clear the window with the current set color.
-    SDL_CHECK_CODE(SDL_RenderClear(app->renderer), __LINE__);
+    SDL_CHECK_CODE(SDL_RenderClear(app->renderer));
 }
 
 
