@@ -77,8 +77,13 @@ For Redhat or Arch-based distros, it is straightfoward to convert these commands
 
 Use the left mouse button the generate tile particles into the sandbox!
 
-The selected element type may be changed using the keyboard or the mouse scroll
-wheel. The key controls are:
+Use the right mouse button to switch the tile placement mode:
+- Pencil - Place tiles, new tiles to be placed highlighted by a square 'ghost'.
+- Eraser - Delete tiles, tiles to be removed highlighted by a red grid.
+- Brush - Replace tiles hovered over with currently selected tile type.
+
+The selected tile type may be changed using the keyboard or the mouse scroll
+wheel. Below is the key to type mapping:
 
 - 1 - Sand
 - 2 - Water

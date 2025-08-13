@@ -32,7 +32,7 @@ extern int TILE_SCALE;
 extern const int MAX_TARGET_RADIUS;
 
 /**
- * Unique modes the mouse can be in when placing tiles in the sandbox with LMB.
+ * Unique modes the mouse can be in when placing tiles in the sandbox.
  * 
  * PLACE: Place tile only on empty spaces.
  * DELETE: Place empty (air) tile on any other tile.
@@ -43,14 +43,19 @@ enum mouse_mode {PLACE, DELETE, REPLACE, NUM_MOUSE_MODES};
 
 /**
  * Arrays of length NUM_TILE_TYPES to NULL-terminated strings indicating 
- * relative filepaths of textures used by tiles and panels.
+ * relative filepaths of textures in use at the application-level.
  */
 extern const char *TILE_TEXTURE_FILENAMES[];
 extern const char *PANEL_TEXTURE_FILENAMES[];
+extern const char *CURSOR_TEXTURE_FILENAMES[];
 
 
 /**
- * Type describing GUI Application data controlled by a mouse input device.
+ * Type describing the component of the sandbox whose location is controlled by
+ * some input device, manipulating tile particles at its current location.
+ * 
+ * Most intuitively controlled by a computer mouse, but can also capture 
+ * controller input data.
  */
 struct Mouse
 {
@@ -70,8 +75,10 @@ struct Mouse
     // Selected particle tile type to place down.
     enum tile_type selected_type;
 
-    // Mode controlling whether mouse deletes or places tiles into sandbox.
+    // Mode controlling whether mouse deletes or places tiles into sandbox
+    // and corresponding cursors for each mode.
     enum mouse_mode mode;
+    SDL_Cursor *cursors[NUM_MOUSE_MODES];
 };
 
 
@@ -119,6 +126,40 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox);
  * @param app Owning GUI application to shutdown and free.
  */
 void quit_gui(struct Application *app);
+
+
+/**
+ * Create mouse in sandbox with selected tile SAND in mode PLACE, with cursor
+ * images for each mode appropriately initialized as SDL Cursors.
+ * All other fields are initialized to 0.
+ * 
+ * This function depends on SDL and SDL Image having been initialized to
+ * enable loading of PNGs, and so will quit the calling program if this is not
+ * the case.
+ * 
+ * @return Sandbox mouse which controls location and type of tile manipulation.
+ */
+struct Mouse *create_mouse(void);
+
+
+/**
+ * Free all memory taken up by the passed sandbox mouse.
+ * 
+ * @param mouse Sandbox mouse to free.
+ */
+void destroy_mouse(struct Mouse *mouse);
+
+
+/**
+ * Set the mouse mode to the given and update SDL display to reflect the change
+ * in mode with a change in cursor graphic.
+ * 
+ * @param mouse Mouse whose mode to update.
+ * @param mode Tile placement mode (replacement, deletion, etc) to set mouse to.
+ */
+void update_mode(struct Mouse *mouse, enum mouse_mode mode);
+
+
 
 
 /**

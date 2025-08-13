@@ -47,6 +47,12 @@ const char *PANEL_TEXTURE_FILENAMES[] = {
     "assets/panels/fire_panel.png",
     "assets/panels/fuel_panel.png"
 };
+const char *CURSOR_TEXTURE_FILENAMES[] = 
+{
+    "assets/cursors/place.png",
+    "assets/cursors/delete.png",
+    "assets/cursors/replace.png"
+};
 
 
 /**
@@ -311,7 +317,7 @@ static void _do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *e
         
         // Loop through mouse placement modes on RMB press.
         case SDL_BUTTON_RIGHT:
-            app->mouse->mode = (app->mouse->mode + 1) % NUM_MOUSE_MODES;
+            update_mode(app->mouse, (app->mouse->mode + 1) % NUM_MOUSE_MODES);
             break;
         
         // Do nothing on unhandled mouse press.
@@ -752,7 +758,7 @@ static void _cleanup(struct Application *app)
     SDL_DestroyWindow(app->window);
     SDL_DestroyRenderer(app->renderer);
     sandbox_free(app->sandbox);
-    free(app->mouse);
+    destroy_mouse(app->mouse);
     free(app);
 
     // Remove textures, color, and the universal alpha format before exiting.
@@ -806,11 +812,7 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
     app->renderer = SDL_CHECK_PTR(SDL_CreateRenderer(app->window, -1, renderer_flags));
     SDL_CHECK_CODE(SDL_RenderSetLogicalSize(app->renderer, app->min_window_width, app->min_window_height));
 
-    // Zero-out mouse to start out with non-left clicking, mode PLACE, and 
-    // target radius size 0.
-    struct Mouse *new_mouse = SAFE_CALLOC(1, sizeof(*new_mouse));
-    new_mouse->selected_type = SAND;
-    app->mouse = new_mouse;
+    app->mouse = create_mouse();
 
     // Enable alpha blending for transparent textures on renderer and allocate
     // all textures.
@@ -824,6 +826,42 @@ void quit_gui(struct Application *app)
 {
     _cleanup(app);
     exit(EXIT_SUCCESS);
+}
+
+
+struct Mouse *create_mouse(void)
+{
+    // Start new mouse as non-active and target radius size 0.
+    struct Mouse *new_mouse = SAFE_CALLOC(1, sizeof(*new_mouse));
+    new_mouse->selected_type = SAND;
+
+    // Initialize cursors used by mouse.
+    for (int i = 0; i < NUM_MOUSE_MODES; i++)
+    {
+        SDL_Surface *cursor_surface = SDL_CHECK_PTR(IMG_Load(CURSOR_TEXTURE_FILENAMES[i]));
+        new_mouse->cursors[i] = SDL_CHECK_PTR(SDL_CreateColorCursor(cursor_surface, 0, 31));
+        SDL_FreeSurface(cursor_surface);
+    }
+
+    update_mode(new_mouse, PLACE);
+    return new_mouse;
+}
+
+
+void destroy_mouse(struct Mouse *mouse)
+{
+    for (int i = 0; i < NUM_MOUSE_MODES; i++)
+    {
+        SDL_FreeCursor(mouse->cursors[i]);
+    }
+    free(mouse);
+}
+
+
+void update_mode(struct Mouse *mouse, enum mouse_mode mode)
+{
+    mouse->mode = mode;
+    SDL_SetCursor(mouse->cursors[mouse->mode]);
 }
 
 
