@@ -54,3 +54,7 @@ sand*
 
 # Valgrind massif log files.
 massif.out.*
+
+# CMake/Bear produced Clang compile databases.
+compile_commands*
+compile_flags*

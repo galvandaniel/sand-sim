@@ -4,7 +4,7 @@
 #
 # This Makefile is not intended to be called directly, but instead used by
 # the auxiliary build script, build.bat, in order for clang to be visible.
-# To compile Linux version: build.bat
+# To compile Windows version: build.bat
 
 # Path to SDL dependencies as used by clang + MSVC.
 SDL_PATH_VC = libs\VC\SDL2-2.28.5

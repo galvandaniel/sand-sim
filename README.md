@@ -56,13 +56,13 @@ On Debian-based Linux distributions, SDL2 can be installed system-wide.
 To do this, run the following:
 
 ```bash
-sudo apt-get install libsdl2-2.0-0
+sudo apt install libsdl2-2.0-0
 ```
 
 SDL2_image is also required, which can be installed similarly:
 
 ```bash
-sudo apt-get install libsdl2-image-2.0-0
+sudo apt install libsdl2-image-2.0-0
 ```
 
 Once SDL2 is installed, sand-sim can be run using the provided binary:
@@ -159,14 +159,14 @@ Compiling sand-sim's Linux version on Linux requires the development versions of
 SDL2 and SDL2_image, which can be installed on Debian-based systems with the commands:
 
 ```bash
-sudo apt-get install libsdl2-dev
-sudo apt-get install libsdl2-image-dev
+sudo apt install libsdl2-dev
+sudo apt install libsdl2-image-dev
 ```
 
 Compilation on Linux requires clang, which can be installed with the command:
 
 ```bash
-sudo apt-get install clang
+sudo apt install clang
 ```
 
 Once clang is installed, sand-sim can be built from the project root directory using Make and the provided Makefiles. To build the Linux version, simply call Make:
@@ -177,13 +177,34 @@ make
 
 This will produce a binary called "sand-sim" which can be executed to run the program.
 
+If developing sand-sim, [clangd](https://clangd.llvm.org/) is the recommended C language server.
+
+To integrate sand-sim with clangd inside, for example, VSCode or VSCodium, it is recommended to use [Bear](https://github.com/rizsotto/Bear) to generate a "compile_commands.json" which clangd will recognize.
+
+First install Bear:
+```bash
+sudo apt install bear
+```
+
+Then use Bear to generate a clangd compilation database from sand-sim's compile command:
+```bash
+bear -- make
+```
+
+Now opening the project root directory:
+```bash
+code .
+```
+will result in an installed [clangd VSCode extension](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) to recognize sand-sim's dependencies and provide
+in-editor documentation.
+
 It is instead possible to cross-compile the Windows versions of sand-sim on Linux, such as
 if running on WSL. 
 To do this, MinGW64 and pkg-config are further required, both of which can be installed like so:
 
 ```bash
-sudo apt-get install mingw-w64
-sudo apt-get install pkg-config
+sudo apt install mingw-w64
+sudo apt install pkg-config
 ```
 
 sand-sim can then be built for Windows on Linux from the project root directory with the
@@ -217,7 +238,6 @@ Once inside the Visual Studio Installer, enable "Desktop development with C++" a
 
 ![Demo of Visual Studio](assets/demo/visual_studio_installer.png)
 
-
 Click "install" in the bottom right and allow the Visual Studio Installer to install clang and MSVC.
 
 Once finished, sand-sim's Windows version can be built from the project root directory by
@@ -234,8 +254,10 @@ allow the binary to run.
 As with the MinGW build, the necessary pre-compiled MSVC builds of SDL2 are provided
 with the source of sand-sim.
 
-As well, if compiling on Windows, no additional installation of the Microsoft Visual C++ 2015-2022 Redistributable is necessary, since this C runtime comes bundled with the "Desktop development with C++"
+As well, if compiling on Windows, no additional installation of the Microsoft Visual C++ 2015-2022 Redistributable is necessary, since the Microsoft C runtime comes bundled with the "Desktop development with C++"
 package.
+
+Developing sand-sim on Windows' Visual Studio is not supported, prefer instead to use a Linux environment via WSL2.
 
 ## Project and Source File Organization
 
