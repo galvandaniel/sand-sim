@@ -71,13 +71,15 @@ static SDL_Color *TILE_COLORS = NULL;
 static SDL_Color RED = {.r = 255, .g = 0, .b = 0, .a = 255};
 
 /**
- * Cosntants which determine what tile color variations looks like. 
+ * Constants which determine what tile color variations looks like. 
+ *
  * Each color variation has its color modulated by an empirically chosen value
  * for each color code.
- * Ex: Color code 0 is modulated by 0, color code 3 is modulated by 21.
+ * Ex: For a color mod factor of 10, Color code 0 is modulated by 0*10=0, 
+ * Color code 3 is modulated by 3*10=30.
  */
 static const SDL_Color WHITE = {.r = 255, .g = 255, .b = 255, .a = 255};
-static const unsigned char COLOR_MOD_FACTOR = 7;
+static const unsigned char COLOR_MOD_FACTOR = 10;
 
 
 /**
