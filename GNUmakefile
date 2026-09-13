@@ -14,7 +14,7 @@ SDL_IMAGE_PATH_MINGW = libs/mingw/SDL2_image-2.8.8/x86_64-w64-mingw32
 
 # Linux: Use SDL built-in package config to get compile and linker flags.
 $(OUTPUT): CFLAGS += `sdl2-config --cflags`
-$(OUTPUT): LDFLAGS += `sdl2-config --libs` -lSDL2_image
+$(OUTPUT): LDFLAGS += `sdl2-config --libs` -lSDL2_image -lm
 
 # Windows: MinGW has its own variant of sdl2-config for compile and linker flags. 
 $(OUTPUT).exe: CFLAGS += `$(SDL_PATH_MINGW)/bin/sdl2-config --cflags` `pkg-config --cflags $(SDL_IMAGE_PATH_MINGW)/lib/pkgconfig/SDL2_image.pc`
