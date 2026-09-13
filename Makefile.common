@@ -6,17 +6,41 @@ OUTPUT = sand-sim
 CC = clang
 
 # Use C17 standard, level 2 optimization level, and very high warning level.
-CFLAGS = -std=c17 -O2 -Wall -Wextra -Wpedantic -Wconversion -Wdouble-promotion -Wfloat-equal -Wmultichar -Wnull-dereference -Wshadow -Wstrict-prototypes -Wold-style-definition -Wmissing-include-dirs -Wmissing-prototypes -Wredundant-decls -Wnested-externs -Wunused-macros -Wbad-function-cast -Wcast-qual -Wwrite-strings -Wabi
+CFLAGS = -std=c17 \
+         -O2 \
+         -Wall \
+         -Wextra \
+         -Wpedantic \
+         -Wconversion \
+         -Wdouble-promotion \
+         -Wfloat-equal \
+         -Wmultichar \
+         -Wnull-dereference \
+         -Wshadow \
+         -Wstrict-prototypes \
+         -Wold-style-definition \
+         -Wmissing-include-dirs \
+         -Wmissing-prototypes \
+         -Wredundant-decls \
+         -Wnested-externs \
+         -Wunused-macros \
+         -Wbad-function-cast \
+         -Wcast-qual \
+         -Wwrite-strings
 
-# Additional linker flags.
+# Additional common linker flags.
 LDFLAGS = -lm
 
 # Manually listed source files. 
 #
 # GNUmake Keyword 'wildcard' is an extension and therefore not portable across 
-# nmake and BSD make. For this reason, source files are listed manually here.
+# NMAKE. For this reason, source files are listed manually here.
 SRCS = src/main.c src/sandbox.c src/gui.c src/utils.c
 HDRS = src/sandbox.h src/gui.h src/utils.h
 
+# Object extension matters to GCC, and for Windows its a convention to stick to.
+GNU_OBJS = ${SRCS:.c=.o}
+WIN_OBJS = ${SRCS:.c=.obj}
+
 # Targets to delete on clean.
-RM_TARGETS = *.out *.obj *.exe *.dll sand*
+RM_TARGETS = *.out *.o *.obj src/*.o src/*.obj *.exe *.dll sand*

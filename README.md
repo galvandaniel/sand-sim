@@ -18,36 +18,36 @@ This project, while presentable in its current form, is planned to be further ex
 ### Prerequisites
 
 #### Linux
-- Contents of "sand-sim" directory as downloaded from the "releases" tab.
+- Contents of `sand-sim` directory as downloaded from the "releases" tab.
 - [SDL2](https://github.com/libsdl-org/SDL/tree/SDL2)
 - [SDL2_image](https://github.com/libsdl-org/SDL_image/tree/SDL2)
 
 #### Windows
-- Contents of "sand-sim-mingw" or "sand-sim-msvc" directory as downloaded from the "releases" tab.
-- (For MSVC port only) [Microsoft Visual C++ 2015-2022 Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)
+- Contents of `sand-sim-mingw` or `sand-sim-msvc` directory as downloaded from the "releases" tab.
+- (For MSVC version only) [Microsoft Visual C++ 2015-2022 Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)
 
-On Windows, sand-sim has two versions: "sand-sim-mingw" and "sand-sim-msvc". "sand-sim-mingw" is recommended for being the more portable of the two.
+On Windows, sand-sim has two versions: `sand-sim-mingw` and `sand-sim-msvc`. `sand-sim-mingw` is recommended for being the more portable of the two.
 
 Alternatively, [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) can be used if running on Windows to use the Linux version.
 
 ### Installation
 
-sand-sim must be executed with its "assets" directory in the same location as the executable.
+sand-sim must be executed with its `assets` directory in the same location as the executable.
 
 SDL2 is required for sand-sim to run.
 
 #### Windows
 
-To have SDL2 installed for use by sand-sim, the provided "SDL2.dll" and "SDL2_image.dll" must be
-present in the same directory as "sand-sim.exe." Inside both "sand-sim-mingw" and "sand-sim-msvc",
+To have SDL2 installed for use by sand-sim, the provided `SDL2.dll` and `SDL2_image.dll` must be
+present in the same directory as `sand-sim.exe`. Inside both `sand-sim-mingw` and `sand-sim-msvc`,
 this structure is already setup correctly.
 
-For the MSVC port of sand-sim only, [Microsoft Visual C++ 2015-2022 Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170) must be installed. Simply download the x64 installer on the linked Microsoft webpage and follow the onscreen instructions.
+For the MSVC port of sand-sim only, [Microsoft Visual C++ 2015-2022 Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170) must be installed. Download the x64 installer on the Microsoft webpage and follow the onscreen instructions.
 
-sand-sim can then be run using the provided "sand-sim.exe" binary. 
+sand-sim can then be run using the provided `sand-sim.exe` binary. 
 
 > [!IMPORTANT]
-> Windows Defender may pop up with a [warning message](https://superuser.com/questions/1553842/windows-protected-your-pc) regarding "sand-sim.exe" being an unrecognized app. Clicking "More info" and then "Run anyway" will enable the app to run. (sand-sim is not malicious, the well-documented source code can checked to verify this) 
+> Windows Defender may pop up with a [warning message](https://superuser.com/questions/1553842/windows-protected-your-pc) regarding `sand-sim.exe` being an unrecognized app. Clicking "More info" and then "Run anyway" will enable the app to run. (sand-sim is not malicious, the source code can checked to verify this) 
 
 
 #### Linux
@@ -71,7 +71,7 @@ Once SDL2 is installed, sand-sim can be run using the provided binary:
 ./sand-sim
 ```
 
-For Redhat or Arch-based distros, it is straightfoward to convert these commands to YUM/DNF/pacman equivalents. Refer to the [SDL2 installation guide](https://wiki.libsdl.org/SDL2/Installation) for further instruction on these platforms. 
+For other distros, refer to the [SDL2 installation guide](https://wiki.libsdl.org/SDL2/Installation) for instruction on how to install SDL. 
 
 ### Controls
 
@@ -155,7 +155,7 @@ can be used to compile sand-sim once the required dependencies are in place.
 > [!NOTE]
 > The compilation instructions below assume a Debian-based Linux enviroment. 
 
-Compiling sand-sim's Linux version on Linux requires the development versions of 
+Compiling sand-sim's Linux version requires the development versions of 
 SDL2 and SDL2_image, which can be installed on Debian-based systems with the commands:
 
 ```bash
@@ -169,17 +169,17 @@ Compilation on Linux requires clang, which can be installed with the command:
 sudo apt install clang
 ```
 
-Once clang is installed, sand-sim can be built from the project root directory using Make and the provided Makefiles. To build the Linux version, simply call Make:
+Once clang is installed, sand-sim can be built from the project root directory using Make and the provided Makefiles. To build the Linux version, call Make:
 
 ```bash
 make
 ```
 
-This will produce a binary called "sand-sim" which can be executed to run the program.
+This will produce a binary called `sand-sim` which can be executed to run the program.
 
 If developing sand-sim, [clangd](https://clangd.llvm.org/) is the recommended C language server.
 
-To integrate sand-sim with clangd inside, for example, VSCode or VSCodium, it is recommended to use [Bear](https://github.com/rizsotto/Bear) to generate a "compile_commands.json" which clangd will recognize.
+To generate the requisite `compile_commands.json` required by clangd, use [Bear](https://github.com/rizsotto/Bear).
 
 First install Bear:
 ```bash
@@ -195,16 +195,20 @@ Now opening the project root directory:
 ```bash
 code .
 ```
-will result in an installed [clangd VSCode extension](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) to recognize sand-sim's dependencies and provide
+will allow an installed [clangd VSCode extension](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) to recognize sand-sim's dependencies and provide
 in-editor documentation.
 
 It is instead possible to cross-compile the Windows versions of sand-sim on Linux, such as
 if running on WSL. 
-To do this, MinGW64 and pkg-config are further required, both of which can be installed like so:
+To do this, the 64-bit Win32 implementation of [MinGW64](https://www.mingw-w64.org/getting-started/debian/) and pkg-config are further required.
+
+These additional dependencies can be installed as below: 
 
 ```bash
-sudo apt install mingw-w64
 sudo apt install pkg-config
+
+# Alternatively, `apt install mingw-w64` also works but will install many other mingw components not required by sand-sim. 
+sudo apt install gcc-mingw-w64-x86-64-win32
 ```
 
 sand-sim can then be built for Windows on Linux from the project root directory with the
@@ -231,7 +235,7 @@ Alternatively, the Visual Studio Installer for Build Tools can be downloaded [fr
 Microsoft's webpage](https://visualstudio.microsoft.com/downloads/?q=build+tools)
 
 Follow the link above and scroll down to "Tools for Visual Studio" under "All Downloads". Download
-and run "vs_BuildTools.exe" from the downloadable "Build Tools for Visual Studio 2022". 
+and run `vs_BuildTools.exe` from the downloadable "Build Tools for Visual Studio 2022". 
 
 Once inside the Visual Studio Installer, enable "Desktop development with C++" and, under the
 "optional" packages, enable "C++ Clang tools for Windows" as shown below:
@@ -241,33 +245,32 @@ Once inside the Visual Studio Installer, enable "Desktop development with C++" a
 Click "install" in the bottom right and allow the Visual Studio Installer to install clang and MSVC.
 
 Once finished, sand-sim's Windows version can be built from the project root directory by
-running the "build.bat" auxiliary script:
+running the `build.bat` auxiliary script:
 
 ```bash
 .\build.bat
 ```
 
-This will produce a binary called "sand-sim.exe" which can be executed to run the program. 
-The build script will also generate the necessary SDL2 DLLs next to "sand-sim.exe" to
+This will produce a binary called `sand-sim.exe` which can be executed to run the program. 
+The build script will also generate the necessary SDL2 DLLs next to `sand-sim.exe` to
 allow the binary to run.
 
 As with the MinGW build, the necessary pre-compiled MSVC builds of SDL2 are provided
 with the source of sand-sim.
 
-As well, if compiling on Windows, no additional installation of the Microsoft Visual C++ 2015-2022 Redistributable is necessary, since the Microsoft C runtime comes bundled with the "Desktop development with C++"
-package.
+As well, if compiling on Windows, no additional installation of the Microsoft Visual C++ 2015-2022 Redistributable is necessary, since the Microsoft C runtime comes bundled with the "Desktop development with C++" package.
 
-Developing sand-sim on Windows' Visual Studio is not supported, prefer instead to use a Linux environment via WSL2.
+Developing sand-sim as a project inside Windows Visual Studio is not supported. Prefer instead to use a Linux environment on Windows via WSL2.
 
 ## Project and Source File Organization
 
-- "assets/" - Visual and audio assets used in GUI.
-- "libs/" - Pre-compiled third-party library code and headers.
-- "src/sandbox.c" - Core sandbox simulation logic.
-- "src/gui.c" - Implementation of GUI for displaying sandbox in SDL2.
-- "src/utils.c" - General-purpose utility functions.
-- "src/main.c" - Program entry-point and parser of command-line arguments.
-- GNUmakefile + Makefile - Makefiles specific to GNUmake and Microsoft's NMAKE.
-- Makefile.common - Build definitions common to both Linux and Windows ports.
-- build.bat - Auxiliary script driving Windows compilation using clang in MSVC-mode.
+- `assets/` - Visual and audio assets used in GUI.
+- `libs/` - Pre-compiled third-party library code and headers.
+- `src/sandbox.c` - Core sandbox simulation logic.
+- `src/gui.c` - Implementation of GUI for displaying sandbox in SDL2.
+- `src/utils.c` - General-purpose utility functions.
+- `src/main.c` - Program entry-point and parser of command-line arguments.
+- `GNUmakefile` + `Makefile` - Makefiles specific to GNUmake and Microsoft's NMAKE.
+- `Makefile.common` - Build definitions common to both Linux and Windows ports.
+- `build.bat` - Auxiliary script driving Windows compilation using clang in MSVC-mode.
 
