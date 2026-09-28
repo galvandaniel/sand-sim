@@ -2,17 +2,18 @@
 #define GUI_H
 
 /**
- * A collection of functions for displaying a sand simulation using SDL2 and
+ * A collection of functions for displaying a sand simulation using SDL3 and
  * the logic presented in sandbox.h
  * 
- * If any API call to SDL2 fails, the functions defined here will call exit()
+ * If any API call to SDL3 fails, the functions defined here will call exit()
  * and quit the running program.
  */
 
 #include "sandbox.h"
 
-#include <SDL.h>
-#include <SDL_image.h>
+#include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
+
 #include <stdbool.h>
 
 /**
@@ -24,7 +25,7 @@
  * property assumes that all assets/tiles/$(tile_type).png are the same square 
  * size.
  */
-extern int TILE_SCALE;
+extern float TILE_SCALE;
 
 /**
  * Maximum allowed value for target_radius field of Mouse.
@@ -59,9 +60,9 @@ extern const char *CURSOR_TEXTURE_FILENAMES[];
  */
 struct Mouse
 {
-    // Mouse coordinates in app window in terms of absolute window size.
-    int x;
-    int y;
+    // Subpixel mouse coordinates in app window in terms of absolute window size.
+    float x;
+    float y;
 
     // Radius of square target area in sandbox.
     // The target area determines where tiles are placed.
@@ -198,7 +199,7 @@ SDL_Texture *load_texture_alpha(struct Application *app, const char *filename, u
  * @param texture Loaded texture to draw.
  * @param window_coords x,y screen coordinates to draw texture at.
  */
-void blit_texture(struct Application *app, SDL_Texture *texture, SDL_Point window_coords);
+void blit_texture(struct Application *app, SDL_Texture *texture, SDL_FPoint window_coords);
 
 
 /**
@@ -206,12 +207,12 @@ void blit_texture(struct Application *app, SDL_Texture *texture, SDL_Point windo
  * the given GUI application at the rectangle's (x,y) window coordinates.
  * 
  * @param app Application to draw rectangle on.
- * @param rect Dimensions of rectangle to draw packed in an SDL_Rect.
+ * @param rect Dimensions of rectangle to draw packed in an SDL_FRect.
  * @param color RGBA color of rectangle packed as an SDL_Color.
  * @param do_fill If true, rectangle is filled with color. If false, only
  * outline of rectangle with color is drawn.
  */
-void blit_rectangle(struct Application *app, const SDL_Rect rect, SDL_Color color, bool do_fill);
+void blit_rectangle(struct Application *app, SDL_FRect rect, SDL_Color color, bool do_fill);
 
 
 /**

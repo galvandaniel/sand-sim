@@ -20,13 +20,12 @@ CFLAGS = -std=c17 \
          -Wstrict-prototypes \
          -Wold-style-definition \
          -Wmissing-include-dirs \
-         -Wmissing-prototypes \
-         -Wredundant-decls \
          -Wnested-externs \
          -Wunused-macros \
          -Wbad-function-cast \
          -Wcast-qual \
          -Wwrite-strings
+#-Wmissing-prototypes (Bugged in SDL3 with mingw)
 
 # Linker flags common between compiling on Linux and Windows. 
 # (There are none... left empty for now.)

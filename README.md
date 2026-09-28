@@ -5,22 +5,21 @@ In the sandbox, a tile particle interacts with the tiles immediately surrounding
 
 Sand falls, water flows, steam rises, wood burns, fire extinguishes!
 
-Written in C using [SDL2](https://www.libsdl.org/).
+Written in C using [SDL3](https://www.libsdl.org/).
 
 Personal project by Daniel Galvan.
 
 ![Demo of Program](assets/demo/demo.gif)
 
-This project, while presentable in its current form, is planned to be further extended with additional customization options, elements, and compile targets.
-
+This project is to be continuously expanded with additional customization options and compile targets.
 
 ## Usage
 ### Prerequisites
 
 #### Linux
 - Contents of `sand-sim` directory as downloaded from the "releases" tab.
-- [SDL2](https://github.com/libsdl-org/SDL/tree/SDL2)
-- [SDL2_image](https://github.com/libsdl-org/SDL_image/tree/SDL2)
+- [SDL3](https://github.com/libsdl-org/SDL)
+- [SDL3_image](https://github.com/libsdl-org/SDL_image)
 
 #### Windows
 - Contents of `sand-sim-mingw` or `sand-sim-msvc` directory as downloaded from the "releases" tab.
@@ -34,11 +33,11 @@ Alternatively, [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) can 
 
 sand-sim must be executed with its `assets` directory in the same location as the executable.
 
-SDL2 is required for sand-sim to run.
+SDL3 is required for sand-sim to run.
 
 #### Windows
 
-To have SDL2 installed for use by sand-sim, the provided `SDL2.dll` and `SDL2_image.dll` must be
+To have SDL3 installed for use by sand-sim, the provided `SDL3.dll` and `SDL3_image.dll` must be
 present in the same directory as `sand-sim.exe`. Inside both `sand-sim-mingw` and `sand-sim-msvc`,
 this structure is already setup correctly.
 
@@ -51,27 +50,25 @@ sand-sim can then be run using the provided `sand-sim.exe` binary.
 
 
 #### Linux
-On Debian-based Linux distributions, SDL2 can be installed system-wide. 
+On Debian-based Linux distributions, SDL3 can be installed system-wide. 
 
 To do this, run the following:
 
 ```bash
-sudo apt install libsdl2-2.0-0
+sudo apt install libsdl3-0
 ```
 
-SDL2_image is also required, which can be installed similarly:
+SDL3_image is also required, which can be installed similarly:
 
 ```bash
-sudo apt install libsdl2-image-2.0-0
+sudo apt install libsdl3-image0
 ```
 
-Once SDL2 is installed, sand-sim can be run using the provided binary:
+Once SDL3 is installed, sand-sim can be run using the provided binary:
 
 ```bash
 ./sand-sim
 ```
-
-For other distros, refer to the [SDL2 installation guide](https://wiki.libsdl.org/SDL2/Installation) for instruction on how to install SDL. 
 
 ### Controls
 
@@ -156,11 +153,11 @@ can be used to compile sand-sim once the required dependencies are in place.
 > The compilation instructions below assume a Debian-based Linux enviroment. 
 
 Compiling sand-sim's Linux version requires the development versions of 
-SDL2 and SDL2_image, which can be installed on Debian-based systems with the commands:
+SDL3 and SDL3_image, which can be installed on Debian-based systems with the commands:
 
 ```bash
-sudo apt install libsdl2-dev
-sudo apt install libsdl2-image-dev
+sudo apt install libsdl3-dev
+sudo apt install libsdl3-image-dev
 ```
 
 Compilation on Linux requires clang, which can be installed with the command:
@@ -198,8 +195,7 @@ code .
 will allow an installed [clangd VSCode extension](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) to recognize sand-sim's dependencies and provide
 in-editor documentation.
 
-It is instead possible to cross-compile the Windows versions of sand-sim on Linux, such as
-if running on WSL. 
+It is instead possible to cross-compile the Windows versions of sand-sim on Linux, such as if running on WSL. 
 To do this, the 64-bit Win32 implementation of [MinGW64](https://www.mingw-w64.org/getting-started/debian/) and pkg-config are further required.
 
 These additional dependencies can be installed as below: 
@@ -207,7 +203,7 @@ These additional dependencies can be installed as below:
 ```bash
 sudo apt install pkg-config
 
-# Alternatively, `apt install mingw-w64` also works but will install many other mingw components not required by sand-sim. 
+# Alternatively, the more general `apt install mingw-w64` also works but will install many other mingw components not required by sand-sim. 
 sudo apt install gcc-mingw-w64-x86-64-win32
 ```
 
@@ -218,8 +214,8 @@ command:
 make sand-sim.exe
 ```
 
-The necessary SDL2 Windows pre-compiled MinGW binaries are provided with the source of
-sand-sim and no external installation of SDL2 is necessary for compiling the Windows version.
+The necessary SDL3 Windows pre-compiled MinGW binaries are provided with the source of
+sand-sim and no external installation of SDL3 is necessary for compiling the Windows version.
 
 ### Compiling on Windows
 
@@ -252,10 +248,10 @@ running the `build.bat` auxiliary script:
 ```
 
 This will produce a binary called `sand-sim.exe` which can be executed to run the program. 
-The build script will also generate the necessary SDL2 DLLs next to `sand-sim.exe` to
+The build script will also generate the necessary SDL3 DLLs next to `sand-sim.exe` to
 allow the binary to run.
 
-As with the MinGW build, the necessary pre-compiled MSVC builds of SDL2 are provided
+As with the MinGW build, the necessary pre-compiled MSVC builds of SDL3 are provided
 with the source of sand-sim.
 
 As well, if compiling on Windows, no additional installation of the Microsoft Visual C++ 2015-2022 Redistributable is necessary, since the Microsoft C runtime comes bundled with the "Desktop development with C++" package.
@@ -267,7 +263,7 @@ Developing sand-sim as a project inside Windows Visual Studio is not supported. 
 - `assets/` - Visual and audio assets used in GUI.
 - `libs/` - Pre-compiled third-party library code and headers.
 - `src/sandbox.c` - Core sandbox simulation logic.
-- `src/gui.c` - Implementation of GUI for displaying sandbox in SDL2.
+- `src/gui.c` - Implementation of GUI for displaying sandbox in SDL3.
 - `src/utils.c` - General-purpose utility functions.
 - `src/main.c` - Program entry-point and parser of command-line arguments.
 - `GNUmakefile` + `Makefile` - Makefiles specific to GNUmake and Microsoft's NMAKE.

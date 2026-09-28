@@ -13,20 +13,20 @@ void *xmalloc(size_t size, const char *file, int line)
 
     if (user_ptr == NULL)
     {
-        fprintf(stderr, "ERROR: %s:%d\nReason: Unable to allocate requested (%zu) bytes in malloc().\n", file, line, size);
+        fprintf(stderr, "ERROR: %s:%d\nReason: Unable to allocate requested (%lu) bytes in malloc().\n", file, line, (unsigned long) size);
         exit(EXIT_FAILURE);
     }
     return user_ptr;
 }
 
 
-void* xcalloc( size_t num, size_t size, const char *file, int line)
+void* xcalloc(size_t num, size_t size, const char *file, int line)
 {
     void *user_ptr = calloc(num, size);
 
     if (user_ptr == NULL)
     {
-        fprintf(stderr, "ERROR: %s:%d\nReason: Unable to allocate requested (%zu) bytes in calloc().\n", file, line, size);
+        fprintf(stderr, "ERROR: %s:%d\nReason: Unable to allocate requested (%lu) bytes in calloc().\n", file, line, (unsigned long) size);
         exit(EXIT_FAILURE);  
     }
     return user_ptr;

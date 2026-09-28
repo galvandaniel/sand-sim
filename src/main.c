@@ -2,7 +2,9 @@
 #include "sandbox.h"
 #include "utils.h"
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -18,6 +20,13 @@ static const int SANDBOX_LARGE_HEIGHT = 90;
 static const char *APP_NAME = "sand-sim";
 
 
+enum num_args {NO_ARG = 1,
+               HELP_ARG,
+               SIZE_ARG,
+               THREE_ARG,
+               DIM_ARG};
+
+
 /**
  * @brief Print the CLI arguments of sand-sim.
  * 
@@ -26,7 +35,7 @@ static const char *APP_NAME = "sand-sim";
 static void print_usage_string(char *binary_name)
 {
     // Prefer SDL_Log over printf for portability. Does not require SDL_init.
-    SDL_Log("\nSand Simulation, a simple sandbox simulation written in C using SDL2.\n"
+    SDL_Log("\nSand Simulation, a simple sandbox simulation written in C using SDL3.\n"
             "Usage: %s [options]\n"
             "Options: \n"
             "  -h/--help \t This message.\n"
@@ -57,23 +66,22 @@ static void parse_args(int argc, char **argv, int *dimensions)
     dimensions[width_index] = 0;
     dimensions[height_index] = 0;
 
-    // For no argments specified, default to medium-size sandbox.
-    if (argc == 1)
+    // Default to medium-size sandbox.
+    if (argc == NO_ARG)
     {
         dimensions[width_index] = SANDBOX_MEDIUM_WIDTH;
         dimensions[height_index] = SANDBOX_MEDIUM_HEIGHT;
     }
 
-    // Print usage help string if all options are absent.
-    if (argc == 2)
+    // Just one argument is never valid, assume help string.
+    if (argc == HELP_ARG)
     {
         print_usage_string(argv[0]);
         exit(EXIT_FAILURE);
     }
 
-    // Only time 3 arguments is acceptable is with supplied size argument.
     // If size argument does not confirm to any of the options, reject.
-    if (argc == 3)
+    if (argc == SIZE_ARG)
     {
         if (strcmp("--size", argv[1]) != 0)
         {
@@ -104,14 +112,14 @@ static void parse_args(int argc, char **argv, int *dimensions)
     }
 
     // Never valid if only 3 arguments are supplied.
-    if (argc == 4)
+    if (argc == THREE_ARG)
     {
         print_usage_string(argv[0]);
         exit(EXIT_FAILURE);
     }
 
 
-    if (argc == 5)
+    if (argc == DIM_ARG)
     {
         // Must specify width and height in correct order.
         if (strcmp("--height", argv[1]) == 0)
