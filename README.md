@@ -23,7 +23,7 @@ This project is to be continuously expanded with additional customization option
 
 #### Windows
 - Contents of `sand-sim-mingw` or `sand-sim-msvc` directory as downloaded from the "releases" tab.
-- (For MSVC version only) [Microsoft Visual C++ 2015-2022 Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)
+- (For MSVC version only) [Microsoft Visual C++ v14 Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)
 
 On Windows, sand-sim has two versions: `sand-sim-mingw` and `sand-sim-msvc`. `sand-sim-mingw` is recommended for being the more portable of the two.
 
@@ -41,7 +41,7 @@ To have SDL3 installed for use by sand-sim, the provided `SDL3.dll` and `SDL3_im
 present in the same directory as `sand-sim.exe`. Inside both `sand-sim-mingw` and `sand-sim-msvc`,
 this structure is already setup correctly.
 
-For the MSVC port of sand-sim only, [Microsoft Visual C++ 2015-2022 Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170) must be installed. Download the x64 installer on the Microsoft webpage and follow the onscreen instructions.
+For the MSVC port of sand-sim only, [Microsoft Visual C++ v14 Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170) must be installed. Download the x64 installer on the Microsoft webpage and follow the onscreen instructions.
 
 sand-sim can then be run using the provided `sand-sim.exe` binary. 
 
@@ -219,26 +219,30 @@ sand-sim and no external installation of SDL3 is necessary for compiling the Win
 
 ### Compiling on Windows
 
-Compiling sand-sim on Windows requires the Visual Studio Build Tools 2022.
+Compiling sand-sim on Windows requires the Visual Studio Build Tools 2026.
 
 On the command line, the installer for Build Tools can be downloaded using [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/), the official Windows package manager, like so:
 
 ```bash
-winget install --id=Microsoft.VisualStudio.2022.BuildTools -e
+winget install --id=Microsoft.VisualStudio.BuildTools -e
 ```
 
 Alternatively, the Visual Studio Installer for Build Tools can be downloaded [from
 Microsoft's webpage](https://visualstudio.microsoft.com/downloads/?q=build+tools)
 
 Follow the link above and scroll down to "Tools for Visual Studio" under "All Downloads". Download
-and run `vs_BuildTools.exe` from the downloadable "Build Tools for Visual Studio 2022". 
+and run `vs_BuildTools.exe` from the downloadable "Build Tools for Visual Studio 2026". 
 
-Once inside the Visual Studio Installer, enable "Desktop development with C++" and, under the
-"optional" packages, enable "C++ Clang tools for Windows" as shown below:
+Once installed (using either method above), open the Visual Studio Installer and click `Modify` on 'Visual Studio Build Tools 2026':
+
+![Demo of Modify Button](assets/demo/visual_studio_modify.png)
+
+Inside Build Tools workloads, enable "Desktop development with C++" and (under the
+"Optional" packages) enable "C++ Clang tools for Windows" as shown below:
 
 ![Demo of Visual Studio](assets/demo/visual_studio_installer.png)
 
-Click "install" in the bottom right and allow the Visual Studio Installer to install clang and MSVC.
+Click "Modify" on the bottom right of the installer and allow the Visual Studio Installer to install clang and MSVC.
 
 Once finished, sand-sim's Windows version can be built from the project root directory by
 running the `build.bat` auxiliary script:
@@ -254,9 +258,9 @@ allow the binary to run.
 As with the MinGW build, the necessary pre-compiled MSVC builds of SDL3 are provided
 with the source of sand-sim.
 
-As well, if compiling on Windows, no additional installation of the Microsoft Visual C++ 2015-2022 Redistributable is necessary, since the Microsoft C runtime comes bundled with the "Desktop development with C++" package.
+As well, if compiling on Windows, no additional installation of the Microsoft Visual C++ v14 Redistributable is necessary, since the Microsoft C runtime comes bundled with the "Desktop development with C++" workload.
 
-Developing sand-sim as a project inside Windows Visual Studio is not supported. Prefer instead to use a Linux environment on Windows via WSL2.
+Developing sand-sim as a solution inside Windows Visual Studio is not supported. Prefer instead to use a Linux environment on Windows via WSL2.
 
 ## Project and Source File Organization
 

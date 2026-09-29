@@ -43,4 +43,4 @@ GNU_OBJS = $(SRCS:.c=.o)
 WIN_OBJS = $(SRCS:.c=.obj)
 
 # Targets to delete on clean.
-RM_TARGETS = *.out *.o *.obj src/*.o src/*.obj *.exe *.dll sand*
+RM_TARGETS = *.out *.o *.obj src/*.o src/*.obj *.exe *.dll LICENSE.* sand*
