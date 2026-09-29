@@ -33,7 +33,7 @@ $(OUTPUT).exe: $(WIN_OBJS) $(HDRS)
 	$(CC) -o $(@) $(WIN_OBJS) $(LDFLAGS)
 	copy $(SDL_PATH_VC)\lib\x64\SDL3.dll .
 	copy $(SDL_IMAGE_PATH_VC)\lib\x64\SDL3_image.dll .
-	copy $(SDL_IMAGE_PATH_VC)\lib\x64\optional .
+	copy $(SDL_IMAGE_PATH_VC)\lib\x64\optional\*.dll .
 
 .c.obj:
 	$(CC) $(CFLAGS) -o $(@) -c $(<)

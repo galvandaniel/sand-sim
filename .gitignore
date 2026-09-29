@@ -49,8 +49,7 @@ dkms.conf
 
 # sand binaries and DLLs as produced by build commands.
 sand*
-/SDL2.dll
-/SDL2_image.dll
+*.dll
 
 # Valgrind massif log files.
 massif.out.*
