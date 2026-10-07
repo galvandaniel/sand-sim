@@ -9,22 +9,28 @@
 #include <string.h>
 
 // Preset sizes for sandbox and size limits, in tiles.
-static const int SANDBOX_SMALL_WIDTH = 53;
-static const int SANDBOX_SMALL_HEIGHT = 30;
-static const int SANDBOX_MEDIUM_WIDTH = 80;
-static const int SANDBOX_MEDIUM_HEIGHT = 45;
-static const int SANDBOX_LARGE_WIDTH = 160;
-static const int SANDBOX_LARGE_HEIGHT = 90;
+static constexpr int SANDBOX_SMALL_WIDTH = 53;
+static constexpr int SANDBOX_SMALL_HEIGHT = 30;
+static constexpr int SANDBOX_MEDIUM_WIDTH = 80;
+static constexpr int SANDBOX_MEDIUM_HEIGHT = 45;
+static constexpr int SANDBOX_LARGE_WIDTH = 160;
+static constexpr int SANDBOX_LARGE_HEIGHT = 90;
 
 
 static const char *APP_NAME = "sand-sim";
 
 
-enum num_args {NO_ARG = 1,
-               HELP_ARG,
-               SIZE_ARG,
-               THREE_ARG,
-               DIM_ARG};
+enum num_args {
+    NO_ARG = 1,
+    HELP_ARG,
+    SIZE_ARG,
+    THREE_ARG,
+    DIM_ARG,
+};
+
+
+// Time waited before proceeding to next frame.
+static constexpr int MILLISECONDS_BETWEEN_FRAMES = 33;
 
 
 /**
@@ -135,9 +141,9 @@ static void parse_args(int argc, char **argv, int *dimensions)
             exit(EXIT_FAILURE);     
         }
 
-        // Attempt to parse width and height options.
-        int user_width = atoi(argv[2]);
-        int user_height = atoi(argv[4]);
+        // Attempt to parse width and height options as base-10 numbers.
+        int user_width = (int) strtol(argv[2], nullptr, 0);
+        int user_height = (int) strtol(argv[4], nullptr, 0);
 
         // Stop if atoi() failed to parse into valid integer within INT_MAX.
         if (user_width <= 0 || user_height <= 0)
@@ -183,9 +189,7 @@ int main(int argc, char **argv)
 
         // Display all rendered graphics.
         SDL_RenderPresent(app->renderer);
-
-        // Run at ~30 FPS. (wait 33 milliseconds before proceeding to next frame)
-        SDL_Delay(33);
+        SDL_Delay(MILLISECONDS_BETWEEN_FRAMES);
     }
 
     return EXIT_SUCCESS;

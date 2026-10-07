@@ -5,7 +5,7 @@ In the sandbox, a tile particle interacts with the tiles immediately surrounding
 
 Sand falls, water flows, steam rises, wood burns, fire extinguishes!
 
-Written in C using [SDL3](https://www.libsdl.org/).
+Written in C23 using [SDL3](https://www.libsdl.org/).
 
 Personal project by Daniel Galvan.
 
@@ -160,13 +160,14 @@ sudo apt install libsdl3-dev
 sudo apt install libsdl3-image-dev
 ```
 
-Compilation on Linux requires clang, which can be installed with the command:
+Compilation on Linux requires clang and pkg-config, which can be installed with the commands:
 
 ```bash
+sudo apt install pkg-config
 sudo apt install clang
 ```
 
-Once clang is installed, sand-sim can be built from the project root directory using Make and the provided Makefiles. To build the Linux version, call Make:
+Once the above is installed, sand-sim can be built from the project root directory using Make and the provided Makefiles. To build the Linux version, call Make:
 
 ```bash
 make
@@ -174,7 +175,7 @@ make
 
 This will produce a binary called `sand-sim` which can be executed to run the program.
 
-If developing sand-sim, [clangd](https://clangd.llvm.org/) is the recommended C language server.
+If developing sand-sim, the provided `.clang-tidy` file enables usage of [clangd](https://clangd.llvm.org/) as a C language server.
 
 To generate the requisite `compile_commands.json` required by clangd, use [Bear](https://github.com/rizsotto/Bear).
 
@@ -183,8 +184,9 @@ First install Bear:
 sudo apt install bear
 ```
 
-Then use Bear to generate a clangd compilation database from sand-sim's compile command:
+Then use Bear to generate a compilation database from sand-sim's compile command:
 ```bash
+make clean
 bear -- make
 ```
 
@@ -195,20 +197,47 @@ code .
 will allow an installed [clangd VSCode extension](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) to recognize sand-sim's dependencies and provide
 in-editor documentation.
 
-It is instead possible to cross-compile the Windows versions of sand-sim on Linux, such as if running on WSL. 
-To do this, the 64-bit Win32 implementation of [MinGW64](https://www.mingw-w64.org/getting-started/debian/) and pkg-config are further required.
+With a created `compile_commands.json`, the [Clang Static Analyzer](https://clang-analyzer.llvm.org/) can be used via clang-tidy to analyze the sand-sim source against the defined checks in `.clang-tidy`.
 
-These additional dependencies can be installed as below: 
+First install clang-tidy:
 
 ```bash
-sudo apt install pkg-config
+sudo apt install clang-tidy
+```
 
+Then run clang-tidy static analysis against the source code via `compile_commands.json` like so:
+
+```bash
+run-clang-tidy
+```
+
+The clang-tidy conventions used by sand-sim follow those specified by the [RHEL docs](https://developers.redhat.com/blog/2021/04/06/get-started-with-clang-tidy-in-red-hat-enterprise-linux#using_clang_tidy_in_red_hat_enterprise_linux) and the [official LLVM docs](https://clang.llvm.org/extra/clang-tidy/).
+
+A debug compile of sand-sim which is enabled to run with [AddressSanitizer](https://releases.llvm.org/20.1.0/tools/clang/docs/AddressSanitizer.html) is also available.
+
+The debug sand-sim compile additionally disables optimization and generates DWARF symbols for use with LLDB. 
+In order to use it, the llvm toolchain must be installed:
+
+```bash
+# Enable usage of `llvm-symbolizer` in PATH.
+sudo apt install llvm
+```
+
+sand-sim can then be compiled for debugging like so:
+
+```bash
+make debug
+```
+
+It is instead possible to cross-compile the Windows versions of sand-sim on Linux, such as if running on WSL. 
+To do this, the 64-bit Win32 implementation of [MinGW64](https://www.mingw-w64.org/getting-started/debian/) is required:
+
+```bash
 # Alternatively, the more general `apt install mingw-w64` also works but will install many other mingw components not required by sand-sim. 
 sudo apt install gcc-mingw-w64-x86-64-win32
 ```
 
-sand-sim can then be built for Windows on Linux from the project root directory with the
-command:
+sand-sim can then be built for Windows on Linux from the project root directory with the command:
 
 ```bash
 make sand-sim.exe

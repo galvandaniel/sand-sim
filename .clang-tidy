@@ -1,0 +1,29 @@
+# Disabled checks:
+#
+# DeprecatedOrUnsafeBufferHandling: Annex K is explicitly not supported on Debian-based systems.
+# easily-swappable-parameters: This is unavoidable in pure C without struct argument packing.
+# exception-escape: No native notion of exceptions in C.
+# implicit-bool-conversion: This is sometimes bugged in C23. It also contradicts traditional idiomatic C code (bad).
+Checks: | 
+  "-checks=-*,
+  
+  clang-analyzer-*,
+  -clang-analyzer-cplusplus*,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+
+  bugprone-*,
+  -bugprone-exception-escape, 
+  -bugprone-easily-swappable-parameters,
+
+  readability-*,
+  -readability-implicit-bool-conversion,
+
+  portability-*"
+WarningsAsErrors: True
+HeaderFilterRegex: ".*"
+
+CheckOptions:
+  # It's not feasible to define constants for every unique sandbox probability,
+  # especially when they're mostly empirically chosen.
+  - key: readability-magic-numbers.IgnoreAllFloatingPointValues
+    value: true

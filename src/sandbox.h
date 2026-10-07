@@ -11,28 +11,36 @@
  */
 
  
-#include <stdbool.h>
+#include <stdint.h>
 
 
 // All tile types a tile particle can be. AIR denotes the empty tile.
-enum tile_type {AIR, 
-                SAND, 
-                WATER, 
-                WOOD, 
-                STEAM, 
-                FIRE,
-                FUEL,
-                NUM_TILE_TYPES};
+enum tile_type {
+    AIR, 
+    SAND, 
+    WATER, 
+    WOOD, 
+    STEAM, 
+    FIRE,
+    FUEL,
+    NUM_TILE_TYPES,
+};
 
 
 /**
- * Type describing a sandbox simulation, containing particle grid data, grid
+ * One tile particle of a sandbox is represented by exactly 1 byte.
+ */
+typedef uint8_t Tile;
+
+
+/**
+ * Type describing a sandbox simulation, containing 2D grid data, grid
  * dimensions, and grid metadata.
  */
 struct Sandbox
 {
-    // 2D array of bytes, each byte encoding 1 particle of the sandbox.
-    unsigned char **grid;
+    // Flattened 2D array of Tiles.
+    Tile *grid;
 
     // Sandbox dimensions in particle tiles.
     int width;
@@ -40,7 +48,7 @@ struct Sandbox
 
     // Amount of times sandbox has been simulated (one 'frame') since the
     // sandbox has been created.
-    long long lifetime;
+    uint64_t lifetime;
 };
 
 
@@ -159,15 +167,29 @@ bool is_coord_oob(struct Sandbox *sandbox, struct SandboxPoint coords);
 
 
 /**
+ * Return a copy of the tile particle in the sandbox located at the given
+ * packed (row, col) sandbox coordinates.
+ * 
+ * If the requested coordinates exist outside the bounds of the passed sandbox,
+ * this function asserts.
+ * 
+ * @param sandbox Sandbox from which the returned tile is obtained.
+ * @param coords (row, col) coordinates of tile to read from sandbox.
+ * @return Tile particle from `sandbox` located at `coords`.
+ */
+Tile get_tile(struct Sandbox *sandbox, struct SandboxPoint coords);
+
+
+/**
  * Create a new tile particle of the given tile type whose updated flag is 
  * synced to the parity of the given sandbox's lifetime as though put through
  * a call to set_tile_updated().
  * 
- * @param sandbox Sandbox with which the returned t
+ * @param sandbox Sandbox with which the returned tile is synced to.
  * @param tile_type Type which the generated tile is given.
- * @return Tile particle, encoded as a single byte.
+ * @return Tile particle of the given type.
  */
-unsigned char create_tile(struct Sandbox *sandbox, enum tile_type new_type);
+Tile create_tile(struct Sandbox *sandbox, enum tile_type new_type);
 
 
 /**
@@ -214,10 +236,10 @@ void replace_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum tile
 /**
  * Return the type of a tile, describing its properties in simulation.
  *
- * @param tile Tile, represented as a byte, to fetch type of.
+ * @param tile Tile to fetch type of.
  * @return Value from 0 to 15 representing the type of tile given.
  */
-enum tile_type get_tile_type(unsigned char tile);
+enum tile_type get_tile_type(Tile tile);
 
 
 /**
@@ -232,7 +254,7 @@ enum tile_type get_tile_type(unsigned char tile);
  * @param tile Tile to get updated flag from.
  * @return True if updated flag is set, false otherwise.
  */
-bool get_updated_flag(unsigned char tile);
+bool get_updated_flag(Tile tile);
 
 
 /**
@@ -242,7 +264,7 @@ bool get_updated_flag(unsigned char tile);
  * @param tile Tile to get color code from.
  * @return A value from 0 to 3, each representing a unique color variation.
  */
-unsigned char get_tile_color(unsigned char tile);
+unsigned char get_tile_color(Tile tile);
 
 
 
@@ -252,7 +274,7 @@ unsigned char get_tile_color(unsigned char tile);
  * @param tile Tile to determine if is empty and replaceable or not.
  * @return True if tile is empty, false otherwise.
  */
-bool is_tile_empty(unsigned char tile);
+bool is_tile_empty(Tile tile);
 
 
 /**
@@ -266,7 +288,7 @@ bool is_tile_empty(unsigned char tile);
  * @param current_time Time that has passed in frames inside the simulation.
  * @return True if the tile has already been updated, false otherwise.
  */
-bool is_tile_updated(unsigned char tile, long long current_time);
+bool is_tile_updated(Tile tile, uint64_t current_time);
 
 
 /**
@@ -277,7 +299,7 @@ bool is_tile_updated(unsigned char tile, long long current_time);
  * @param tile Tile whose updated flag will be set.
  * @param current_time Time that has passed in frames inside the simulation.
  */
-void set_tile_updated(unsigned char *tile, long long current_time);
+void set_tile_updated(Tile *tile, uint64_t current_time);
 
 
 /**
@@ -287,7 +309,7 @@ void set_tile_updated(unsigned char *tile, long long current_time);
  * @param color Value from 0 to 3 encoding a color variation on the tile which
  * will be set on the tile given.
  */
-void set_tile_color(unsigned char *tile, unsigned char color);
+void set_tile_color(Tile *tile, uint8_t color);
 
 
 
@@ -297,7 +319,7 @@ void set_tile_color(unsigned char *tile, unsigned char color);
  * @param current_time Time that has passed in frames since the sim began.
  * @return 0 if the time is even, 1 if the time is odd.
  */
-unsigned char get_time_parity(long long current_time);
+uint8_t get_time_parity(uint64_t current_time);
 
 
 #endif // SANDBOX_H

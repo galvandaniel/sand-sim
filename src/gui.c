@@ -1,6 +1,5 @@
 /*
  * Implementation of gui.h interface.
- *
  */
 
 #include "gui.h"
@@ -8,16 +7,17 @@
 #include "utils.h"
 
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_mouse.h>
-#include <SDL3/SDL_render.h>
 #include <SDL3_image/SDL_image.h>
 
 #include <stdlib.h>
+#include <assert.h>
+#include <stdint.h>
+#include <stddef.h>
 
 // Wrappers around all SDL API calls to check for and report on failure.
-#define SDL_CHECK_BOOL(result) (_sdl_check_bool(result, __FILE__, __LINE__))
-#define SDL_CHECK_PTR(sdl_ptr) (_sdl_check_ptr(sdl_ptr, __FILE__, __LINE__))
-#define SDL_CHECK_PTR_TO_CONST(sdl_ptr) (_sdl_check_ptr_to_const(sdl_ptr, __FILE__, __LINE__))
+#define SDL_CHECK_BOOL(result) (sdl_check_bool(result, __FILE__, __LINE__))
+#define SDL_CHECK_PTR(sdl_ptr) (sdl_check_ptr(sdl_ptr, __FILE__, __LINE__))
+#define SDL_CHECK_PTR_TO_CONST(sdl_ptr) (sdl_check_ptr_to_const(sdl_ptr, __FILE__, __LINE__))
 
 /**
  * The value of this constant is consistent with the (n x n) dimensions of
@@ -26,7 +26,10 @@
  */
 float TILE_SCALE = 0;
 
-const int MAX_TARGET_RADIUS = 5;
+/**
+ * Maximum allowed size of mouse target area 'brush' size.
+ */
+constexpr int MAX_TARGET_RADIUS = 5;
 
 /**
  * The order of these filepaths must be consistent with the order of
@@ -39,7 +42,7 @@ const char *TILE_TEXTURE_FILENAMES[] = {
     "assets/tiles/wood.png",
     "assets/tiles/steam.png",
     "assets/tiles/fire.png",
-    "assets/tiles/fuel.png"
+    "assets/tiles/fuel.png",
 };
 const char *PANEL_TEXTURE_FILENAMES[] = {
     "assets/panels/air_panel.png",
@@ -48,32 +51,38 @@ const char *PANEL_TEXTURE_FILENAMES[] = {
     "assets/panels/wood_panel.png",
     "assets/panels/steam_panel.png",
     "assets/panels/fire_panel.png",
-    "assets/panels/fuel_panel.png"
+    "assets/panels/fuel_panel.png",
 };
 const char *CURSOR_TEXTURE_FILENAMES[] = 
 {
     "assets/cursors/place.png",
     "assets/cursors/delete.png",
-    "assets/cursors/replace.png"
+    "assets/cursors/replace.png",
 };
 
 
 /**
- * Constant SDL pixel format allocated for lifetime of any GUI application.
+ * Constant SDL pixel format used for lifetime of any GUI application.
  * This format is guaranteed to support an alpha channel no matter the
  * endianness of the running system.
  * 
  * (Currently unused, but maybe helpful in future?)
  */
-static const SDL_PixelFormatDetails *ALPHA_PIXEL_FORMAT = NULL;
+static const SDL_PixelFormatDetails *ALPHA_PIXEL_FORMAT = nullptr;
 
 
 /**
- * Array to colors of all tiles, indexed by enum tile_type.
- * This property assumes that one tile particle is monochrome.
+ * Array to primary colors of all tiles, indexed by enum tile_type.
  */
-static SDL_Color *TILE_COLORS = NULL;
-static const SDL_Color RED = {.r = 255, .g = 0, .b = 0, .a = 255};
+static SDL_Color TILE_COLORS[NUM_TILE_TYPES] = {};
+
+/**
+ * Various color constants.
+ */
+static constexpr SDL_Color NO_COLOR = {.r = 0, .g = 0, .b = 0, .a = 0};
+static constexpr SDL_Color RED = {.r = 255, .g = 0, .b = 0, .a = 255};
+static constexpr SDL_Color WHITE = {.r = 255, .g = 255, .b = 255, .a = 255};
+static constexpr SDL_Color BLACK = {.r = 0, .g = 0, .b = 0, .a = 255};
 
 /**
  * Constants which determine what tile color variations looks like. 
@@ -83,16 +92,15 @@ static const SDL_Color RED = {.r = 255, .g = 0, .b = 0, .a = 255};
  * Ex: For a color mod factor of 10, Color code 0 of a sand tile is modulated 
  * by 0*10=0,Color code 3 is modulated by 3*10=30.
  */
-static const SDL_Color WHITE = {.r = 255, .g = 255, .b = 255, .a = 255};
-static const unsigned char COLOR_MOD_FACTOR = 10;
+static constexpr unsigned char COLOR_MOD_FACTOR = 10;
 
 
 /**
  * Array of pointers to all textures used by tiles and panels, indexed by
  * enum tile_type.
  */
-static SDL_Texture **TILE_TEXTURES = NULL;
-static SDL_Texture **PANEL_TEXTURES = NULL;
+static SDL_Texture *TILE_TEXTURES[NUM_TILE_TYPES] = {};
+static SDL_Texture *PANEL_TEXTURES[NUM_TILE_TYPES] = {};
 
 
 // ----- SDL API CALL WRAPPERS -----
@@ -107,7 +115,7 @@ static SDL_Texture **PANEL_TEXTURES = NULL;
  * @param file The expanded value of __FILE__ when API call is made.
  * @param line The expanded value of __LINE__ when API call is made.
  */
-static bool _sdl_check_bool(bool result, const char *file, int line)
+static bool sdl_check_bool(bool result, const char *file, int line)
 {
     if (!result)
     {
@@ -130,9 +138,9 @@ static bool _sdl_check_bool(bool result, const char *file, int line)
  * @param file The expanded value of __FILE__ when API call is made.
  * @param line The expanded value of __LINE__ when API call is made.
  */
-static void *_sdl_check_ptr(void *sdl_ptr, const char *file, int line)
+static void *sdl_check_ptr(void *sdl_ptr, const char *file, int line)
 {
-   if (sdl_ptr == NULL)
+   if (sdl_ptr == nullptr)
    {
        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                     "\nSDL FAILURE: %s:%d\nReason: %s\n",
@@ -154,9 +162,9 @@ static void *_sdl_check_ptr(void *sdl_ptr, const char *file, int line)
  * @param file The expanded value of __FILE__ when API call is made.
  * @param line The expanded value of __LINE__ when API call is made.
  */
-static const void *_sdl_check_ptr_to_const(const void *sdl_ptr, const char *file, int line)
+static const void *sdl_check_ptr_to_const(const void *sdl_ptr, const char *file, int line)
 {
-   if (sdl_ptr == NULL)
+   if (sdl_ptr == nullptr)
    {
        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                     "\nSDL FAILURE: %s:%d\nReason: %s\n",
@@ -179,9 +187,8 @@ static const void *_sdl_check_ptr_to_const(const void *sdl_ptr, const char *file
  * @param surface_coords (x,y) coordinates within surface to fetch pixel from.
  * @return Pixel RGB data packed into an SDL_Color.
  */
-static SDL_Color _get_pixel(SDL_Surface *surface, SDL_Point surface_coords)
+static SDL_Color get_pixel(SDL_Surface *surface, SDL_Point surface_coords)
 {
-    Uint32 pixel_data;
     const SDL_PixelFormatDetails *format_details = SDL_CHECK_PTR_TO_CONST(SDL_GetPixelFormatDetails(surface->format));
     int bpp = format_details->bytes_per_pixel;
 
@@ -195,8 +202,13 @@ static SDL_Color _get_pixel(SDL_Surface *surface, SDL_Point surface_coords)
     // https://stackoverflow.com/questions/53033971/how-to-get-the-color-of-a-specific-pixel-from-sdl-surface
 
     // Advance pixel pointer to beginning of requested pixel.
-    Uint8 *pixel = ((Uint8 *) surface->pixels 
-                  + surface_coords.y * surface->pitch + surface_coords.x * bpp);
+    ptrdiff_t offset = (surface_coords.y * surface->pitch) + (surface_coords.x * bpp);
+    Uint8 *pixel = ((Uint8 *) surface->pixels + offset);
+
+
+    Uint32 pixel_data;
+    constexpr int BYTE_SHIFT = 8;
+    constexpr int TWO_BYTE_SHIFT = 16;
     switch (bpp)
     {
         // If 1 byte per pixel, read the one byte.
@@ -213,11 +225,11 @@ static SDL_Color _get_pixel(SDL_Surface *surface, SDL_Point surface_coords)
         case 3:
             if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
             {
-                pixel_data = (Uint32) (pixel[0] << 16 | pixel[1] << 8 | pixel[2]);
+                pixel_data = (Uint32) (pixel[0] << TWO_BYTE_SHIFT | pixel[1] << BYTE_SHIFT | pixel[2]);
             }
             else
             {
-                pixel_data = (Uint32) (pixel[0] | pixel[1] << 8 | pixel[2] << 16);
+                pixel_data = (Uint32) (pixel[0] | pixel[1] << BYTE_SHIFT | pixel[2] << TWO_BYTE_SHIFT);
             }
             break;
         
@@ -232,6 +244,7 @@ static SDL_Color _get_pixel(SDL_Surface *surface, SDL_Point surface_coords)
 
     // Fill color with RGB components using the surface pixel format.
     SDL_Color rgb;
+    rgb.a = SDL_ALPHA_OPAQUE;
     SDL_GetRGB(pixel_data, format_details, SDL_GetSurfacePalette(surface) , &rgb.r, &rgb.g, &rgb.b);
 
     // Unlock surface if it was previously locked above.
@@ -257,7 +270,7 @@ static SDL_Color _get_pixel(SDL_Surface *surface, SDL_Point surface_coords)
  * coodinates.
  * @return (x, y) scaled to (row, col) coordinates packed into a point.
  */
-static struct SandboxPoint _scale_screen_coords(SDL_FPoint window_coords, struct Sandbox *sandbox)
+static struct SandboxPoint scale_screen_coords(SDL_FPoint window_coords, struct Sandbox *sandbox)
 {
     // Downscale the window coordinates to sandbox coordinates.
     float raw_row = window_coords.y / TILE_SCALE;
@@ -285,10 +298,10 @@ static struct SandboxPoint _scale_screen_coords(SDL_FPoint window_coords, struct
  * coodinates.
  * @return Mouse coordinates scaled to (row, col) coordinates packed into point.
  */
-static struct SandboxPoint _scale_mouse_coords(struct Mouse *mouse, struct Sandbox *sandbox)
+static struct SandboxPoint scale_mouse_coords(struct Mouse *mouse, struct Sandbox *sandbox)
 {
     SDL_FPoint mouse_coords = {.x = mouse->x, .y = mouse->y};
-    return _scale_screen_coords(mouse_coords, sandbox);
+    return scale_screen_coords(mouse_coords, sandbox);
 }
 
 
@@ -303,13 +316,13 @@ static struct SandboxPoint _scale_mouse_coords(struct Mouse *mouse, struct Sandb
  * they came from.
  * 
  * @param sandbox_coords Coordinates into some sandbox packed as a point.
- * @return x, y Screen coordinates packed into an SDL point.
+ * @return Screen coordinates packed into an SDL point.
  */
-static SDL_FPoint _scale_sandbox_coords(struct SandboxPoint sandbox_coords)
+static SDL_FPoint scale_sandbox_coords(struct SandboxPoint sandbox_coords)
 {
-    float x = (float) sandbox_coords.col * TILE_SCALE;
-    float y = (float) sandbox_coords.row * TILE_SCALE;
-    SDL_FPoint window_coords = {.x = x, .y = y};
+    float window_x = (float) sandbox_coords.col * TILE_SCALE;
+    float window_y = (float) sandbox_coords.row * TILE_SCALE;
+    SDL_FPoint window_coords = {.x = window_x, .y = window_y};
     return window_coords;
 }
 
@@ -321,7 +334,7 @@ static SDL_FPoint _scale_sandbox_coords(struct SandboxPoint sandbox_coords)
  * @param app App containing mouse click data to update.
  * @param event Mouse event containing mouse data to extract.
  */
-static void _do_mouse_button_down(struct Application *app, SDL_MouseButtonEvent *event)
+static void do_mouse_button_down(struct Application *app, SDL_MouseButtonEvent *event)
 {
     unsigned char mouse_button = event->button;
 
@@ -345,7 +358,7 @@ static void _do_mouse_button_down(struct Application *app, SDL_MouseButtonEvent 
  * @param app App containing mouse click data to update.
  * @param event Mouse event containing mouse data to extract.
  */
-static void _do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *event)
+static void do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *event)
 {
     unsigned char mouse_button = event->button;
 
@@ -374,32 +387,33 @@ static void _do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *e
  * @param app App to mutate as a result of mousewheel motion.
  * @param event Mouse wheel event containing data on wheel motion.
  */
-static void _do_mouse_wheel_motion(struct Application *app, SDL_MouseWheelEvent *event)
+static void do_mouse_wheel_motion(struct Application *app, SDL_MouseWheelEvent *event)
 {
-    // Amount of vertical scroll is platform dependent.
-    // Example: Scroll is +/- 1 on Linux, is +/- INT_MAX on Windows.
-    // To account for this, apply sign function on scroll value to limit to
-    // +/- 1. (scroll is never 0 if SDL Mousewheel event is triggered)
     float vertical_scroll = event->y;
-    int scroll_sign = (vertical_scroll > 0) ? 1 : -1;
 
-    // Holding lctrl enables changing brush size.
+    // Holding lctrl while scrolling changes target size.
+    int current_radius = app->mouse->target_radius;
     if (app->mouse->is_holding_lctrl)
     {
-        app->mouse->target_radius += scroll_sign;
+        app->mouse->target_radius = (vertical_scroll > 0) ? current_radius + 1 : current_radius - 1;
         app->mouse->target_radius = clamp(app->mouse->target_radius, 0, MAX_TARGET_RADIUS);
         return;
     }
 
-    // Treating amount scrolled as a displacement, change tile type on scroll. 
-    // Prevent selecting AIR, whose selection should instead roll-over depending
-    // on direction of scroll.
-    int new_type = ((int) app->mouse->selected_type + scroll_sign) % NUM_TILE_TYPES;
-    if (new_type == AIR)
+    // Switch type when scrolling mouse.
+    // Rollover type depending on scroll direction when result would exceed valid type bounds. 
+    enum tile_type current_type = app->mouse->selected_type;
+    enum tile_type new_type = SAND;
+    if (vertical_scroll > 0)
     {
-        new_type = (vertical_scroll > 0) ? SAND : NUM_TILE_TYPES - 1;
+        new_type = current_type >= NUM_TILE_TYPES - 1 ? SAND : current_type + 1;
     }
-    switch_selected_type(app->mouse, (enum tile_type) new_type);
+    else
+    {
+        new_type = current_type <= SAND ? NUM_TILE_TYPES - 1 : current_type - 1;
+    }
+
+    switch_selected_type(app->mouse, new_type);
 }
 
 
@@ -410,7 +424,7 @@ static void _do_mouse_wheel_motion(struct Application *app, SDL_MouseWheelEvent 
  * @param app App to mutate as a result of keypress.
  * @param event Keyboard event containing data on what key was pressed.
  */
-static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event)
+static void do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event)
 {
     struct Mouse *app_mouse = app->mouse;
 
@@ -466,7 +480,7 @@ static void _do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event
  * @param app App to mutate as a result of key release.
  * @param event Keyboard event containing data on what key was released.
  */
-static void _do_keyboard_release(struct Application *app, SDL_KeyboardEvent *event)
+static void do_keyboard_release(struct Application *app, SDL_KeyboardEvent *event)
 {
     struct Mouse *app_mouse = app->mouse;
 
@@ -492,7 +506,7 @@ static void _do_keyboard_release(struct Application *app, SDL_KeyboardEvent *eve
  * 
  * @param app App to mutate due to change in window state.
  */
-static void _do_window_resize(struct Application *app)
+static void do_window_resize(struct Application *app)
 {
     // SDL handles window resizing automatically, and with the logical 
     // renderer size set, will handle resizing content automatically too.
@@ -511,7 +525,7 @@ static void _do_window_resize(struct Application *app)
  * @param radius Radius of target area.
  * @return Sidelength of target area in terms of sandbox tiles.
  */
-static int _compute_target_area_sidelength(int radius)
+static int compute_target_area_sidelength(int radius)
 {
     return (radius * 2) + 1;
 }
@@ -524,15 +538,10 @@ static int _compute_target_area_sidelength(int radius)
  * @param radius Radius of target area.
  * @return Size of target area in terms of sandbox tiles.
  */
-static int _compute_target_area_size(int radius)
+static int compute_target_area_size(int radius)
 {
-    // Careful for negative radius which, when cast to size_t for malloc() or
-    // passed into a VLA, will cause malloc() to return NULL or cause UB.
-    if (radius < 0)
-    {
-        SDL_Log("\nWARNING: %s:%d\nReason: Attempted to compute target area size of negative radius!\n", __FILE__, __LINE__);
-        return 0;
-    }
+    // This should never happen. If it does, program is likely in invalid state.
+    assert(radius >= 0 && "ERROR: Attempted to compute target area size of negative radius!\n");
 
     // Zero radius is a special case of 1-tile size draw area.
     if (radius == 0)
@@ -541,7 +550,7 @@ static int _compute_target_area_size(int radius)
     }
 
     // Compute square area of draw area.
-    int sidelength = _compute_target_area_sidelength(radius);
+    int sidelength = compute_target_area_sidelength(radius);
     return sidelength * sidelength;
 }
 
@@ -555,8 +564,8 @@ static int _compute_target_area_size(int radius)
  * 
  * The space for array of coordinates is allocated by the caller as the output
  * parameter target_area. 
- * This array must be of size _compute_target_area_size() + 1, though the contents 
- * of the array are not guaranteed to be this long.
+ * This array must be of size AT LEAST `compute_target_area(radius) + 1`, though 
+ * the filled contents of the array are not guaranteed to be this long.
  * 
  * The output array is terminated by the (row, col) coordinates (-1, -1) to 
  * indicate the end of array.
@@ -566,11 +575,14 @@ static int _compute_target_area_size(int radius)
  * @param radius Radius of the target area computed.
  * @param target_area Output to place computed target area sandbox coordonates.
  */
-static void _get_sandbox_target_area(struct Sandbox *sandbox, 
-                                     struct SandboxPoint origin_coords, 
-                                     int radius,
-                                     struct SandboxPoint *target_area)
+static void get_sandbox_target_area(struct Sandbox *sandbox, 
+                                    struct SandboxPoint origin_coords, 
+                                    int radius,
+                                    struct SandboxPoint *target_area)
 {
+    // This should never happen. If it does, program is definitely in invalid state.
+    assert(radius >= 0 && "ERROR: Attempted to fill target area of negative radius!\n");
+
     struct SandboxPoint terminator = {.row = -1, .col = -1};
 
     // Zero radius is a special case of 1-tile size draw area.
@@ -584,7 +596,7 @@ static void _get_sandbox_target_area(struct Sandbox *sandbox,
     // Compute non-OOB square of target area by starting from topleft of square
     // and going through the tiles in row-major order.
     // Maintain an index into the array to terminate the end.
-    int sidelength = _compute_target_area_sidelength(radius);
+    int sidelength = compute_target_area_sidelength(radius);
     struct SandboxPoint topleft = {origin_coords.row - radius, origin_coords.col - radius};
     int flattened_index = 0;
 
@@ -614,12 +626,12 @@ static void _get_sandbox_target_area(struct Sandbox *sandbox,
  * @param app GUI application to draw a single tile of target area highlight.
  * @param coords Sandbox coordinates of tile to draw highlight for.
  */
-static void _draw_tile_highlight(struct Application *app, struct SandboxPoint coords)
+static void draw_tile_highlight(struct Application *app, struct SandboxPoint coords)
 {
-    SDL_FPoint highlight_coords = _scale_sandbox_coords(coords);
+    SDL_FPoint highlight_coords = scale_sandbox_coords(coords);
 
     // Do not show highlight ontop of non-empty tiles when placing.
-    if (!is_tile_empty(app->sandbox->grid[coords.row][coords.col]) 
+    if (!is_tile_empty(get_tile(app->sandbox, coords)) 
      && app->mouse->mode == PLACE)
     {
         return;
@@ -633,11 +645,11 @@ static void _draw_tile_highlight(struct Application *app, struct SandboxPoint co
     highlight_rect.h = TILE_SCALE;
 
     // Show a red outline ontop of tiles about to be deleted, otherwise show
-    // color of selected tile. Have highlight be transparent.
+    // color of selected tile. Have highlight be half opaque.
     bool is_delete_mode = app->mouse->mode == DELETE;
     SDL_Color selected_color = TILE_COLORS[app->mouse->selected_type];
-    SDL_Color highlight_color = (is_delete_mode) ? RED : selected_color;
-    highlight_color.a = 128;
+    SDL_Color highlight_color = is_delete_mode ? RED : selected_color;
+    highlight_color.a = SDL_ALPHA_OPAQUE / 2;
 
     blit_rectangle(app, highlight_rect, highlight_color, !is_delete_mode);
 }
@@ -652,24 +664,22 @@ static void _draw_tile_highlight(struct Application *app, struct SandboxPoint co
  * 
  * @param app GUI Application to draw drawing-area highlight for.
  */
-static void _draw_highlight(struct Application *app)
+static void draw_highlight(struct Application *app)
 {
     // Snap mouse coordinate to nearest sandbox coordinates.
-    struct SandboxPoint sandbox_coords = _scale_mouse_coords(app->mouse, app->sandbox);
+    struct SandboxPoint sandbox_coords = scale_mouse_coords(app->mouse, app->sandbox);
 
     // Get target area and draw a single tile highlight over all coordinates.
-    // Allocate 1 extra element for target area to account for terminator.
-    int target_area_size = _compute_target_area_size(app->mouse->target_radius);
+    int target_area_size = compute_target_area_size(MAX_TARGET_RADIUS);
     struct SandboxPoint target_area[target_area_size + 1];
-    _get_sandbox_target_area(app->sandbox, 
+    get_sandbox_target_area(app->sandbox, 
                              sandbox_coords, 
                              app->mouse->target_radius, 
                              target_area);
-    int i = 0;
-    while (target_area[i].row != -1)
+    
+    for (int i = 0; target_area[i].row != -1; i++)
     {
-        _draw_tile_highlight(app, target_area[i]);
-        i++;
+        draw_tile_highlight(app, target_area[i]);
     }
 }
 
@@ -681,16 +691,12 @@ static void _draw_highlight(struct Application *app)
  *
  * @param app Owning GUI application holding renderer to load textures onto.
  */
-static void _init_textures(struct Application *app)
+static void init_textures(struct Application *app)
 {
-    if (TILE_TEXTURES != NULL || PANEL_TEXTURES != NULL)
+    if (*TILE_TEXTURES != nullptr || *PANEL_TEXTURES != nullptr)
     {
         return;
     }
-
-    // Allocate memory for array to hold pointers to all textures.
-    TILE_TEXTURES = SAFE_MALLOC((size_t) NUM_TILE_TYPES * sizeof(*TILE_TEXTURES));
-    PANEL_TEXTURES = SAFE_MALLOC((size_t) NUM_TILE_TYPES * sizeof(*PANEL_TEXTURES));
 
     // Load all tile, panel, and highlight textures.
     for (int i = 0; i < NUM_TILE_TYPES; i++)
@@ -711,9 +717,10 @@ static void _init_textures(struct Application *app)
  *
  * This function is idempotent, initializing several times does nothing.
  */
-static void _init_tile_blit_data(void)
+static void init_tile_colors(void)
 {
-    if (TILE_COLORS != NULL || ALPHA_PIXEL_FORMAT != NULL)
+    // If colors have been loaded already, do not reload.
+    if (TILE_COLORS[1].a != NO_COLOR.a || ALPHA_PIXEL_FORMAT != nullptr)
     {
         return;
     }
@@ -727,13 +734,12 @@ static void _init_tile_blit_data(void)
 
     // Initialize all colors used by tiles. 
     // Take pixel RGB at (0, 0) as representative of color of whole tile.
-    TILE_COLORS = SAFE_MALLOC((size_t) NUM_TILE_TYPES * sizeof(*TILE_COLORS));
     SDL_Point topleft = {.x = 0, .y = 0};
 
     for (int i = 0; i < NUM_TILE_TYPES; i++)
     {
         SDL_Surface *tile_surface = SDL_CHECK_PTR(IMG_Load(TILE_TEXTURE_FILENAMES[i]));
-        TILE_COLORS[i] = _get_pixel(tile_surface, topleft);
+        TILE_COLORS[i] = get_pixel(tile_surface, topleft);
         SDL_DestroySurface(tile_surface);
     }
 }
@@ -743,9 +749,10 @@ static void _init_tile_blit_data(void)
  * Unload all tile textures from memory, destroying them and freeing the array
  * of tile_textures.
  */
-static void _destroy_textures(void)
+static void destroy_textures(void)
 {
-    if (TILE_TEXTURES == NULL || PANEL_TEXTURES == NULL)
+    // Strictly speaking, it's not an error to destroy NULL, but not good either.
+    if (*TILE_TEXTURES == nullptr || *PANEL_TEXTURES == nullptr)
     {
         SDL_Log("\nWARNING: %s:%d\nReason: Attempted to destroy textures without textures being initialized!\n", __FILE__, __LINE__);
     }
@@ -755,23 +762,6 @@ static void _destroy_textures(void)
         SDL_DestroyTexture(TILE_TEXTURES[i]);
         SDL_DestroyTexture(PANEL_TEXTURES[i]);
     }
-
-    free(TILE_TEXTURES);
-    free(PANEL_TEXTURES);
-}
-
-
-/**
- * Free memory held by tile blit data as initialized by _init_tile_blit_data(). 
- */
-static void _destroy_tile_blit_data(void)
-{
-    if (TILE_COLORS == NULL || ALPHA_PIXEL_FORMAT == NULL)
-    {
-        SDL_Log("\nWARNING: %s:%d\nReason: Attempted to destroy blit data without blit data being initialized!\n", __FILE__, __LINE__);
-    }
-
-    free(TILE_COLORS);
 }
 
 
@@ -781,7 +771,7 @@ static void _destroy_tile_blit_data(void)
  *
  * @param app Owning GUI application to free.
  */
-static void _cleanup(struct Application *app)
+static void cleanup_memory(struct Application *app)
 {
     // Free memory taken up by app.
     SDL_DestroyWindow(app->window);
@@ -790,9 +780,8 @@ static void _cleanup(struct Application *app)
     destroy_mouse(app->mouse);
     free(app);
 
-    // Remove textures, color, and the universal alpha format before exiting.
-    _destroy_textures();
-    _destroy_tile_blit_data();
+    // Remove textures before exiting.
+    destroy_textures();
 
     SDL_Quit();
 }
@@ -803,7 +792,7 @@ static void _cleanup(struct Application *app)
 
 struct Application *init_gui(const char *title, struct Sandbox *sandbox)
 {
-    _init_tile_blit_data();
+    init_tile_colors();
     struct Application *app = SAFE_MALLOC(sizeof(*app));
 
     // Initialize window screen dimensions as a scale of the sandbox dimensions.
@@ -825,7 +814,7 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
     // Create renderer using the first graphics acceleration device found.
     // Set a logical drawing area for automatic resolution scaling of rendered contents.
     // Logical area is big enough to render sandbox at full resolution.
-    app->renderer = SDL_CHECK_PTR(SDL_CreateRenderer(app->window, NULL));
+    app->renderer = SDL_CHECK_PTR(SDL_CreateRenderer(app->window, nullptr));
     SDL_CHECK_BOOL(SDL_SetRenderLogicalPresentation(app->renderer, app->min_window_width, app->min_window_height, SDL_LOGICAL_PRESENTATION_LETTERBOX));
 
     app->mouse = create_mouse();
@@ -833,14 +822,14 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
     // Enable alpha blending for transparent textures on renderer and allocate
     // all textures.
     SDL_CHECK_BOOL(SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND));
-    _init_textures(app);
+    init_textures(app);
     return app;
 }
 
 
 void quit_gui(struct Application *app)
 {
-    _cleanup(app);
+    cleanup_memory(app);
     exit(EXIT_SUCCESS);
 }
 
@@ -920,7 +909,7 @@ void blit_texture(struct Application *app, SDL_Texture *texture, SDL_FPoint wind
     SDL_CHECK_BOOL(SDL_GetTextureSize(texture, &dest.w, &dest.h));
 
     // Draw texture, passing in NULL to copy whole texture.
-    SDL_CHECK_BOOL(SDL_RenderTexture(app->renderer, texture, NULL, &dest));
+    SDL_CHECK_BOOL(SDL_RenderTexture(app->renderer, texture, nullptr, &dest));
 }
 
 
@@ -936,10 +925,7 @@ void blit_rectangle(struct Application *app, SDL_FRect rect, SDL_Color color, bo
 
 void set_black_background(struct Application *app)
 {
-    // Set color to black.
-    SDL_CHECK_BOOL(SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255));
-
-    // Clear the window with the current set color.
+    SDL_CHECK_BOOL(SDL_SetRenderDrawColor(app->renderer, BLACK.r, BLACK.g, BLACK.b, BLACK.a));
     SDL_CHECK_BOOL(SDL_RenderClear(app->renderer));
 }
 
@@ -959,7 +945,7 @@ void draw_sandbox(struct Application *app)
 
 void draw_tile(struct Application *app, struct SandboxPoint coords)
 {
-    unsigned char tile = app->sandbox->grid[coords.row][coords.col];
+    Tile tile = get_tile(app->sandbox, coords);
 
     if (is_tile_empty(tile))
     {
@@ -967,16 +953,18 @@ void draw_tile(struct Application *app, struct SandboxPoint coords)
     }
 
     // Compute the screen coordinates that a tile should be blitted at.
-    SDL_FPoint window_coords = _scale_sandbox_coords(coords);
+    SDL_FPoint window_coords = scale_sandbox_coords(coords);
 
     // Grab the associated tile texture, apply tile color variation, then blit.
     SDL_Texture *tile_texture = TILE_TEXTURES[get_tile_type(tile)];
 
-    unsigned char color_mod = COLOR_MOD_FACTOR * get_tile_color(tile);
-    SDL_Color variant = {.r = WHITE.r - color_mod, 
-                         .g = WHITE.g - color_mod, 
-                         .b = WHITE.b - color_mod,
-                         .a = WHITE.a};
+    uint8_t color_mod = COLOR_MOD_FACTOR * get_tile_color(tile);
+    SDL_Color variant = {
+        .r = WHITE.r - color_mod, 
+        .g = WHITE.g - color_mod, 
+        .b = WHITE.b - color_mod,
+        .a = WHITE.a,
+    };
     SDL_CHECK_BOOL(SDL_SetTextureColorMod(tile_texture, variant.r, variant.g, variant.b));
     blit_texture(app, tile_texture, window_coords);
 }
@@ -984,7 +972,7 @@ void draw_tile(struct Application *app, struct SandboxPoint coords)
 
 void draw_ui(struct Application *app)
 {
-    _draw_highlight(app);
+    draw_highlight(app);
 
     // Draw panel texture and blit to topleft of screen.
     SDL_Texture *panel_texture = PANEL_TEXTURES[app->mouse->selected_type];
@@ -1018,27 +1006,27 @@ void get_input(struct Application *app)
             // Record player holding down mouse button by keeping track of
             // when it is pressed down and up.
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
-                _do_mouse_button_down(app, &event.button);
+                do_mouse_button_down(app, &event.button);
                 break;
             case SDL_EVENT_MOUSE_BUTTON_UP:
-                _do_mouse_button_up(app, &event.button);
+                do_mouse_button_up(app, &event.button);
                 break;
 
             // React to scrolling of mouse wheel.
             case SDL_EVENT_MOUSE_WHEEL:
-                _do_mouse_wheel_motion(app, &event.wheel);
+                do_mouse_wheel_motion(app, &event.wheel);
                 break;
 
             // When a key gets pressed/released, perform any keyboard updates.
             case SDL_EVENT_KEY_DOWN:
-                _do_keyboard_press(app, &event.key);
+                do_keyboard_press(app, &event.key);
                 break;
             case SDL_EVENT_KEY_UP:
-                _do_keyboard_release(app, &event.key);
+                do_keyboard_release(app, &event.key);
                 break;
 
             case SDL_EVENT_WINDOW_RESIZED:
-                _do_window_resize(app);
+                do_window_resize(app);
                 break;
 
             default:
@@ -1061,18 +1049,17 @@ void handle_input(struct Application *app)
 void alter_tile(struct Mouse *mouse, struct Sandbox *sandbox)
 {
     // Snap mouse coordinate to nearest sandbox coordinates.
-    struct SandboxPoint sandbox_coords = _scale_mouse_coords(mouse, sandbox);
+    struct SandboxPoint sandbox_coords = scale_mouse_coords(mouse, sandbox);
 
     // Get target area and perform mouse mode operation for all tiles in target
     // area.
-    int target_area_size = _compute_target_area_size(mouse->target_radius);
+    int target_area_size = compute_target_area_size(MAX_TARGET_RADIUS);
     struct SandboxPoint target_area[target_area_size + 1];
-    _get_sandbox_target_area(sandbox, 
-                             sandbox_coords, 
-                             mouse->target_radius,
-                             target_area);
-    int i = 0;
-    while (target_area[i].row != -1)
+    get_sandbox_target_area(sandbox, 
+                            sandbox_coords, 
+                            mouse->target_radius,
+                            target_area);
+    for (int i = 0; target_area[i].row != -1; ++i)
     {
         switch (mouse->mode)
         {
@@ -1091,7 +1078,6 @@ void alter_tile(struct Mouse *mouse, struct Sandbox *sandbox)
             default:
                 break;
         }
-        i++;
     }
 }
 
@@ -1100,7 +1086,7 @@ void alter_tile(struct Mouse *mouse, struct Sandbox *sandbox)
 void switch_selected_type(struct Mouse *mouse, enum tile_type new_type)
 {
     // For invalid tile types, do nothing.
-    if (new_type > NUM_TILE_TYPES - 1)
+    if (new_type >= NUM_TILE_TYPES)
     {
         return;
     }

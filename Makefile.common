@@ -5,8 +5,9 @@ OUTPUT = sand-sim
 
 CC = clang
 
-# Use C17 standard, level 2 optimization level, and very high warning level.
-CFLAGS = -std=c17 \
+# Use C23 standard, level 2 optimization level, and very high warning level.
+# We call C23 as C2x for compatability with older MinGW versions (Ex: Ubuntu 26.04 in 2026-2027 only comes with MinGW 13!)
+CFLAGS = -std=c2x \
          -O2 \
          -Wall \
          -Wextra \
@@ -27,9 +28,14 @@ CFLAGS = -std=c17 \
          -Wwrite-strings
 #-Wmissing-prototypes (Bugged in SDL3 with mingw)
 
-# Linker flags common between compiling on Linux and Windows. 
+# Flags for using Address and LeakSanitizer from LLVM.
+ASAN_FLAGS = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
+DEBUG_CFLAGS = $(CFLAGS:O2=O0 -g -gpubnames $(ASAN_FLAGS))
+
+# Linker flags common to all build targets. 
 # (There are none... left empty for now.)
 LDFLAGS =
+DEBUG_LDFLAGS = $(LDFLAGS) $(ASAN_FLAGS)
 
 # Manually listed source files. 
 #
@@ -41,6 +47,7 @@ HDRS = src/sandbox.h src/gui.h src/utils.h
 # Object extension matters to GCC, and for Windows its a convention to stick to.
 GNU_OBJS = $(SRCS:.c=.o)
 WIN_OBJS = $(SRCS:.c=.obj)
+DEBUG_OBJS = ${SRCS:.c=_debug.o}
 
 # Targets to delete on clean.
 RM_TARGETS = *.out *.o *.obj src/*.o src/*.obj *.exe *.dll LICENSE.* sand*

@@ -14,7 +14,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 
-#include <stdbool.h>
 
 /**
  * Scale-factor which determines how many screen pixels it takes to draw 1 side 
@@ -27,10 +26,6 @@
  */
 extern float TILE_SCALE;
 
-/**
- * Maximum allowed value for target_radius field of Mouse.
- */
-extern const int MAX_TARGET_RADIUS;
 
 /**
  * Unique modes the mouse can be in when placing tiles in the sandbox.

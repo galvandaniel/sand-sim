@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <stdbool.h>
 #include <math.h>
 
 
@@ -11,7 +10,7 @@ void *xmalloc(size_t size, const char *file, int line)
 {
     void *user_ptr = malloc(size);
 
-    if (user_ptr == NULL)
+    if (user_ptr == nullptr)
     {
         fprintf(stderr, "ERROR: %s:%d\nReason: Unable to allocate requested (%lu) bytes in malloc().\n", file, line, (unsigned long) size);
         exit(EXIT_FAILURE);
@@ -24,7 +23,7 @@ void* xcalloc(size_t num, size_t size, const char *file, int line)
 {
     void *user_ptr = calloc(num, size);
 
-    if (user_ptr == NULL)
+    if (user_ptr == nullptr)
     {
         fprintf(stderr, "ERROR: %s:%d\nReason: Unable to allocate requested (%lu) bytes in calloc().\n", file, line, (unsigned long) size);
         exit(EXIT_FAILURE);  
@@ -35,7 +34,7 @@ void* xcalloc(size_t num, size_t size, const char *file, int line)
 
 int randint(int min, int max)
 {
-    return min + (rand() % (max + 1 - min));
+    return min + (rand() % ((max - min) + 1));
 }
 
 
@@ -47,33 +46,26 @@ double random(void)
 
 bool flip_coin(void)
 {
-    // Generate a random number between 0 and 1.
-    double random_value = random();
-
-    if (random_value > 0.5)
-    {
-        return true;
-    }
-
-    return false;
+    return randint(0, 1) == 1;
 }
 
 
 // Implementation from learncpp.com chapter 6.7 by Alex (author of learncpp)
-bool approx_equal(double a, double b)
+bool approx_equal(double first, double second)
 {
     // Epsilon values chosen empirically.
-    double relative_epsilon = 1e-8;
-    double absolute_epsilon = 1e-12;
+    constexpr double relative_epsilon = 1e-8;
+    constexpr double absolute_epsilon = 1e-12;
+    const double distance = fabs(first - second);
 
-    if (fabs(a - b) <= absolute_epsilon)
+    if (distance <= absolute_epsilon)
     {
         return true;
     }
 
     // Fallback to Knuth's algorithm for FP comparison if absolute comparison
     // failed. Taken from "The Art of Computer Programming" (Addison-Wesley 1969)
-    return (fabs(a - b) <= (fmax(fabs(a), fabs(b)) * relative_epsilon));
+    return (distance <= (fmax(fabs(first), fabs(second)) * relative_epsilon));
 }
 
 

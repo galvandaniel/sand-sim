@@ -6,11 +6,9 @@
  * 
  * The random functions declared in this header can be seeded with srand()
  * for different random sequences.
- * 
  */
 
 #include <stddef.h>
-#include <stdbool.h>
 
 // malloc/calloc-wrappers which checks for NULL-failure and report to stderr.
 #define SAFE_MALLOC(size) (xmalloc(size, __FILE__, __LINE__))
@@ -76,17 +74,19 @@ bool flip_coin(void);
 /**
  * Compare the two given floating point values for approximate equality.
  * 
- * @param a,b Floating point values to check for relative equality.
+ * @param first Floating point values to check for relative equality.
+ * @param second Floating point values to check for relative equality.
  * @return True if the two passed values are roughly equal, false otherwise.
  */
-bool approx_equal(double a, double b);
+bool approx_equal(double first, double second);
 
 
 /**
  * Clamp the given value to lie within the inclusive integer range [min, max].
  * 
+ * @param val Value to be restricted.
  * @param min Lower bound of clamping range.
- * @param max Upper bound of clampign range.
+ * @param max Upper bound of clamping range.
  * @return If val in [min, max], val. If val < min, min. If val > max, max.
  */
 int clamp(int val, int min, int max);
