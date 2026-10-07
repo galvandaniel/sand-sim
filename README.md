@@ -229,6 +229,12 @@ sand-sim can then be compiled for debugging like so:
 make debug
 ```
 
+And run with Address+LeakSanitizer stack tracing like so:
+```bash
+ASAN_OPTIONS=fast_unwind_on_malloc=false ./sand-sim
+```
+
+
 It is instead possible to cross-compile the Windows versions of sand-sim on Linux, such as if running on WSL. 
 To do this, the 64-bit Win32 implementation of [MinGW64](https://www.mingw-w64.org/getting-started/debian/) is required:
 

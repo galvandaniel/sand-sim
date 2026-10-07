@@ -24,7 +24,6 @@ $(OUTPUT): $(GNU_OBJS) $(HDRS)
 	$(CC) -o $(@) $(GNU_OBJS) $(LDFLAGS)
 	
 debug: $(DEBUG_OBJS) $(HDRS)
-	export ASAN_OPTIONS=fast_unwind_on_malloc=false
 	$(CC) -o $(OUTPUT) $(DEBUG_OBJS) $(DEBUG_LDFLAGS)
 
 # Windows version depends on DLLs which must be copied over to root.

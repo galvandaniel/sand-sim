@@ -1,0 +1,25 @@
+name: sand-sim CI
+run-name: ${{ github.actor }} is building sand-sim
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-26.04
+
+    steps:
+    - name: Checkout latest code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install --yes libsdl3-dev
+        sudo apt install --yes libsdl3-image-dev
+        sudo apt install --yes bear
+    
+    - name: Compile and generate compilation database.
+      run: bear -- make
+
+    - name: Test code against clang-tidy
+      run: run-clang-tidy
