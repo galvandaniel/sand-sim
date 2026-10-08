@@ -41,8 +41,15 @@ DEBUG_LDFLAGS = $(LDFLAGS) $(ASAN_FLAGS)
 #
 # GNUmake Keyword 'wildcard' is an extension and therefore not portable across 
 # NMAKE. For this reason, source files are listed manually here.
-SRCS = src/main.c src/sandbox.c src/gui.c src/utils.c
-HDRS = src/sandbox.h src/gui.h src/utils.h
+SRCS = src/main.c \
+       src/sandsim_cli.c \
+       src/sandbox.c \
+       src/tile.c \
+       src/gui.c \
+       src/utils.c
+
+# For now, assume all sources define a public API, with the exception of main.c.
+HDRS = $(SRCS:src/main.c= )
 
 # Object extension matters to GCC, and for Windows its a convention to stick to.
 GNU_OBJS = $(SRCS:.c=.o)
@@ -50,4 +57,4 @@ WIN_OBJS = $(SRCS:.c=.obj)
 DEBUG_OBJS = ${SRCS:.c=_debug.o}
 
 # Targets to delete on clean.
-RM_TARGETS = *.out *.o *.obj src/*.o src/*.obj *.exe *.dll LICENSE.* sand*
+RM_TARGETS = *.out *.o *.obj $(GNU_OBJS) $(WIN_OBJS) $(DEBUG_OBJS) *.exe *.dll LICENSE.* sand-sim*

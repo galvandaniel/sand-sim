@@ -5,7 +5,6 @@
 #include <stddef.h>
 #include <math.h>
 
-
 void *xmalloc(size_t size, const char *file, int line)
 {
     void *user_ptr = malloc(size);
@@ -74,4 +73,10 @@ int clamp(int val, int min, int max)
     val = (val < min) ? min : val;
     val = (val > max) ? max : val;
     return val;
+}
+
+
+bool is_odd(uint64_t value)
+{
+    return value & 0b0000'0001;
 }

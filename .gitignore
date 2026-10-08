@@ -48,7 +48,7 @@ dkms.conf
 .vscode
 
 # sand binaries and DLLs as produced by build commands.
-sand*
+sand-sim*
 *.dll
 
 # Valgrind massif log files.

@@ -1,9 +1,12 @@
-/*
+/**
  * Implementation of gui.h interface.
  */
 
+
+
 #include "gui.h"
 #include "sandbox.h"
+#include "tile.h"
 #include "utils.h"
 
 #include <SDL3/SDL.h>

@@ -8,12 +8,12 @@
  * for different random sequences.
  */
 
+#include <stdint.h>
 #include <stddef.h>
 
 // malloc/calloc-wrappers which checks for NULL-failure and report to stderr.
 #define SAFE_MALLOC(size) (xmalloc(size, __FILE__, __LINE__))
 #define SAFE_CALLOC(num, size) (xcalloc(num, size, __FILE__, __LINE__))
-
 
 /**
  * Allocate as many bytes of uninitialized storage as requested.
@@ -90,6 +90,15 @@ bool approx_equal(double first, double second);
  * @return If val in [min, max], val. If val < min, min. If val > max, max.
  */
 int clamp(int val, int min, int max);
+
+
+/**
+ * Determine the parity of the given 64-bit unsigned value.
+ *
+ * @param value Value to determine parity of.
+ * @return True if the given value is odd, False otherwise.
+ */
+bool is_odd(uint64_t value);
 
 
 #endif // UTILS_H

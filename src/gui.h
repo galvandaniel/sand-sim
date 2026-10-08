@@ -1,19 +1,18 @@
-#ifndef GUI_H
-#define GUI_H
-
 /**
- * A collection of functions for displaying a sand simulation using SDL3 and
- * the logic presented in sandbox.h
- * 
+ * Module for displaying a sandbox using SDL3.
+ *  
  * If any API call to SDL3 fails, the functions defined here will call exit()
  * and quit the running program.
  */
 
+#ifndef GUI_H
+#define GUI_H
+
 #include "sandbox.h"
+#include "tile.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
-
 
 /**
  * Scale-factor which determines how many screen pixels it takes to draw 1 side 
