@@ -17,10 +17,14 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// Wrappers around all SDL API calls to check for and report on failure.
-#define SDL_CHECK_BOOL(result) (sdl_check_bool(result, __FILE__, __LINE__))
-#define SDL_CHECK_PTR(sdl_ptr) (sdl_check_ptr(sdl_ptr, __FILE__, __LINE__))
-#define SDL_CHECK_PTR_TO_CONST(sdl_ptr) (sdl_check_ptr_to_const(sdl_ptr, __FILE__, __LINE__))
+/**
+ * Wrapper around all SDL API calls to check for and report on failure.
+ */
+#define SDL_CHECK(sdl_result) _Generic((sdl_result), \
+                                        bool: sdl_check_bool, \
+                                        const SDL_PixelFormatDetails *: sdl_check_ptr_to_const, \
+                                        default: sdl_check_ptr \
+                                      )(sdl_result, __FILE__, __LINE__)
 
 /**
  * The value of this constant is consistent with the (n x n) dimensions of
@@ -112,7 +116,7 @@ static SDL_Texture *PANEL_TEXTURES[NUM_TILE_TYPES] = {};
 /**
  * Wrapper for all SDL calls which can fail on returning false.
  * 
- * Not intended to be called on any other value.
+ * Not intended to be called on anything other than SDL API results.
  * 
  * @param result Bool result from an SDL API call.
  * @param file The expanded value of __FILE__ when API call is made.
@@ -135,7 +139,7 @@ static bool sdl_check_bool(bool result, const char *file, int line)
 /**
  * Wrapper for all SDL calls which can fail on returning a NULL pointer.
  * 
- * Not intended to be called on a raw pointer.
+ * Not intended to be called on anything other than SDL API results.
  * 
  * @param sdl_ptr A pointer to an SDL type as returned from an SDL API call.
  * @param file The expanded value of __FILE__ when API call is made.
@@ -159,7 +163,7 @@ static void *sdl_check_ptr(void *sdl_ptr, const char *file, int line)
 /**
  * Wrapper for all SDL calls which can fail on returning a NULL pointer.
  * 
- * Not intended to be called on a raw pointer.
+ * Not intended to be called on anything other than SDL API results.
  * 
  * @param sdl_ptr A pointer to an SDL type as returned from an SDL API call.
  * @param file The expanded value of __FILE__ when API call is made.
@@ -193,7 +197,7 @@ static const void *sdl_check_ptr_to_const(const void *sdl_ptr, const char *file,
 static SDL_Color get_pixel(SDL_Surface *surface, SDL_Point surface_coords)
 {
     SDL_Color result;
-    SDL_CHECK_BOOL(SDL_ReadSurfacePixel(surface, surface_coords.x, surface_coords.y, &result.r, &result.g, &result.b, &result.a));
+    SDL_CHECK(SDL_ReadSurfacePixel(surface, surface_coords.x, surface_coords.y, &result.r, &result.g, &result.b, &result.a));
     return result;
 }
 
@@ -645,8 +649,8 @@ static void init_textures(struct Application *app)
         PANEL_TEXTURES[i] = load_texture(app, PANEL_TEXTURE_FILENAMES[i]);
 
         // Use nearest interpolation to scale resolution for pixel-perfect tiles.
-        SDL_CHECK_BOOL(SDL_SetTextureScaleMode(TILE_TEXTURES[i], SDL_SCALEMODE_PIXELART));
-        SDL_CHECK_BOOL(SDL_SetTextureScaleMode(PANEL_TEXTURES[i], SDL_SCALEMODE_PIXELART));
+        SDL_CHECK(SDL_SetTextureScaleMode(TILE_TEXTURES[i], SDL_SCALEMODE_PIXELART));
+        SDL_CHECK(SDL_SetTextureScaleMode(PANEL_TEXTURES[i], SDL_SCALEMODE_PIXELART));
     }
 }
 
@@ -667,8 +671,8 @@ static void init_tile_colors(void)
 
     // Allocate the universal alpha pixel format and tile window dimensions.
     // Use size of first tile texture (AIR) as reprentative of all tiles.
-    ALPHA_PIXEL_FORMAT = SDL_CHECK_PTR_TO_CONST(SDL_GetPixelFormatDetails(SDL_PIXELFORMAT_RGBA32));
-    SDL_Surface *reference_surface = SDL_CHECK_PTR(IMG_Load(TILE_TEXTURE_FILENAMES[0]));
+    ALPHA_PIXEL_FORMAT = SDL_CHECK(SDL_GetPixelFormatDetails(SDL_PIXELFORMAT_RGBA32));
+    SDL_Surface *reference_surface = SDL_CHECK(IMG_Load(TILE_TEXTURE_FILENAMES[0]));
     TILE_SCALE = (float) reference_surface->w;
     SDL_DestroySurface(reference_surface);
 
@@ -678,7 +682,7 @@ static void init_tile_colors(void)
 
     for (int i = 0; i < NUM_TILE_TYPES; i++)
     {
-        SDL_Surface *tile_surface = SDL_CHECK_PTR(IMG_Load(TILE_TEXTURE_FILENAMES[i]));
+        SDL_Surface *tile_surface = SDL_CHECK(IMG_Load(TILE_TEXTURE_FILENAMES[i]));
         TILE_COLORS[i] = get_pixel(tile_surface, topleft);
         SDL_DestroySurface(tile_surface);
     }
@@ -743,25 +747,25 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox)
     unsigned int window_flags = SDL_WINDOW_RESIZABLE;
 
     // Init all SDL subsystems and library extensions.
-    SDL_CHECK_BOOL(SDL_Init(SDL_INIT_VIDEO));
+    SDL_CHECK(SDL_Init(SDL_INIT_VIDEO));
 
-    app->window = SDL_CHECK_PTR(SDL_CreateWindow(title, 
+    app->window = SDL_CHECK(SDL_CreateWindow(title, 
                                                  app->min_window_width,
                                                  app->min_window_height,
                                                  window_flags));
-    SDL_CHECK_BOOL(SDL_SetWindowMinimumSize(app->window, app->min_window_width, app->min_window_height));
+    SDL_CHECK(SDL_SetWindowMinimumSize(app->window, app->min_window_width, app->min_window_height));
 
     // Create renderer using the first graphics acceleration device found.
     // Set a logical drawing area for automatic resolution scaling of rendered contents.
     // Logical area is big enough to render sandbox at full resolution.
-    app->renderer = SDL_CHECK_PTR(SDL_CreateRenderer(app->window, nullptr));
-    SDL_CHECK_BOOL(SDL_SetRenderLogicalPresentation(app->renderer, app->min_window_width, app->min_window_height, SDL_LOGICAL_PRESENTATION_LETTERBOX));
+    app->renderer = SDL_CHECK(SDL_CreateRenderer(app->window, nullptr));
+    SDL_CHECK(SDL_SetRenderLogicalPresentation(app->renderer, app->min_window_width, app->min_window_height, SDL_LOGICAL_PRESENTATION_LETTERBOX));
 
     app->mouse = create_mouse();
 
     // Enable alpha blending for transparent textures on renderer and allocate
     // all textures.
-    SDL_CHECK_BOOL(SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND));
+    SDL_CHECK(SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND));
     init_textures(app);
     return app;
 }
@@ -783,8 +787,8 @@ struct Mouse *create_mouse(void)
     // Initialize cursors used by mouse.
     for (int i = 0; i < NUM_MOUSE_MODES; i++)
     {
-        SDL_Surface *cursor_surface = SDL_CHECK_PTR(IMG_Load(CURSOR_TEXTURE_FILENAMES[i]));
-        new_mouse->cursors[i] = SDL_CHECK_PTR(SDL_CreateColorCursor(cursor_surface, 0, 31));
+        SDL_Surface *cursor_surface = SDL_CHECK(IMG_Load(CURSOR_TEXTURE_FILENAMES[i]));
+        new_mouse->cursors[i] = SDL_CHECK(SDL_CreateColorCursor(cursor_surface, 0, 31));
         SDL_DestroySurface(cursor_surface);
     }
 
@@ -813,7 +817,7 @@ void update_mode(struct Mouse *mouse, enum mouse_mode mode)
 SDL_Texture *load_texture(struct Application *app, const char *filename)
 {
     // Call to SDL_image to load image.
-    SDL_Texture *texture = SDL_CHECK_PTR(IMG_LoadTexture(app->renderer, filename));
+    SDL_Texture *texture = SDL_CHECK(IMG_LoadTexture(app->renderer, filename));
     return texture;
 }
 
@@ -826,11 +830,11 @@ SDL_Texture *load_texture_alpha(struct Application *app, const char *filename, u
     // To guarantee alpha channel presence, temporarily load image as surface,
     // then convert surface to a portable alpha channel format. Finally, convert
     // to texture, enable + set alpha blending, and free the surfaces.
-    SDL_Surface *raw_surface = SDL_CHECK_PTR(IMG_Load(filename));
-    SDL_Surface *alpha_surface = SDL_CHECK_PTR(SDL_ConvertSurface(raw_surface, ALPHA_PIXEL_FORMAT->format));
-    SDL_Texture *texture = SDL_CHECK_PTR(SDL_CreateTextureFromSurface(app->renderer, alpha_surface));
-    SDL_CHECK_BOOL(SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND));
-    SDL_CHECK_BOOL(SDL_SetTextureAlphaMod(texture, alpha));
+    SDL_Surface *raw_surface = SDL_CHECK(IMG_Load(filename));
+    SDL_Surface *alpha_surface = SDL_CHECK(SDL_ConvertSurface(raw_surface, ALPHA_PIXEL_FORMAT->format));
+    SDL_Texture *texture = SDL_CHECK(SDL_CreateTextureFromSurface(app->renderer, alpha_surface));
+    SDL_CHECK(SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND));
+    SDL_CHECK(SDL_SetTextureAlphaMod(texture, alpha));
 
     SDL_DestroySurface(raw_surface);
     SDL_DestroySurface(alpha_surface);
@@ -846,27 +850,27 @@ void blit_texture(struct Application *app, SDL_Texture *texture, SDL_FPoint wind
     dest.y = window_coords.y;
 
     // Fill in rectangle dimension data by querying the texture.
-    SDL_CHECK_BOOL(SDL_GetTextureSize(texture, &dest.w, &dest.h));
+    SDL_CHECK(SDL_GetTextureSize(texture, &dest.w, &dest.h));
 
     // Draw texture, passing in NULL to copy whole texture.
-    SDL_CHECK_BOOL(SDL_RenderTexture(app->renderer, texture, nullptr, &dest));
+    SDL_CHECK(SDL_RenderTexture(app->renderer, texture, nullptr, &dest));
 }
 
 
 void blit_rectangle(struct Application *app, SDL_FRect rect, SDL_Color color, bool do_fill)
 {
     // Draw a fill rectangle or rectangle outline, depending on parameter.
-    SDL_CHECK_BOOL(SDL_SetRenderDrawColor(app->renderer, color.r, color.g, color.b, color.a));
+    SDL_CHECK(SDL_SetRenderDrawColor(app->renderer, color.r, color.g, color.b, color.a));
     bool (*rect_blitter)(SDL_Renderer *, const SDL_FRect *);
     rect_blitter = do_fill ? SDL_RenderFillRect : SDL_RenderRect;
-    SDL_CHECK_BOOL(rect_blitter(app->renderer, &rect));
+    SDL_CHECK(rect_blitter(app->renderer, &rect));
 }
 
 
 void set_black_background(struct Application *app)
 {
-    SDL_CHECK_BOOL(SDL_SetRenderDrawColor(app->renderer, BLACK.r, BLACK.g, BLACK.b, BLACK.a));
-    SDL_CHECK_BOOL(SDL_RenderClear(app->renderer));
+    SDL_CHECK(SDL_SetRenderDrawColor(app->renderer, BLACK.r, BLACK.g, BLACK.b, BLACK.a));
+    SDL_CHECK(SDL_RenderClear(app->renderer));
 }
 
 
@@ -905,7 +909,7 @@ void draw_tile(struct Application *app, struct SandboxPoint coords)
         .b = WHITE.b - color_mod,
         .a = WHITE.a,
     };
-    SDL_CHECK_BOOL(SDL_SetTextureColorMod(tile_texture, variant.r, variant.g, variant.b));
+    SDL_CHECK(SDL_SetTextureColorMod(tile_texture, variant.r, variant.g, variant.b));
     blit_texture(app, tile_texture, window_coords);
 }
 
@@ -938,7 +942,7 @@ void get_input(struct Application *app)
             // mouse coordinates captured this way can be auto-scaled to match
             // logical render size, transformed from window space.
             case SDL_EVENT_MOUSE_MOTION:
-                SDL_CHECK_BOOL(SDL_ConvertEventToRenderCoordinates(app->renderer, &event));
+                SDL_CHECK(SDL_ConvertEventToRenderCoordinates(app->renderer, &event));
                 app->mouse->x = event.motion.x;
                 app->mouse->y = event.motion.y;
                 break;
