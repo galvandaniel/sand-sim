@@ -192,73 +192,10 @@ static const void *sdl_check_ptr_to_const(const void *sdl_ptr, const char *file,
  */
 static SDL_Color get_pixel(SDL_Surface *surface, SDL_Point surface_coords)
 {
-    const SDL_PixelFormatDetails *format_details = SDL_CHECK_PTR_TO_CONST(SDL_GetPixelFormatDetails(surface->format));
-    int bpp = format_details->bytes_per_pixel;
-
-    // Lock surface for directly reading off pixel data, if necessary.
-    if (SDL_MUSTLOCK(surface))
-    {
-        SDL_CHECK_BOOL(SDL_LockSurface(surface));
-    }
-
-    // Credit of implemetantion goes to:
-    // https://stackoverflow.com/questions/53033971/how-to-get-the-color-of-a-specific-pixel-from-sdl-surface
-
-    // Advance pixel pointer to beginning of requested pixel.
-    ptrdiff_t offset = (surface_coords.y * surface->pitch) + (surface_coords.x * bpp);
-    Uint8 *pixel = ((Uint8 *) surface->pixels + offset);
-
-
-    Uint32 pixel_data;
-    constexpr int BYTE_SHIFT = 8;
-    constexpr int TWO_BYTE_SHIFT = 16;
-    switch (bpp)
-    {
-        // If 1 byte per pixel, read the one byte.
-        case 1:
-            pixel_data = *pixel;
-            break;
-        
-        // If 2 bytes per pixel, cast pointer to read 2 bytes at once.
-        case 2:
-            pixel_data = *(Uint16 *) pixel;
-            break;
-        
-        // If 3 bytes per pixel, manually copy.
-        case 3:
-            if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
-            {
-                pixel_data = (Uint32) (pixel[0] << TWO_BYTE_SHIFT | pixel[1] << BYTE_SHIFT | pixel[2]);
-            }
-            else
-            {
-                pixel_data = (Uint32) (pixel[0] | pixel[1] << BYTE_SHIFT | pixel[2] << TWO_BYTE_SHIFT);
-            }
-            break;
-        
-        case 4:
-            pixel_data = *(Uint32 *) pixel;
-            break;
-        
-        default:
-            pixel_data = 0;
-            break;
-    }
-
-    // Fill color with RGB components using the surface pixel format.
-    SDL_Color rgb;
-    rgb.a = SDL_ALPHA_OPAQUE;
-    SDL_GetRGB(pixel_data, format_details, SDL_GetSurfacePalette(surface) , &rgb.r, &rgb.g, &rgb.b);
-
-    // Unlock surface if it was previously locked above.
-    if (SDL_MUSTLOCK(surface))
-    {
-        SDL_UnlockSurface(surface);
-    }
-
-    return rgb;
+    SDL_Color result;
+    SDL_CHECK_BOOL(SDL_ReadSurfacePixel(surface, surface_coords.x, surface_coords.y, &result.r, &result.g, &result.b, &result.a));
+    return result;
 }
-
 
 
 /**
