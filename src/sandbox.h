@@ -163,7 +163,7 @@ Tile get_tile(struct Sandbox *sandbox, struct SandboxPoint coords);
  * @param tile_type Type which the generated tile is given.
  * @return Tile particle of the given type.
  */
-Tile create_tile(struct Sandbox *sandbox, enum tile_type new_type);
+Tile create_tile(struct Sandbox *sandbox, enum TileType new_type);
 
 
 /**
@@ -177,7 +177,7 @@ Tile create_tile(struct Sandbox *sandbox, enum tile_type new_type);
  * @param coords Coordinate to place new tile.
  * @param type Type of the new tile.
  */
-void place_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum tile_type type);
+void place_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum TileType type);
 
 
 /**
@@ -204,7 +204,7 @@ void delete_tile(struct Sandbox *sandbox, struct SandboxPoint coords);
  * @param coords Coordinate to replace old tile with new tile.
  * @param type Type of the new tile.
  */
-void replace_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum tile_type type);
+void replace_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum TileType type);
 
 
 #endif // SANDBOX_H

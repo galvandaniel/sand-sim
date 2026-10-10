@@ -68,7 +68,7 @@ struct Mouse
     bool is_holding_lctrl;
 
     // Selected particle tile type to place down.
-    enum tile_type selected_type;
+    enum TileType selected_type;
 
     // Mode controlling whether mouse deletes or places tiles into sandbox
     // and corresponding cursors for each mode.
@@ -282,7 +282,7 @@ void handle_input(struct Application *app);
  * @param mouse Mouse to switch contained tile type of.
  * @param new_type Value from 0 to 15 representing the new tile type.
  */
-void switch_selected_type(struct Mouse *mouse, enum tile_type new_type);
+void switch_selected_type(struct Mouse *mouse, enum TileType new_type);
 
 
 /**

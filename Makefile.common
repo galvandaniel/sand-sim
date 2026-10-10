@@ -45,10 +45,11 @@ SRCS = src/main.c \
        src/sandsim_cli.c \
        src/sandbox.c \
        src/tile.c \
+       src/tile_properties.c \
        src/gui.c \
-       src/utils.c
+       src/utils.c \
 
-# For now, assume all sources define a public API, with the exception of main.c.
+# Assume all user-defined .c have a respective .h, with the exception of main.c.
 HDRS = $(SRCS:src/main.c= )
 
 # Object extension matters to GCC, and for Windows its a convention to stick to.

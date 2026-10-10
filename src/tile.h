@@ -1,6 +1,6 @@
 /**
  * Module which defines the interface for creating and manipulating
- * `Tile` particles in a sandbox simulation.
+ * the data encoded in a `Tile` particle of a sandbox simulation.
  * 
  * Each tile shall be represented as a single byte.
  */
@@ -16,9 +16,12 @@
 typedef uint8_t Tile;
 
 /*
- * All types a tile particle can be. AIR denotes the empty tile.
+ * All types are of a particular type.
+ * 
+ * AIR denotes the empty tile.
  */
-enum tile_type {
+enum TileType 
+{
     AIR, 
     SAND, 
     WATER, 
@@ -36,7 +39,15 @@ enum tile_type {
  * @param tile Tile to fetch type of.
  * @return Value from 0 to 15 representing the type of tile given.
  */
-enum tile_type get_tile_type(Tile tile);
+enum TileType get_tile_type(Tile tile);
+
+/**
+ * Determine whether the two given tiles have the type tile type.
+ * 
+ * @param tile, other_tile Tiles to determine if they have same type.
+ * @return True if tiles have same tile type, false otherwise.
+ */
+bool tiles_are_same_type(Tile tile, Tile other_tile);
 
 
 /**
@@ -62,7 +73,6 @@ bool get_updated_flag(Tile tile);
  * @return A value from 0 to 3, each representing a unique color variation.
  */
 unsigned char get_tile_color(Tile tile);
-
 
 
 /**

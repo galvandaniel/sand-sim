@@ -2,8 +2,6 @@
  * Implementation of gui.h interface.
  */
 
-
-
 #include "gui.h"
 #include "sandbox.h"
 #include "tile.h"
@@ -346,8 +344,8 @@ static void do_mouse_wheel_motion(struct Application *app, SDL_MouseWheelEvent *
 
     // Switch type when scrolling mouse.
     // Rollover type depending on scroll direction when result would exceed valid type bounds. 
-    enum tile_type current_type = app->mouse->selected_type;
-    enum tile_type new_type = SAND;
+    enum TileType current_type = app->mouse->selected_type;
+    enum TileType new_type = SAND;
     if (vertical_scroll > 0)
     {
         new_type = current_type >= NUM_TILE_TYPES - 1 ? SAND : current_type + 1;
@@ -1027,7 +1025,7 @@ void alter_tile(struct Mouse *mouse, struct Sandbox *sandbox)
 
 
 
-void switch_selected_type(struct Mouse *mouse, enum tile_type new_type)
+void switch_selected_type(struct Mouse *mouse, enum TileType new_type)
 {
     // For invalid tile types, do nothing.
     if (new_type >= NUM_TILE_TYPES)

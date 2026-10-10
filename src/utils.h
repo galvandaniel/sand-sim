@@ -1,12 +1,12 @@
-#ifndef UTILS_H
-#define UTILS_H
-
 /**
  * A collection of general-purpose utility functions.
  * 
  * The random functions declared in this header can be seeded with srand()
  * for different random sequences.
  */
+
+#ifndef UTILS_H
+#define UTILS_H
 
 #include <stdint.h>
 #include <stddef.h>

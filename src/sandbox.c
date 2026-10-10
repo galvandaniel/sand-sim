@@ -1,5 +1,6 @@
 #include "sandbox.h"
 #include "tile.h"
+#include "tile_properties.h"
 #include "utils.h"
 
 #include <stdlib.h>
@@ -75,281 +76,6 @@ static void swap_tiles(struct Sandbox *sandbox, struct SandboxPoint coords, stru
 
 
 /**
- * Determine whether the two given tiles have the type tile type.
- * 
- * @param tile, other_tile Tiles to determine if they have same type.
- * @return True if tiles have same tile type, false otherwise.
- */
-static bool are_tiles_same_type(Tile tile, Tile other_tile)
-{
-    return get_tile_type(tile) == get_tile_type(other_tile);
-}
-
-
-/**
- * Get the chance a tile particle has of surviving to the next frame of
- * simulation.
- * 
- * If a tile does not survive, it is replaced by AIR.
- * 
- * 0.0 indicates 0% chance of survival, 1.0 indicates 100% chance. 
- * A tile with 100% chance of survival will never disappear unless removed by
- * the user.
- * 
- * @param tile Tile to get likelihood of survival.
- * @return Double representing chance of survival to the next frame.
- */
-static double get_tile_survival_chance(Tile tile)
-{
-    enum tile_type current_type = get_tile_type(tile);
-
-    // Tile values that are not 0 or 1 have been chosen empirically based on
-    // what 'feels' right.
-    switch (current_type)
-    {
-    // AIR represents empty tile so 'surviving' has no significance for it.
-    case AIR:
-    case SAND:
-    case WATER:
-    case WOOD:
-    case FUEL:
-        return 1.0;
-
-    case STEAM:
-        return 0.95;
-
-    case FIRE:
-        return 0.87;
-
-    default:
-        return 1.0;
-    }
-}
-
-
-/**
- * Get the flammability of a tile, the chance a tile has of being lit on fire in
- * next frame when adjacent to any incendiary tile in the cardinal directions.
- * 
- * @param tile Tile to get flammability chance for.
- * @return Chance of being lit on fire, 0.0 indicating 0%, 1.0 indicating 100%.
- */
-static double tile_flammability(Tile tile)
-{
-    enum tile_type current_type = get_tile_type(tile);
-
-    switch (current_type)
-    {
-    case AIR:
-    case SAND:
-    case WATER:
-    case STEAM:
-    case FIRE:
-        return 0.0;
-
-    case WOOD:
-        return 0.50;         
-
-    case FUEL:
-        return 0.75;
-
-    default:
-        return 0.0;
-    }
-}
-
-
-/**
- * Return whether the given tile is affected by gravity or not.
- *
- * @param tile Tile to determine if it has gravity or not.
- * @return True if tile is affected by gravity, false otherwise.
- */
-static bool tile_has_gravity(Tile tile)
-{
-    enum tile_type current_type = get_tile_type(tile);
-
-    switch (current_type)
-    {
-    case AIR:
-    case WOOD:
-    case STEAM:
-    case FIRE:
-        return false;
-
-    case SAND:
-    case WATER:
-    case FUEL:
-        return true;
-
-    default:
-        return false;
-    }
-}
-
-
-/**
- * Return whether or not a tile is "solid".
- *
- * A tile is considered solid if it capable of acting as a "floor" and can block
- * fluid.
- * Intuitively, this means you could sensibly stand on the tile.
- *
- * For example, you cannot stand on air and fire.
- * You can, however, stand on sand and wood.
- *
- * @param tile Tile to determine if is solid or not.
- * @return True if tile is solid, false otherwise.
- */
-static bool tile_is_solid(Tile tile)
-{
-    enum tile_type current_type = get_tile_type(tile);
-
-    switch (current_type)
-    {
-    case AIR:
-    case WATER:
-    case STEAM:
-    case FIRE:
-    case FUEL:
-        return false;
-
-    case SAND:
-    case WOOD:
-        return true;
-
-    default:
-        return false;
-    }
-}
-
-
-/**
- * Return whether the given tile is "liquid". 
- * 
- * A tile is considered liquid if it is able to flow ontop of solids and other 
- * liquids.
- * 
- * For example, water is a liquid. Wood and steam are not liquids.
- *
- * @param tile Tile to determine if is liquid or not.
- * @return True if the tile type is liquid and there has flow, false otherwise.
- */
-static bool tile_is_liquid(Tile tile)
-{
-    enum tile_type current_type = get_tile_type(tile);
-
-    switch (current_type)
-    {
-    case AIR:
-    case SAND:
-    case WOOD:
-    case STEAM:
-    case FIRE:
-        return false;
-
-    case WATER:
-    case FUEL:
-        return true;
-
-    default:
-        return false;
-    }
-}
-
-
-/**
- * Return whether the given tile is a "gas" 
- * 
- * A tile is considered a gas if lifts into the air and is able to permeate
- * through liquids and other gasses.
- *
- * @param tile Tile to determine if is gas and has lift or not.
- * @return True if tile is a gas and lifts into the air, false otherwise.
- */
-static bool tile_is_gas(Tile tile)
-{
-    enum tile_type current_type = get_tile_type(tile);
-
-    switch (current_type)
-    {
-    // Air refers to the empty tile, it is not a gas.
-    case AIR:
-    case SAND:
-    case WATER:
-    case WOOD:
-    // Fuel is a gasoline ('gas'), but it is not a gaseous substance.
-    case FUEL:
-        return false;
-
-    case STEAM:
-    case FIRE:
-        return true;
-
-    default:
-        return false;
-    }
-}
-
-
-/**
- * Return whether or not a tile dissolves in fluids therefore has a chance to
- * flow laterally through liquids.
- * 
- * @param tile Tile to determine if dissolves in liquid.
- * @return True if tile dissolves in liquids like water, false otherwise.
- */
-static bool tile_dissolves(Tile tile)
-{
-    enum tile_type current_type = get_tile_type(tile);
-
-    switch (current_type)
-    {
-    case AIR:
-    case SAND:
-    case WATER:
-    case WOOD:
-    case STEAM:
-    case FIRE:
-    case FUEL:
-    case NUM_TILE_TYPES:
-    default:
-        return false;
-    }
-}
-
-
-/**
- * Return whether or not a tile is able to light other flammable tiles on fire 
- * by being close to them.
- * 
- * @param tile Tile to determine if can light other tiles on fire or not.
- * @return True if tile can light others on fire, false otherwise.
- */
-static bool tile_is_incendiary(Tile tile)
-{
-    enum tile_type current_type = get_tile_type(tile);
-
-    switch (current_type)
-    {
-    case AIR:
-    case SAND:
-    case WATER:
-    case WOOD:
-    case STEAM:
-    case FUEL:
-        return false;
-
-    case FIRE:
-        return true;
-
-    default:
-        return false;
-    }
-}
-
-
-/**
  * Perform a random roll on whether the given tile should survive to the next
  * frame of simulation or not. This depends on the tile's survival odds.
  * 
@@ -385,7 +111,7 @@ static bool roll_should_tile_survive(Tile tile)
 static bool roll_should_tile_burn(struct Sandbox *sandbox, struct SandboxPoint coords)
 {
     Tile tile = get_tile(sandbox, coords);
-    double burn_chance = tile_flammability(tile);
+    double burn_chance = get_tile_burn_chance(tile);
 
     if (approx_equal(burn_chance, 0.0))
     {
@@ -454,7 +180,7 @@ static bool can_flow(struct Sandbox *sandbox, struct SandboxPoint source, struct
     Tile target_tile = get_tile(sandbox, target);
     
     return (is_tile_empty(target_tile) ||
-           (tile_is_liquid(target_tile) && !are_tiles_same_type(source_tile, target_tile)));
+           (tile_is_liquid(target_tile) && !tiles_are_same_type(source_tile, target_tile)));
 }
 
 
@@ -493,7 +219,7 @@ static bool can_lift(struct Sandbox *sandbox, struct SandboxPoint source, struct
     // through own gas type.
     return (is_tile_empty(target_tile)
          || tile_is_liquid(target_tile)
-         || (tile_is_gas(target_tile) && !are_tiles_same_type(source_tile, target_tile)));
+         || (tile_is_gas(target_tile) && !tiles_are_same_type(source_tile, target_tile)));
 }
 
 
@@ -523,7 +249,7 @@ static bool can_sink(struct Sandbox *sandbox, struct SandboxPoint source, struct
     // Can only sink through a liquid tile, and a liquid cannot sink through 
     // its own type.
     return (tile_is_liquid(target_tile)
-         && !are_tiles_same_type(source_tile, target_tile)
+         && !tiles_are_same_type(source_tile, target_tile)
          && !tile_dissolves(source_tile));
 }
 
@@ -606,7 +332,7 @@ void process_sandbox(struct Sandbox *sandbox)
         }
 
         // Perform gravity on the tiles that need it.
-        if (tile_has_gravity(current_tile) && do_gravity(sandbox, coords))
+        if (tile_is_subject_to_gravity(current_tile) && do_gravity(sandbox, coords))
         {
             continue;
         }
@@ -838,8 +564,7 @@ Tile get_tile(struct Sandbox *sandbox, struct SandboxPoint coords)
 }
 
 
-
-Tile create_tile(struct Sandbox *sandbox, enum tile_type new_type)
+Tile create_tile(struct Sandbox *sandbox, enum TileType new_type)
 {
     // New tiles are synced to time to prevent update until next frame.
     Tile new_tile = (Tile) new_type;
@@ -852,7 +577,7 @@ Tile create_tile(struct Sandbox *sandbox, enum tile_type new_type)
 }
 
 
-void place_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum tile_type type)
+void place_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum TileType type)
 {
     // Only place new tiles ontop of air.
     if (!is_tile_empty(get_tile(sandbox, coords)))
@@ -874,14 +599,13 @@ void delete_tile(struct Sandbox *sandbox, struct SandboxPoint coords)
 }
 
 
-void replace_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum tile_type type)
+void replace_tile(struct Sandbox *sandbox, struct SandboxPoint coords, enum TileType type)
 {
     // Don't replace a tile with its own type, this would be redundant.
-    enum tile_type source_type = get_tile_type(get_tile(sandbox, coords));
+    enum TileType source_type = get_tile_type(get_tile(sandbox, coords));
     if (source_type == type)
     {
         return;
     }
     *get_tile_ref(sandbox, coords) = create_tile(sandbox, type);
 }
-

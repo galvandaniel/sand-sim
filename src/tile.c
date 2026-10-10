@@ -30,9 +30,15 @@ static constexpr uint8_t GET_COLOR_MASK = 0b0110'0000;
 static constexpr int COLOR_SHIFT = 5;
 
 
-enum tile_type get_tile_type(Tile tile)
+enum TileType get_tile_type(Tile tile)
 {
     return GET_TILE_MASK & tile;
+}
+
+
+bool tiles_are_same_type(Tile tile, Tile other_tile)
+{
+    return get_tile_type(tile) == get_tile_type(other_tile);
 }
 
 
