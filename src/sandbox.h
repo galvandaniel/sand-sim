@@ -51,10 +51,12 @@ struct Sandbox *create_sandbox(int width, int height);
 
 /**
  * Free all memory taken up by the given sandbox simulation.
+ * 
+ * Passing NULL to this function does nothing.
  *
  * @param sandbox Sandbox to free.
  */
-void sandbox_free(struct Sandbox *sandbox);
+void destroy_sandbox(struct Sandbox *sandbox);
 
 
 /**

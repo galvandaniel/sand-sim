@@ -1,40 +1,16 @@
 /**
- * Module for displaying a sandbox using SDL3.
- *  
- * If any API call to SDL3 fails, the functions defined here will call exit()
- * and quit the running program.
+ * Primary module for displaying a sandbox using SDL3.
  */
 
-#ifndef GUI_H
-#define GUI_H
+#ifndef APP_H
+#define APP_H
 
+#include "cursor.h"
+#include "brush.h"
 #include "sandbox.h"
-#include "tile.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
-
-/**
- * Scale-factor which determines how many screen pixels it takes to draw 1 side 
- * of 1 particle tile in the sandbox.
- * Ex: TILE_SCALE = 8 indicates 1 tile particle takes up 64 screen pixels.
- * 
- * This is equivalent to the n x n dimensions of all tile PNGs. As such, this
- * property assumes that all assets/tiles/$(tile_type).png are the same square 
- * size.
- */
-extern float TILE_SCALE;
-
-
-/**
- * Unique modes the mouse can be in when placing tiles in the sandbox.
- * 
- * PLACE: Place tile only on empty spaces.
- * DELETE: Place empty (air) tile on any other tile.
- * REPLACE: Place tile on any other tile.
- */
-enum mouse_mode {PLACE, DELETE, REPLACE, NUM_MOUSE_MODES};
-
 
 /**
  * Arrays of length NUM_TILE_TYPES to NULL-terminated strings indicating 
@@ -42,39 +18,6 @@ enum mouse_mode {PLACE, DELETE, REPLACE, NUM_MOUSE_MODES};
  */
 extern const char *TILE_TEXTURE_FILENAMES[];
 extern const char *PANEL_TEXTURE_FILENAMES[];
-extern const char *CURSOR_TEXTURE_FILENAMES[];
-
-
-/**
- * Type describing the component of the sandbox whose location is controlled by
- * some input device, manipulating tile particles at its current location.
- * 
- * Most intuitively controlled by a computer mouse, but can also capture 
- * controller input data.
- */
-struct Mouse
-{
-    // Subpixel mouse coordinates in app window in terms of absolute window size.
-    float x;
-    float y;
-
-    // Radius of square target area in sandbox.
-    // The target area determines where tiles are placed.
-    int target_radius;
-
-    // Whether LMB or LCTRL are currently held down or not.
-    // LCTRL enables controlling size of target_radius.
-    bool is_left_clicking;
-    bool is_holding_lctrl;
-
-    // Selected particle tile type to place down.
-    enum TileType selected_type;
-
-    // Mode controlling whether mouse deletes or places tiles into sandbox
-    // and corresponding cursors for each mode.
-    enum mouse_mode mode;
-    SDL_Cursor *cursors[NUM_MOUSE_MODES];
-};
 
 
 /**
@@ -86,8 +29,11 @@ struct Application
     SDL_Renderer *renderer;
     SDL_Window *window;
 
-    // Mouse data captured by GUI application.
-    struct Mouse *mouse;
+    // Input data captured by GUI application.
+    struct Cursor *cursor;
+
+    // State of sandbox interactivity component, we call it 'Brush'.
+    struct Brush *brush;
 
     // Sandbox owned and displayed by GUI application.
     struct Sandbox *sandbox;
@@ -100,17 +46,19 @@ struct Application
 
 
 /**
- * Initialize Sandbox GUI application and SDL with respect to the given sandbox
+ * Allocate a Sandbox GUI application using SDL from the given sandbox
  * data.
+ * 
+ * This function will initialize SDL via `SDL_Init()` if not already.
+ * This function will call exit() if any part of the app initialization fails.
  *
  * @param title NULL-terminated bytestring to name the application window.
  * @param sandbox Sandbox to be owned by the initialized GUI application.
  * @return Pointer to created GUI application which renders and owns the passed
  * sandbox object.
  * 
- * This function will call exit() if any part of the app initialization fails.
  */
-struct Application *init_gui(const char *title, struct Sandbox *sandbox);
+struct Application *create_app(const char *title, struct Sandbox *sandbox);
 
 
 /**
@@ -120,41 +68,7 @@ struct Application *init_gui(const char *title, struct Sandbox *sandbox);
  * 
  * @param app Owning GUI application to shutdown and free.
  */
-void quit_gui(struct Application *app);
-
-
-/**
- * Create mouse in sandbox with selected tile SAND in mode PLACE, with cursor
- * images for each mode appropriately initialized as SDL Cursors.
- * All other fields are initialized to 0.
- * 
- * This function depends on SDL and SDL Image having been initialized to
- * enable loading of PNGs, and so will quit the calling program if this is not
- * the case.
- * 
- * @return Sandbox mouse which controls location and type of tile manipulation.
- */
-struct Mouse *create_mouse(void);
-
-
-/**
- * Free all memory taken up by the passed sandbox mouse.
- * 
- * @param mouse Sandbox mouse to free.
- */
-void destroy_mouse(struct Mouse *mouse);
-
-
-/**
- * Set the mouse mode to the given and update SDL display to reflect the change
- * in mode with a change in cursor graphic.
- * 
- * @param mouse Mouse whose mode to update.
- * @param mode Tile placement mode (replacement, deletion, etc) to set mouse to.
- */
-void update_mode(struct Mouse *mouse, enum mouse_mode mode);
-
-
+void quit_app(struct Application *app);
 
 
 /**
@@ -245,10 +159,8 @@ void draw_tile(struct Application *app, struct SandboxPoint coords);
 
 
 /**
- * Render sand-sim UI elements to the given app.
- *
- * This includes panels displaying which tile type is currently selected by the
- * app's mouse.
+ * Render sand-sim UI elements to the given app which display ontop of sandbox
+ * simulation render.
  *
  * @param app App to render UI elements to.
  *
@@ -257,7 +169,7 @@ void draw_ui(struct Application *app);
 
 
 /**
- * Poll SDL for any user-input (mouse input, keyboard input) and update the
+ * Poll SDL for any input device activity and update the
  * GUI application state respectfully.
  *
  * @param app GUI Application whose data to update with respect to user input.
@@ -276,27 +188,4 @@ void get_input(struct Application *app);
 void handle_input(struct Application *app);
 
 
-/**
- * Switch the mouse's selected tile type to the given new_type.
- *
- * @param mouse Mouse to switch contained tile type of.
- * @param new_type Value from 0 to 15 representing the new tile type.
- */
-void switch_selected_type(struct Mouse *mouse, enum TileType new_type);
-
-
-/**
- * Alter the sandbox by changing the tile located at the mouse's screen 
- * location, scaled down sandbox coordinates via TILE_SCALE, according to the
- * mouse mode. 
- * 
- * Typically, this is the logic which runs when LMB is pressed.
- * 
- * @param mouse Mouse whose coordiantes and selected tile type will be used
- * to mutate a tile in the given sandbox.
- * @param sandbox Sandbox to mutate and alter tile in according to mouse data.
- */
-void alter_tile(struct Mouse *mouse, struct Sandbox *sandbox);
-
-
-#endif // GUI_H
+#endif // APP_H

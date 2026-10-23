@@ -3,7 +3,7 @@
  */
 
 #include "sandsim_cli.h"
-#include "gui.h"
+#include "app.h"
 #include "sandbox.h"
 
 #include <SDL3/SDL.h>
@@ -25,7 +25,7 @@ int main(int argc, char **argv)
     // Form a sandbox of user's desired dimensions along with GUI app which
     // owns this sandbox.
     struct Sandbox *sandbox = create_sandbox(sandbox_dimensions[0], sandbox_dimensions[1]);
-    struct Application *app = init_gui(APP_NAME, sandbox);
+    struct Application *app = create_app(APP_NAME, sandbox);
 
     while (true)
     {

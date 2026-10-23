@@ -137,9 +137,9 @@ static bool roll_should_tile_burn(struct Sandbox *sandbox, struct SandboxPoint c
     for (int i = 0; i < 4; i++)
     {
         if (is_coord_oob(sandbox, search_area[i]))
-         {
+        {
             continue;
-         }
+        }
 
          if (tile_is_incendiary(get_tile(sandbox, search_area[i])))
          {
@@ -273,8 +273,13 @@ struct Sandbox *create_sandbox(int width, int height)
 }
 
 
-void sandbox_free(struct Sandbox *sandbox)
+void destroy_sandbox(struct Sandbox *sandbox)
 {
+    if (sandbox == NULL)
+    {
+        return;
+    }
+
     free(sandbox->grid);
     free(sandbox);
 }
