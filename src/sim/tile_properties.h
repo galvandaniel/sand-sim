@@ -6,7 +6,7 @@
 #ifndef TILE_PROPERTIES_H
 #define TILE_PROPERTIES_H
 
-#include "tile.h"
+#include "sim/tile.h"
 
 /**
  * Container for all properties which determine the behavior of a tile for

@@ -175,6 +175,35 @@ make
 
 This will produce a binary called `sand-sim` which can be executed to run the program.
 
+It is instead possible to cross-compile the Windows versions of sand-sim on Linux.
+To do this, the 64-bit Win32 implementation of [MinGW64](https://www.mingw-w64.org/getting-started/debian/) is required:
+
+```bash
+# Alternatively, the more general `apt install mingw-w64` also works but will install many other mingw components not required by sand-sim. 
+sudo apt install gcc-mingw-w64-x86-64-win32
+```
+
+sand-sim can then be built for Windows on Linux from the project root directory with the command:
+
+```bash
+make sand-sim.exe
+```
+
+The necessary SDL3 Windows pre-compiled MinGW binaries are provided with the source of
+sand-sim and no external installation of SDL3 is necessary for compiling the Windows version.
+
+On WSL, the above output binary can be run natively. On Linux, the Windows cross-compile of sand-sim can also be run correctly using [Wine](https://www.winehq.org/)!
+
+First install Wine:
+```bash
+sudo apt install wine wine64
+```
+Then the Windows cross-compile can be run on Linux like so:
+```bash
+wine ./sand-sim.exe
+```
+
+
 If developing sand-sim, the provided `.clang-tidy` file enables usage of [clangd](https://clangd.llvm.org/) as a C language server.
 
 To generate the requisite `compile_commands.json` required by clangd, use [Bear](https://github.com/rizsotto/Bear).
@@ -234,24 +263,6 @@ And run with Address+LeakSanitizer stack tracing like so:
 ASAN_OPTIONS=fast_unwind_on_malloc=false ./sand-sim
 ```
 
-
-It is instead possible to cross-compile the Windows versions of sand-sim on Linux, such as if running on WSL. 
-To do this, the 64-bit Win32 implementation of [MinGW64](https://www.mingw-w64.org/getting-started/debian/) is required:
-
-```bash
-# Alternatively, the more general `apt install mingw-w64` also works but will install many other mingw components not required by sand-sim. 
-sudo apt install gcc-mingw-w64-x86-64-win32
-```
-
-sand-sim can then be built for Windows on Linux from the project root directory with the command:
-
-```bash
-make sand-sim.exe
-```
-
-The necessary SDL3 Windows pre-compiled MinGW binaries are provided with the source of
-sand-sim and no external installation of SDL3 is necessary for compiling the Windows version.
-
 ### Compiling on Windows
 
 Compiling sand-sim on Windows requires the Visual Studio Build Tools 2026.
@@ -299,13 +310,13 @@ Developing sand-sim as a solution inside Windows Visual Studio is not supported.
 
 ## Project and Source File Organization
 
-- `assets/` - Visual and audio assets used in GUI.
-- `libs/` - Pre-compiled third-party library code and headers.
-- `src/sandbox.c` - Core sandbox simulation logic.
-- `src/gui.c` - Implementation of GUI for displaying sandbox in SDL3.
+- `assets/*` - Visual and audio assets used in GUI.
+- `libs/*` - Pre-compiled third-party library code and headers.
+- `src/main.c` - Program entry-point.
+- `src/gui/*` - Core GUI rendering of sandbox in SDL3.
+- `src/sim/*` - Core sandbox simulation logic.
 - `src/utils.c` - General-purpose utility functions.
-- `src/main.c` - Program entry-point and parser of command-line arguments.
+- `src/sandsim_cli.c` - Argument parsing logic.
 - `GNUmakefile` + `Makefile` - Makefiles specific to GNUmake and Microsoft's NMAKE.
 - `Makefile.common` - Build definitions common to both Linux and Windows ports.
 - `build.bat` - Auxiliary script driving Windows compilation using clang in MSVC-mode.
-

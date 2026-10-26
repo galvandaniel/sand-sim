@@ -1,7 +1,7 @@
-#include "cursor.h"
-#include "brush.h"
+#include "gui/cursor.h"
+#include "gui/brush.h"
+#include "gui/sdl_utils.h"
 #include "utils.h"
-#include "sdl_utils.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_init.h>

@@ -5,9 +5,9 @@
 #ifndef APP_H
 #define APP_H
 
-#include "cursor.h"
-#include "brush.h"
-#include "sandbox.h"
+#include "gui/cursor.h"
+#include "gui/brush.h"
+#include "sim/sandbox.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>

@@ -8,6 +8,7 @@ CC = clang
 # Use C23 standard, level 2 optimization level, and very high warning level.
 # We call C23 as C2x for compatability with older MinGW versions (Ex: Ubuntu 26.04 in 2026-2027 only comes with MinGW 13!)
 CFLAGS = -std=c2x \
+         -I src \
          -O2 \
          -Wall \
          -Wextra \
@@ -43,14 +44,14 @@ DEBUG_LDFLAGS = $(LDFLAGS) $(ASAN_FLAGS)
 # NMAKE. For this reason, source files are listed manually here.
 SRCS = src/main.c \
        src/sandsim_cli.c \
-       src/sandbox.c \
-       src/tile.c \
-       src/tile_properties.c \
-       src/sdl_utils.c \
-       src/app.c \
-       src/cursor.c \
-       src/brush.c \
        src/utils.c \
+       src/sim/sandbox.c \
+       src/sim/tile.c \
+       src/sim/tile_properties.c \
+       src/gui/sdl_utils.c \
+       src/gui/app.c \
+       src/gui/cursor.c \
+       src/gui/brush.c \
 
 # Assume all user-defined .c have a respective .h, with the exception of main.c.
 HDRS = $(SRCS:src/main.c= )

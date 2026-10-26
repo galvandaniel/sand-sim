@@ -2,7 +2,7 @@
  * A collection of general-purpose utility functions.
  * 
  * The random functions declared in this header can be seeded with srand()
- * for different random sequences.
+ * for different random sequences, in the same way rand() is seeded.
  */
 
 #ifndef UTILS_H
@@ -44,7 +44,7 @@ void *xmalloc(size_t size, const char *file, int line);
  * @return The pointer to the beginning of newly allocated memory. 
  * To avoid a memory leak, the returned pointer must be deallocated with free().
  */
-void* xcalloc( size_t num, size_t size, const char *file, int line);
+void* xcalloc(size_t num, size_t size, const char *file, int line);
 
 
 /**

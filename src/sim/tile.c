@@ -12,7 +12,7 @@
  * t - Tile type identifier, a value from 0 to 15.
  */
 
-#include "tile.h"
+#include "sim/tile.h"
 #include "utils.h"
 
 /**

@@ -5,8 +5,8 @@
  * tile type is to be defined, it must be done here.
  */
 
-#include "tile_properties.h"
-#include "tile.h"
+#include "sim/tile_properties.h"
+#include "sim/tile.h"
 
 // ----- Define behavioral properties of all tile types -----
 

@@ -8,8 +8,8 @@
 #ifndef BRUSH_H
 #define BRUSH_H
 
-#include "sandbox.h"
-#include "tile.h"
+#include "sim/tile.h"
+#include "sim/sandbox.h"
 
 /**
  * Maximum allowed size of brush target area.

@@ -2,12 +2,12 @@
  * Implementation of gui.h interface.
  */
 
-#include "app.h"
-#include "cursor.h"
-#include "brush.h"
-#include "sdl_utils.h"
-#include "sandbox.h"
-#include "tile.h"
+#include "gui/app.h"
+#include "gui/cursor.h"
+#include "gui/brush.h"
+#include "gui/sdl_utils.h"
+#include "sim/tile.h"
+#include "sim/sandbox.h"
 #include "utils.h"
 
 #include <SDL3/SDL.h>

@@ -1,7 +1,7 @@
-#include "brush.h"
-#include "sandbox.h"
+#include "gui/brush.h"
+#include "sim/tile.h"
+#include "sim/sandbox.h"
 #include "utils.h"
-#include "tile.h"
 
 #include <stdlib.h>
 #include <assert.h>

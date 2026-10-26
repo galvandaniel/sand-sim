@@ -5,7 +5,9 @@
 #ifndef SANDBOX_H
 #define SANDBOX_H
 
-#include "tile.h"
+#include "sim/tile.h"
+
+#include <stdint.h>
 
 /**
  * Type describing a sandbox simulation, containing 2D grid data, grid

@@ -1,8 +1,8 @@
 #ifndef CURSOR_H
 #define CURSOR_H
 
-#include "brush.h"
-#include "sandbox.h"
+#include "gui/brush.h"
+#include "sim/sandbox.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_rect.h>

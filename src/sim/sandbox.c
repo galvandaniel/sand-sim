@@ -1,6 +1,6 @@
-#include "sandbox.h"
-#include "tile.h"
-#include "tile_properties.h"
+#include "sim/sandbox.h"
+#include "sim/tile.h"
+#include "sim/tile_properties.h"
 #include "utils.h"
 
 #include <stdlib.h>
