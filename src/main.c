@@ -1,50 +1,138 @@
 /**
  * Application entrypoint of sand-sim.
+ * 
+ * sand-sim's application loop is handled by SDL3's callback functions, rather
+ * than a traditional main() entrypoint.
  */
 
 #include "sandsim_cli.h"
 #include "gui/app.h"
+#include "gui/event_buffer.h"
+#include "gui/sdl_utils.h"
 #include "sim/sandbox.h"
 
+#define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-#include <stdlib.h>
-
+// Waiting 33 ms per frame equates to roughly 30 FPS.
+// TODO: Implement separation between FPS and logic timing.
+static constexpr int MILLISECONDS_BETWEEN_FRAMES = 33;
 static const char *APP_NAME = "sand-sim";
 
-// Time waited before proceeding to next frame.
-static constexpr int MILLISECONDS_BETWEEN_FRAMES = 33;
-
-int main(int argc, char **argv)
+/**
+ * Application entrypoint. 
+ * 
+ * Followed by SDL_AppEvent() and SDL_AppIterate() operating concurrently,
+ * until eventually SDL_AppQuit() is called to exit application. 
+ */
+SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv)
 {
-    // Change the dimensions of sandbox w.r.t arguments.
+    // Change the dimensions of sandbox according to arguments.
     int sandbox_dimensions[2];
-    parse_args(argc, argv, sandbox_dimensions);
+    bool successful_parse = parse_args(argc, argv, sandbox_dimensions);
 
-    // Form a sandbox of user's desired dimensions along with GUI app which
-    // owns this sandbox.
+    if (!successful_parse)
+    {
+        return SDL_APP_FAILURE;
+    }
+
+    // Form a sandbox of desired dimensions alongside owning GUI app.
     struct Sandbox *sandbox = create_sandbox(sandbox_dimensions[0], sandbox_dimensions[1]);
     struct Application *app = create_app(APP_NAME, sandbox);
 
-    while (true)
+    // Preserve GUI app state so other SDL callback functions can mutate and read.
+    *appstate = app;
+    return SDL_APP_CONTINUE;
+}
+
+
+/**
+ * Application main loop. This function handles all logic updates, 
+ * event handling, and drawing for 1 frame of simulation.
+ * 
+ * Called concurrently with SDL_AppEvent().
+ */
+SDL_AppResult SDL_AppIterate(void *appstate)
+{
+    struct Application *app = appstate;
+
+    // Step forward once in simulation.
+    process_sandbox(app->sandbox);
+
+    // Copy and empty-out event buffer contents for processing.
+    struct EventBuffer buffer_copy;
+    event_buffer_flush(app->event_buffer, &buffer_copy);
+
+    // Update app to reflect all input events, then update sandbox for inputs.
+    for (int i = 0; i < buffer_copy.size; i++)
     {
-        // Do 1 frame of sandbox processing before any input is obtained..
-        process_sandbox(sandbox);
-
-        // Update application state and its sandbox state w.r.t user input.
-        get_input(app);
-        handle_input(app);
-
-        // Clear canvas, draw sandbox, then draw UI above sandbox.
-        set_black_background(app);
-        draw_sandbox(app);
-        draw_ui(app);
-
-        // Display all rendered graphics.
-        SDL_RenderPresent(app->renderer);
-        SDL_Delay(MILLISECONDS_BETWEEN_FRAMES);
+        SDL_AppResult result = process_input_event(app, &buffer_copy.events[i]);
+        
+        // If app signaled to quit, stop and initiate shutdown.
+        if (result == SDL_APP_SUCCESS)
+        {
+            return result;
+        }
     }
+    do_input_update(app);
 
-    return EXIT_SUCCESS;
+    // Clear canvas, draw sandbox, then draw UI above sandbox.
+    set_black_background(app);
+    draw_sandbox(app);
+    draw_ui(app);
+
+    // Display all rendered graphics.
+    SDL_CHECK(SDL_RenderPresent(app->renderer));
+    SDL_Delay(MILLISECONDS_BETWEEN_FRAMES);
+
+    return SDL_APP_CONTINUE;
+}
+
+
+/**
+ * Application event handler. Called for every queued SDL_Event.
+ * 
+ * Called concurrently with SDL_AppIterate() and SDL_AppQuit(). 
+ * 
+ * This function must be thread safe, as SDL makes no guarantee about the thread
+ * this function is called from.
+ * 
+ * Although SDL docs advise that under 'normal operation' SDL itself serially 
+ * pushes events on main thread, this function must still be thread safe to 
+ * maintain maximal safety and cross-platform compatability. 
+ */
+SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
+{
+    // Atomically pipe events for handling by SDL_AppIterate() to allow for
+    // synchronous app logic updates with respect to events.
+    struct Application *app = appstate;
+    event_buffer_append(app->event_buffer, *event);
+    return SDL_APP_CONTINUE;
+}
+
+
+/**
+ * Application exit logic. This function handles all memory cleanup and
+ * destruction.
+ * 
+ * Called concurrently with SDL_AppEvent().
+ */
+void SDL_AppQuit([[maybe_unused]]void *appstate, [[maybe_unused]] SDL_AppResult result)
+{
+    /**
+     * Purposefully 'leak' app memory, let the OS clean up for us.
+     * 
+     * Appstate memory is allocated only once for sand-sim lifetime, so no need
+     * to worry about out-of-memory errors from repeated allocations.
+     * 
+     * This way, no need to worry that a concurrent call to SDL_AppEvent() in
+     * between SDL_AppQuit() execution tries to access appstate and cause UB
+     * after appstate memory has already been freed by SDL_AppQuit().
+     * 
+     * In other words: By letting OS kernel itself free Appstate memory, it is
+     * guaranteed that no thread is actively executing SDL_AppEvent().
+     * 
+     * REMARK: To safely use destroy_app(), try using a semaphore?
+     */
 }

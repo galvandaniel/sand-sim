@@ -313,7 +313,7 @@ Developing sand-sim as a solution inside Windows Visual Studio is not supported.
 - `assets/*` - Visual and audio assets used in GUI.
 - `libs/*` - Pre-compiled third-party library code and headers.
 - `src/main.c` - Program entry-point.
-- `src/gui/*` - Core GUI rendering of sandbox in SDL3.
+- `src/gui/*` - Core GUI rendering logic of sandbox in SDL3.
 - `src/sim/*` - Core sandbox simulation logic.
 - `src/utils.c` - General-purpose utility functions.
 - `src/sandsim_cli.c` - Argument parsing logic.

@@ -5,6 +5,7 @@
 #include "gui/app.h"
 #include "gui/cursor.h"
 #include "gui/brush.h"
+#include "gui/event_buffer.h"
 #include "gui/sdl_utils.h"
 #include "sim/tile.h"
 #include "sim/sandbox.h"
@@ -80,8 +81,9 @@ static SDL_Texture *PANEL_TEXTURES[NUM_TILE_TYPES] = {};
  *
  * @param app App with state to update.
  * @param event Mouse event containing mouse data to extract.
+ * @return AppResult indicating next app state after reacting to event.
  */
-static void do_mouse_button_down(struct Application *app, SDL_MouseButtonEvent *event)
+static SDL_AppResult do_mouse_button_down(struct Application *app, SDL_MouseButtonEvent *event)
 {
     unsigned char mouse_button = event->button;
 
@@ -89,11 +91,11 @@ static void do_mouse_button_down(struct Application *app, SDL_MouseButtonEvent *
     {
         case SDL_BUTTON_LEFT:
             app->cursor->is_holding_interact = true;
-            break;
+            return SDL_APP_CONTINUE;
         
         // Do nothing on unhandled mouse press.
         default:
-            break;
+            return SDL_APP_CONTINUE;
     }
 }
 
@@ -103,8 +105,9 @@ static void do_mouse_button_down(struct Application *app, SDL_MouseButtonEvent *
  *
  * @param app App with state to update.
  * @param event Mouse event containing mouse data to extract.
+ * @return AppResult indicating next app state after reacting to event.
  */
-static void do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *event)
+static SDL_AppResult do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *event)
 {
     unsigned char mouse_button = event->button;
 
@@ -112,17 +115,17 @@ static void do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *ev
     {
         case SDL_BUTTON_LEFT:
             app->cursor->is_holding_interact = false;
-            break;
+            return SDL_APP_CONTINUE;
         
         // Loop through brush placement modes on RMB press.
         case SDL_BUTTON_RIGHT:
             brush_increment_mode(app->brush);
             SDL_CHECK(SDL_SetCursor(app->cursor->icons[app->brush->mode]));
-            break;
+            return SDL_APP_CONTINUE;
 
         // Do nothing on unhandled mouse press.
         default:
-            break;
+            return SDL_APP_CONTINUE;
     }
 }
 
@@ -132,8 +135,9 @@ static void do_mouse_button_up(struct Application *app, SDL_MouseButtonEvent *ev
  * 
  * @param app App with state to update as a result of mousewheel motion.
  * @param event Mouse wheel event containing data on wheel motion.
+ * @return AppResult indicating next app state after reacting to event.
  */
-static void do_mouse_wheel_motion(struct Application *app, SDL_MouseWheelEvent *event)
+static SDL_AppResult do_mouse_wheel_motion(struct Application *app, SDL_MouseWheelEvent *event)
 {
     float vertical_scroll = event->y;
 
@@ -143,7 +147,7 @@ static void do_mouse_wheel_motion(struct Application *app, SDL_MouseWheelEvent *
     {
         app->brush->target_radius = (vertical_scroll > 0) ? current_radius + 1 : current_radius - 1;
         app->brush->target_radius = clamp(app->brush->target_radius, 0, MAX_TARGET_RADIUS);
-        return;
+        return SDL_APP_CONTINUE;
     }
 
     // Switch type when scrolling mouse.
@@ -160,6 +164,7 @@ static void do_mouse_wheel_motion(struct Application *app, SDL_MouseWheelEvent *
     }
 
     brush_switch_type(app->brush, new_type);
+    return SDL_APP_CONTINUE;
 }
 
 
@@ -168,8 +173,9 @@ static void do_mouse_wheel_motion(struct Application *app, SDL_MouseWheelEvent *
  *
  * @param app App with state to update as a result of keypress.
  * @param event Keyboard event containing data on what key was pressed.
+ * @return AppResult indicating next app state after reacting to event.
  */
-static void do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event)
+static SDL_AppResult do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event)
 {
     // Gather information about the key pressed.
     SDL_Keycode keycode = event->key;
@@ -179,39 +185,39 @@ static void do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event)
         // In the event of keys 0 - 9, switch mouse tile to appropriate type.
         case SDLK_1:
             brush_switch_type(app->brush, SAND);
-            break;
+            return SDL_APP_CONTINUE;
 
         case SDLK_2:
             brush_switch_type(app->brush, WATER);
-            break;
+            return SDL_APP_CONTINUE;
 
         case SDLK_3:
             brush_switch_type(app->brush, WOOD);
-            break;
+            return SDL_APP_CONTINUE;
 
         case SDLK_4:
             brush_switch_type(app->brush, STEAM);
-            break;
+            return SDL_APP_CONTINUE;
 
         case SDLK_5:
             brush_switch_type(app->brush, FIRE);
-            break;
+            return SDL_APP_CONTINUE;
         
         case SDLK_6:
             brush_switch_type(app->brush, FUEL);
-            break;
+            return SDL_APP_CONTINUE;
 
         case SDLK_LCTRL:
             app->cursor->is_holding_lctrl = true;
-            break;        
+            return SDL_APP_CONTINUE;        
 
         // In the case of pressing ESC, the app will quit.
         case SDLK_ESCAPE:
-            quit_app(app);
+            return SDL_APP_SUCCESS;
 
         // In an unhandled keypress, do nothing.
         default:
-            break;
+            return SDL_APP_CONTINUE;
     }
 }
 
@@ -221,8 +227,9 @@ static void do_keyboard_press(struct Application *app, SDL_KeyboardEvent *event)
  *
  * @param app App with state to update as a result of key release.
  * @param event Keyboard event containing data on what key was released.
+ * @return AppResult indicating next app state after reacting to event.
  */
-static void do_keyboard_release(struct Application *app, SDL_KeyboardEvent *event)
+static SDL_AppResult do_keyboard_release(struct Application *app, SDL_KeyboardEvent *event)
 {
     // Gather information about the key released.
     SDL_Keycode keycode = event->key;
@@ -231,11 +238,11 @@ static void do_keyboard_release(struct Application *app, SDL_KeyboardEvent *even
     {
         case SDLK_LCTRL:
             app->cursor->is_holding_lctrl = false;
-            break;
+            return SDL_APP_CONTINUE;
 
         // In an unhandled key release, do nothing.
         default:
-            break;
+            return SDL_APP_CONTINUE;
     }
 }
 
@@ -245,8 +252,9 @@ static void do_keyboard_release(struct Application *app, SDL_KeyboardEvent *even
  * size.
  * 
  * @param app App to mutate due to change in window state.
+ * @return AppResult indicating next app state after resizing.
  */
-static void do_window_resize(struct Application *app)
+static SDL_AppResult do_window_resize(struct Application *app)
 {
     // SDL handles window resizing automatically, and with the logical 
     // renderer size set, will handle resizing content automatically too.
@@ -254,7 +262,7 @@ static void do_window_resize(struct Application *app)
     // Cover window with black to prevent resizing causing ugly stretching 
     // of content at border. 
     set_black_background(app);
-    SDL_UpdateWindowSurface(app->window);
+    return SDL_APP_CONTINUE;
 }
 
 
@@ -397,30 +405,6 @@ static void destroy_textures(void)
 }
 
 
-/**
- * Free any memory the passed GUI application takes up.
- * 
- * Passing NULL to this function causes nothing to happen.
- *
- * @param app Owning GUI application to free.
- */
-static void destroy_app(struct Application *app)
-{
-    if (app == nullptr)
-    {
-        return;
-    }
-
-    SDL_DestroyWindow(app->window);
-    SDL_DestroyRenderer(app->renderer);
-    destroy_sandbox(app->sandbox);
-    destroy_brush(app->brush);
-    destroy_cursor(app->cursor);
-    free(app);
-    destroy_textures();
-}
-
-
 // ----- PUBLIC FUNCTIONS -----
 
 
@@ -434,7 +418,7 @@ struct Application *create_app(const char *title, struct Sandbox *sandbox)
     app->min_window_width = sandbox->width * (int) TILE_SCALE;
     app->min_window_height = sandbox->height * (int) TILE_SCALE;
 
-    unsigned int window_flags = SDL_WINDOW_RESIZABLE;
+    uint64_t window_flags = SDL_WINDOW_RESIZABLE;
 
     // Init all SDL subsystems and library extensions.
     SDL_CHECK(SDL_Init(SDL_INIT_VIDEO));
@@ -456,6 +440,8 @@ struct Application *create_app(const char *title, struct Sandbox *sandbox)
     app->cursor = create_cursor();
     app->brush = create_brush();
 
+    app->event_buffer = create_event_buffer();
+
     // Enable alpha blending for transparent textures on renderer and allocate
     // all textures.
     SDL_CHECK(SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND));
@@ -464,12 +450,23 @@ struct Application *create_app(const char *title, struct Sandbox *sandbox)
 }
 
 
-void quit_app(struct Application *app)
+void destroy_app(struct Application *app)
 {
-    destroy_app(app);
-    SDL_Quit();
-    exit(EXIT_SUCCESS);
+    if (app == nullptr)
+    {
+        return;
+    }
+
+    SDL_DestroyWindow(app->window);
+    SDL_DestroyRenderer(app->renderer);
+    destroy_sandbox(app->sandbox);
+    destroy_brush(app->brush);
+    destroy_cursor(app->cursor);
+    destroy_event_buffer(app->event_buffer);
+    free(app);
+    destroy_textures();
 }
+
 
 
 SDL_Texture *load_texture(struct Application *app, const char *filename)
@@ -583,63 +580,51 @@ void draw_ui(struct Application *app)
 }
 
 
-void get_input(struct Application *app)
+SDL_AppResult process_input_event(struct Application *app, SDL_Event *event)
 {
-    // Take in an input event and react.
-    SDL_Event event;
-
-    while (SDL_PollEvent(&event))
+    switch (event->type)
     {
-        switch (event.type)
-        {
-            case SDL_EVENT_QUIT:
-                quit_app(app);
-                break;
+    // On pressing X-out buttton (or any other termination), signal shutdown.
+    case SDL_EVENT_QUIT:
+        return SDL_APP_SUCCESS;
+    
+    // We obtain mouse coordinates in an event, as unlike SDL_GetMouseState(),
+    // mouse coordinates captured this way can be auto-scaled to match
+    // logical render size, transformed from window space.
+    case SDL_EVENT_MOUSE_MOTION:
+        // TODO: Move this logic into a do_mouse_motion() function.
+        SDL_CHECK(SDL_ConvertEventToRenderCoordinates(app->renderer, event));
+        app->cursor->coords = (SDL_FPoint) {.x = event->motion.x, .y = event->motion.y};
+        app->brush->coords = scale_screen_coords(app->cursor->coords, app->sandbox);
+        return SDL_APP_CONTINUE;
 
-            // We obtain mouse coordinates in an event, as unlike SDL_GetMouseState(),
-            // mouse coordinates captured this way can be auto-scaled to match
-            // logical render size, transformed from window space.
-            case SDL_EVENT_MOUSE_MOTION:
-                // TODO: Move this logic into a do_mouse_motion() function.
-                SDL_CHECK(SDL_ConvertEventToRenderCoordinates(app->renderer, &event));
-                app->cursor->coords = (SDL_FPoint) {.x = event.motion.x, .y = event.motion.y};
-                app->brush->coords = scale_screen_coords(app->cursor->coords, app->sandbox);
-                break;
+    // Record player holding down mouse button by keeping track of
+    // when it is pressed down and up.
+    case SDL_EVENT_MOUSE_BUTTON_DOWN:
+        return do_mouse_button_down(app, &event->button);
+    case SDL_EVENT_MOUSE_BUTTON_UP:
+        return do_mouse_button_up(app, &event->button);
 
-            // Record player holding down mouse button by keeping track of
-            // when it is pressed down and up.
-            case SDL_EVENT_MOUSE_BUTTON_DOWN:
-                do_mouse_button_down(app, &event.button);
-                break;
-            case SDL_EVENT_MOUSE_BUTTON_UP:
-                do_mouse_button_up(app, &event.button);
-                break;
+    // React to scrolling of mouse wheel.
+    case SDL_EVENT_MOUSE_WHEEL:
+        return do_mouse_wheel_motion(app, &event->wheel);
 
-            // React to scrolling of mouse wheel.
-            case SDL_EVENT_MOUSE_WHEEL:
-                do_mouse_wheel_motion(app, &event.wheel);
-                break;
+    // When a key gets pressed/released, perform any keyboard updates.
+    case SDL_EVENT_KEY_DOWN:
+        return do_keyboard_press(app, &event->key);
+    case SDL_EVENT_KEY_UP:
+        return do_keyboard_release(app, &event->key);
 
-            // When a key gets pressed/released, perform any keyboard updates.
-            case SDL_EVENT_KEY_DOWN:
-                do_keyboard_press(app, &event.key);
-                break;
-            case SDL_EVENT_KEY_UP:
-                do_keyboard_release(app, &event.key);
-                break;
+    case SDL_EVENT_WINDOW_RESIZED:
+        return do_window_resize(app);
 
-            case SDL_EVENT_WINDOW_RESIZED:
-                do_window_resize(app);
-                break;
-
-            default:
-                break;
-        }
+    default:
+        return SDL_APP_CONTINUE;
     }
 }
 
 
-void handle_input(struct Application *app)
+void do_input_update(struct Application *app)
 {
     // Interacting places/deletes tiles on the owned sandbox.
     if (app->cursor->is_holding_interact)

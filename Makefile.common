@@ -52,6 +52,7 @@ SRCS = src/main.c \
        src/gui/app.c \
        src/gui/cursor.c \
        src/gui/brush.c \
+       src/gui/event_buffer.c \
 
 # Assume all user-defined .c have a respective .h, with the exception of main.c.
 HDRS = $(SRCS:src/main.c= )

@@ -29,14 +29,17 @@ struct Application
     SDL_Renderer *renderer;
     SDL_Window *window;
 
+    // Sandbox owned and displayed by GUI application.
+    struct Sandbox *sandbox;
+
     // Input data captured by GUI application.
     struct Cursor *cursor;
 
     // State of sandbox interactivity component, we call it 'Brush'.
     struct Brush *brush;
 
-    // Sandbox owned and displayed by GUI application.
-    struct Sandbox *sandbox;
+    // Event storage of incoming events to be handled.
+    struct EventBuffer *event_buffer;
 
     // Minimum size of app window in pixels, depends on sandbox size.
     // Actual window size may grow larger than these values.
@@ -62,13 +65,13 @@ struct Application *create_app(const char *title, struct Sandbox *sandbox);
 
 
 /**
- * Quit the sandbox application, freeing any memory it takes up, shutting down
- * any libraries initialized by init_gui(), and exiting the running process
- * gracefully.
+ * Destroy the sandbox application, freeing any memory it takes up.
  * 
- * @param app Owning GUI application to shutdown and free.
+ * Passing NULL to this functions does nothing
+ * 
+ * @param app Owning GUI application to free.
  */
-void quit_app(struct Application *app);
+void destroy_app(struct Application *app);
 
 
 /**
@@ -169,12 +172,15 @@ void draw_ui(struct Application *app);
 
 
 /**
- * Poll SDL for any input device activity and update the
+ * Poll the given SDL event for any input device activity and update the
  * GUI application state respectfully.
  *
  * @param app GUI Application whose data to update with respect to user input.
+ * @param event Input event to update app state with respect to.
+ * @return AppResult indicating next app state after processing event.
+ * Can by any one of SDL_APP_CONTINUE, SDL_APP_SUCCESS, SDL_APP_FAILURE, etc.
  */
-void get_input(struct Application *app);
+SDL_AppResult process_input_event(struct Application *app, SDL_Event *event);
 
 
 /**
@@ -185,7 +191,7 @@ void get_input(struct Application *app);
  * 
  * @param app GUI application whose sandbox to update according to user input.
  */
-void handle_input(struct Application *app);
+void do_input_update(struct Application *app);
 
 
 #endif // APP_H

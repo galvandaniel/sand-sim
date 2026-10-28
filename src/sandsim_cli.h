@@ -5,8 +5,6 @@
 #ifndef SANDSIM_CLI_H
 #define SANDSIM_CLI_H
 
-#include <SDL3/SDL.h>
-
 // Preset sizes for sandbox and size limits, in terms of tiles.
 static constexpr int SANDBOX_SMALL_WIDTH = 53;
 static constexpr int SANDBOX_SMALL_HEIGHT = 30;
@@ -46,7 +44,8 @@ void print_usage_string(char *binary_name);
  * @param argv Argument vector.
  * @param dimensions Out-parameter to write parsed dimensions to, written
  * in (width, height) order. If parse fails, (0, 0) is written.
+ * @return True on successful parse, False otherwise.
  */
-void parse_args(int argc, char **argv, int *dimensions);
+bool parse_args(int argc, char **argv, int *dimensions);
 
 #endif // SANDSIM_CLI_H

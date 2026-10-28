@@ -4,11 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-/**
- * @brief Print the CLI arguments of sand-sim.
- * 
- * @param binary_name Name of running executable.
- */
+#include <SDL3/SDL.h>
+
+
 void print_usage_string(char *binary_name)
 {
     // Prefer SDL_Log over printf for portability. Does not require SDL_init.
@@ -23,19 +21,7 @@ void print_usage_string(char *binary_name)
 }
 
 
-/**
- * Parse the command line arguments passed, manipulating the dimensions of the
- * sandbox, placing the result into the given output integer array.
- * 
- * The given output integer array must be of size at least 2, otherwise
- * undefined behavior results.
- * 
- * @param argc Argument count.
- * @param argv Argument vector.
- * @param dimensions Out-parameter to write parsed dimensions to, written
- * in (width, height) order. If parse fails, (0, 0) is written.
- */
-void parse_args(int argc, char **argv, int *dimensions)
+bool parse_args(int argc, char **argv, int *dimensions)
 {
     int width_index = 0;
     int height_index = 1;
@@ -54,7 +40,7 @@ void parse_args(int argc, char **argv, int *dimensions)
     if (argc == HELP_ARG)
     {
         print_usage_string(argv[0]);
-        exit(EXIT_FAILURE);
+        return false;
     }
 
     // If size argument does not confirm to any of the options, reject.
@@ -63,7 +49,7 @@ void parse_args(int argc, char **argv, int *dimensions)
         if (strcmp("--size", argv[1]) != 0)
         {
             print_usage_string(argv[0]);
-            exit(EXIT_FAILURE);
+            return false;
         }
 
         if (strcmp("small", argv[2]) == 0)
@@ -84,7 +70,7 @@ void parse_args(int argc, char **argv, int *dimensions)
         else
         {
             print_usage_string(argv[0]);
-            exit(EXIT_FAILURE);
+            return false;
         }
     }
 
@@ -92,7 +78,7 @@ void parse_args(int argc, char **argv, int *dimensions)
     if (argc == THREE_ARG)
     {
         print_usage_string(argv[0]);
-        exit(EXIT_FAILURE);
+        return false;
     }
 
     if (argc == DIM_ARG)
@@ -101,14 +87,14 @@ void parse_args(int argc, char **argv, int *dimensions)
         if (strcmp("--height", argv[1]) == 0)
         {
             print_usage_string(argv[0]);
-            exit(EXIT_FAILURE);  
+            return false;
         }
 
         // Must specify BOTH width and height flags.
         if (strcmp("--width", argv[1]) != 0 || strcmp("--height", argv[3]) != 0)
         {
             print_usage_string(argv[0]);
-            exit(EXIT_FAILURE);     
+            return false; 
         }
 
         // Attempt to parse width and height options as base-10 numbers.
@@ -119,11 +105,13 @@ void parse_args(int argc, char **argv, int *dimensions)
         if (user_width <= 0 || user_height <= 0)
         {
             print_usage_string(argv[0]);
-            exit(EXIT_FAILURE);
+            return false;
         }
 
         // Auto scale within bounds of smallest and largest dimensions.
         dimensions[width_index] = clamp(user_width, SANDBOX_SMALL_WIDTH, SANDBOX_LARGE_WIDTH);
         dimensions[height_index] = clamp(user_height, SANDBOX_SMALL_HEIGHT, SANDBOX_LARGE_HEIGHT);
     }
+
+    return true;
 }

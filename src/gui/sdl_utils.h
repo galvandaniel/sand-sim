@@ -38,6 +38,7 @@ SDL_Color get_pixel(SDL_Surface *surface, SDL_Point surface_coords);
  * @param result Bool result from an SDL API call.
  * @param file The expanded value of __FILE__ when API call is made.
  * @param line The expanded value of __LINE__ when API call is made.
+ * @return True on successful SDL API call, False on any SDL error.
  */
 bool sdl_check_bool(bool result, const char *file, int line);
 
@@ -49,6 +50,7 @@ bool sdl_check_bool(bool result, const char *file, int line);
  * @param sdl_ptr A pointer to an SDL type as returned from an SDL API call.
  * @param file The expanded value of __FILE__ when API call is made.
  * @param line The expanded value of __LINE__ when API call is made.
+ * @return sdl_ptr as it is passed to this function.
  */
 void *sdl_check_ptr(void *sdl_ptr, const char *file, int line);
 
@@ -61,6 +63,7 @@ void *sdl_check_ptr(void *sdl_ptr, const char *file, int line);
  * @param sdl_ptr A pointer to an SDL type as returned from an SDL API call.
  * @param file The expanded value of __FILE__ when API call is made.
  * @param line The expanded value of __LINE__ when API call is made.
+ * @return sdl_ptr as it is passed to this function.
  */
 const void *sdl_check_ptr_to_const(const void *sdl_ptr, const char *file, int line);
 
