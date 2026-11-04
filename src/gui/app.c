@@ -550,9 +550,9 @@ struct Application *create_app(const char *title, struct Sandbox *sandbox)
                                             ));
     SDL_CHECK(SDL_SetWindowMinimumSize(app->window, app->min_window_width, app->min_window_height));
 
-    // Create renderer using the first graphics acceleration device found.
     // Set a logical drawing area for automatic resolution scaling of rendered contents.
-    // Logical area is big enough to render sandbox at full resolution.
+    // (Logical area is big enough to render sandbox at full resolution.)
+    // TODO: Handle failure of SetRenderVSync() for platforms which do not support VSync.
     app->renderer = SDL_CHECK(SDL_CreateRenderer(app->window, nullptr));
     SDL_CHECK(SDL_SetRenderVSync(app->renderer, true));
     SDL_CHECK(SDL_SetRenderLogicalPresentation(app->renderer, app->min_window_width, app->min_window_height, SDL_LOGICAL_PRESENTATION_LETTERBOX));
@@ -609,7 +609,7 @@ SDL_AppResult app_update(struct Application *app)
 
     // Update app to reflect all input events, then update sandbox for inputs.
     // If app signaled to quit, stop early and signal shutdown.
-    SDL_AppResult result;
+    SDL_AppResult result = SDL_APP_CONTINUE;
     for (int i = 0; i < buffer_copy.size; ++i)
     {
         result = process_input_event(app, &buffer_copy.events[i]);
