@@ -60,7 +60,7 @@ HDRS = $(SRCS:src/main.c= )
 # Object extension matters to GCC, and for Windows its a convention to stick to.
 GNU_OBJS = $(SRCS:.c=.o)
 WIN_OBJS = $(SRCS:.c=.obj)
-DEBUG_OBJS = ${SRCS:.c=_debug.o}
+DEBUG_OBJS = $(SRCS:.c=_debug.o)
 
 # Targets to delete on clean.
 RM_TARGETS = *.out *.o *.obj $(GNU_OBJS) $(WIN_OBJS) $(DEBUG_OBJS) *.exe *.dll LICENSE.* sand-sim*
