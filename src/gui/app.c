@@ -12,6 +12,7 @@
 #include "utils.h"
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_render.h>
 #include <SDL3_image/SDL_image.h>
 
 #include <stdlib.h>
@@ -38,17 +39,6 @@ const char *PANEL_TEXTURE_FILENAMES[] = {
     [FUEL] = "assets/panels/fuel_panel.png",
 };
 
-
-/**
- * Constant SDL pixel format used for lifetime of any GUI application.
- * This format is guaranteed to support an alpha channel no matter the
- * endianness of the running system.
- * 
- * (Currently unused, but maybe helpful in future?)
- */
-static const SDL_PixelFormatDetails *ALPHA_PIXEL_FORMAT = nullptr;
-
-
 /**
  * Array to primary colors of all tiles, indexed by enum tile_type.
  */
@@ -74,6 +64,275 @@ static SDL_Texture *PANEL_TEXTURES[NUM_TILE_TYPES] = {};
 
 
 // ----- PRIVATE FUNCTIONS -----
+
+
+/**
+ * Loads into memory all textures used by tiles in the sandbox.
+ * 
+ * This function is idempotent, initializing textures several times does 
+ * nothing.
+ *
+ * @param app Owning GUI application holding renderer to load textures onto.
+ */
+static void init_textures(struct Application *app)
+{
+    if (*TILE_TEXTURES != nullptr || *PANEL_TEXTURES != nullptr)
+    {
+        return;
+    }
+
+    // Load all tile, panel, and highlight textures.
+    for (int i = 0; i < NUM_TILE_TYPES; i++)
+    {
+        TILE_TEXTURES[i] = load_texture(app->renderer, TILE_TEXTURE_FILENAMES[i]);
+        PANEL_TEXTURES[i] = load_texture(app->renderer, PANEL_TEXTURE_FILENAMES[i]);
+
+        // Use nearest interpolation to scale resolution for pixel-perfect tiles.
+        SDL_CHECK(SDL_SetTextureScaleMode(TILE_TEXTURES[i], SDL_SCALEMODE_PIXELART));
+        SDL_CHECK(SDL_SetTextureScaleMode(PANEL_TEXTURES[i], SDL_SCALEMODE_PIXELART));
+    }
+}
+
+
+/**
+ * Initialize GUI application data relevant to blitting tile particles: colors,
+ * pixel formats, and tile window dimensions.
+ *
+ * This function is idempotent, initializing several times does nothing.
+ */
+static void init_tile_colors(void)
+{
+    // If colors have been loaded already, do not reload.
+    if (TILE_COLORS[1].a != NO_COLOR.a)
+    {
+        return;
+    }
+
+    // Initialize all colors used by tiles. 
+    // Take pixel RGB at (0, 0) as representative of color of whole tile.
+    SDL_Point topleft = {.x = 0, .y = 0};
+
+    for (int i = 0; i < NUM_TILE_TYPES; i++)
+    {
+        SDL_Surface *tile_surface = SDL_CHECK(IMG_Load(TILE_TEXTURE_FILENAMES[i]));
+        TILE_COLORS[i] = get_pixel(tile_surface, topleft);
+        SDL_DestroySurface(tile_surface);
+    }
+}
+
+
+/**
+ * Unload all tile textures from memory, destroying them and freeing the array
+ * of tile_textures.
+ */
+static void destroy_textures(void)
+{
+    // Strictly speaking, it's not an error to destroy NULL, but not good either.
+    if (*TILE_TEXTURES == nullptr || *PANEL_TEXTURES == nullptr)
+    {
+        SDL_Log("\nWARNING: %s:%d\nReason: Attempted to destroy NULL textures!\n", __FILE__, __LINE__);
+    }
+
+    for (int i = 0; i < NUM_TILE_TYPES; i++)
+    {
+        SDL_DestroyTexture(TILE_TEXTURES[i]);
+        SDL_DestroyTexture(PANEL_TEXTURES[i]);
+
+        TILE_TEXTURES[i] = nullptr;
+        PANEL_TEXTURES[i] = nullptr;
+    }
+}
+
+
+/**
+ * Draw the given SDL texture on the given app at the given screen coordinates
+ *
+ * @param app Application to draw texture on.
+ * @param texture Loaded texture to draw.
+ * @param window_coords x,y screen coordinates to draw texture at.
+ */
+static void draw_texture(struct Application *app, SDL_Texture *texture, SDL_FPoint window_coords)
+{
+    // Setup rectangle to draw texture.
+    SDL_FRect dest;
+    dest.x = window_coords.x;
+    dest.y = window_coords.y;
+
+    // Fill in rectangle dimension data by querying the texture.
+    SDL_CHECK(SDL_GetTextureSize(texture, &dest.w, &dest.h));
+
+    // Draw texture, passing in NULL to copy whole texture.
+    SDL_CHECK(SDL_RenderTexture(app->renderer, texture, nullptr, &dest));
+}
+
+
+/**
+ * Draw a rectangle of the given dimensions and RGBA value to the screen of
+ * the given GUI application at the rectangle's (x,y) window coordinates.
+ * 
+ * @param app Application to draw rectangle on.
+ * @param rect Dimensions of rectangle to draw packed in an SDL_FRect.
+ * @param color RGBA color of rectangle packed as an SDL_Color.
+ * @param do_fill If true, rectangle is filled with color. If false, only
+ * outline of rectangle with color is drawn.
+ */
+static void draw_rectangle(struct Application *app, SDL_FRect rect, SDL_Color color, bool do_fill)
+{
+    // Draw a fill rectangle or rectangle outline, depending on parameter.
+    SDL_CHECK(SDL_SetRenderDrawColor(app->renderer, color.r, color.g, color.b, color.a));
+    bool (*rect_blitter)(SDL_Renderer *, const SDL_FRect *);
+    rect_blitter = do_fill ? SDL_RenderFillRect : SDL_RenderRect;
+    SDL_CHECK(rect_blitter(app->renderer, &rect));
+}
+
+
+/**
+ * Setup a black background on the given application.
+ *
+ * This background can be used as a base for further blitting.
+ *
+ * @param app App whose background to set.
+ */
+static void set_black_background(struct Application *app)
+{
+    SDL_CHECK(SDL_SetRenderDrawColor(app->renderer, BLACK.r, BLACK.g, BLACK.b, BLACK.a));
+    SDL_CHECK(SDL_RenderClear(app->renderer));
+}
+
+
+/**
+ * Draw the tile located at the given sandbox coordinates which lives inside
+ * the passed GUI application's owned sandbox to the application's screen.
+ * 
+ * If the tile located at the given indices is empty, this function does
+ * nothing.
+ * 
+ * @param app GUI application to draw tile on.
+ * @param coords Coordinates of some tile located inside the sandbox owned by
+ * the passed app.
+ */
+void draw_tile(struct Application *app, struct SandboxPoint coords)
+{
+    Tile tile = get_tile(app->sandbox, coords);
+
+    if (is_tile_empty(tile))
+    {
+        return;
+    }
+
+    // Compute the screen coordinates that a tile should be blitted at.
+    SDL_FPoint window_coords = scale_sandbox_coords(coords);
+
+    // Grab the associated tile texture, apply tile color variation, then blit.
+    SDL_Texture *tile_texture = TILE_TEXTURES[get_tile_type(tile)];
+
+    uint8_t color_mod = COLOR_MOD_FACTOR * get_tile_color(tile);
+    SDL_Color variant = {
+        .r = WHITE.r - color_mod, 
+        .g = WHITE.g - color_mod, 
+        .b = WHITE.b - color_mod,
+        .a = WHITE.a,
+    };
+    SDL_CHECK(SDL_SetTextureColorMod(tile_texture, variant.r, variant.g, variant.b));
+    draw_texture(app, tile_texture, window_coords);
+}
+
+
+/**
+ * Draw the target area highlight for the single tile located at the given 
+ * sandbox coordinates. 
+ * 
+ * @param app GUI application to draw a single tile of target area highlight.
+ * @param coords Sandbox coordinates of tile to draw highlight for.
+ */
+static void draw_tile_highlight(struct Application *app, struct SandboxPoint coords)
+{
+    SDL_FPoint highlight_coords = scale_sandbox_coords(coords);
+
+    // Do not show highlight ontop of non-empty tiles when placing.
+    if (!is_tile_empty(get_tile(app->sandbox, coords)) 
+     && app->brush->mode == PLACE)
+    {
+        return;
+    }
+
+    // Draw square of highlight as big as a tile.
+    SDL_FRect highlight_rect;
+    highlight_rect.x = highlight_coords.x;
+    highlight_rect.y = highlight_coords.y;
+    highlight_rect.w = TILE_SCALE;
+    highlight_rect.h = TILE_SCALE;
+
+    // Show a red outline ontop of tiles about to be deleted, otherwise show
+    // color of selected tile. Have highlight be half opaque.
+    bool is_delete_mode = app->brush->mode == DELETE;
+    SDL_Color selected_color = TILE_COLORS[app->brush->selected_type];
+    SDL_Color highlight_color = is_delete_mode ? RED : selected_color;
+    highlight_color.a = SDL_ALPHA_OPAQUE / 2;
+
+    draw_rectangle(app, highlight_rect, highlight_color, !is_delete_mode);
+}
+
+
+/**
+ * Draw the drawing-area highlight showing tiles around the mouse that are about
+ * to be placed/replaced/deleted.
+ * 
+ * The pixels drawn by this function must be displayed by SDL_RenderPresent()
+ * to show to screen.
+ * 
+ * @param app GUI Application to draw drawing-area highlight for.
+ */
+static void draw_highlight(struct Application *app)
+{
+    // Get target area and draw a single tile highlight over all coordinates.
+    int target_area_size = get_target_size(MAX_TARGET_RADIUS);
+    struct SandboxPoint target_area[target_area_size + 1];
+    get_brush_target_area(app->brush, app->sandbox, target_area);
+    
+    for (int i = 0; target_area[i].row != -1; i++)
+    {
+        draw_tile_highlight(app, target_area[i]);
+    }
+}
+
+
+/**
+ * Draw a passed GUI application's currently owned sandbox, where each tile 
+ * represents one pixel onscreen, scaled in size according to TILE_SCALE.
+ *
+ * SDL_RenderPresent() is NOT called inside this function.
+ *
+ * @param app App whose owned sandbox will be drawn.
+ */
+static void draw_sandbox(struct Application *app)
+{
+    for (int row = 0; row < app->sandbox->height; row++)
+    {
+        for (int col = 0; col < app->sandbox->width; col++)
+        {
+            struct SandboxPoint sandbox_coords = {row, col};
+            draw_tile(app, sandbox_coords);
+        }
+    }
+}
+
+
+/**
+ * Render sand-sim UI elements to the given app which display ontop of sandbox
+ * simulation render.
+ *
+ * @param app App to render UI elements to.
+ */
+void draw_ui(struct Application *app)
+{
+    draw_highlight(app);
+
+    // Draw panel texture and blit to topleft of screen.
+    SDL_Texture *panel_texture = PANEL_TEXTURES[app->brush->selected_type];
+    SDL_FPoint topleft = {.x = 0, .y = 0};
+    draw_texture(app, panel_texture, topleft);
+}
 
 
 /**
@@ -266,145 +525,6 @@ static SDL_AppResult do_window_resize(struct Application *app)
 }
 
 
-/**
- * Draw the target area highlight for the single tile located at the given 
- * sandbox coordinates. 
- * 
- * @param app GUI application to draw a single tile of target area highlight.
- * @param coords Sandbox coordinates of tile to draw highlight for.
- */
-static void draw_tile_highlight(struct Application *app, struct SandboxPoint coords)
-{
-    SDL_FPoint highlight_coords = scale_sandbox_coords(coords);
-
-    // Do not show highlight ontop of non-empty tiles when placing.
-    if (!is_tile_empty(get_tile(app->sandbox, coords)) 
-     && app->brush->mode == PLACE)
-    {
-        return;
-    }
-
-    // Draw square of highlight as big as a tile.
-    SDL_FRect highlight_rect;
-    highlight_rect.x = highlight_coords.x;
-    highlight_rect.y = highlight_coords.y;
-    highlight_rect.w = TILE_SCALE;
-    highlight_rect.h = TILE_SCALE;
-
-    // Show a red outline ontop of tiles about to be deleted, otherwise show
-    // color of selected tile. Have highlight be half opaque.
-    bool is_delete_mode = app->brush->mode == DELETE;
-    SDL_Color selected_color = TILE_COLORS[app->brush->selected_type];
-    SDL_Color highlight_color = is_delete_mode ? RED : selected_color;
-    highlight_color.a = SDL_ALPHA_OPAQUE / 2;
-
-    blit_rectangle(app, highlight_rect, highlight_color, !is_delete_mode);
-}
-
-
-/**
- * Draw the drawing-area highlight showing tiles around the mouse that are about
- * to be placed/replaced/deleted.
- * 
- * The pixels drawn by this function must be displayed by SDL_RenderPresent()
- * to show to screen.
- * 
- * @param app GUI Application to draw drawing-area highlight for.
- */
-static void draw_highlight(struct Application *app)
-{
-    // Get target area and draw a single tile highlight over all coordinates.
-    int target_area_size = get_target_size(MAX_TARGET_RADIUS);
-    struct SandboxPoint target_area[target_area_size + 1];
-    get_brush_target_area(app->brush, app->sandbox, target_area);
-    
-    for (int i = 0; target_area[i].row != -1; i++)
-    {
-        draw_tile_highlight(app, target_area[i]);
-    }
-}
-
-/**
- * Loads into memory all textures used by tiles in the sandbox.
- * 
- * This function is idempotent, initializing textures several times does 
- * nothing.
- *
- * @param app Owning GUI application holding renderer to load textures onto.
- */
-static void init_textures(struct Application *app)
-{
-    if (*TILE_TEXTURES != nullptr || *PANEL_TEXTURES != nullptr)
-    {
-        return;
-    }
-
-    // Load all tile, panel, and highlight textures.
-    for (int i = 0; i < NUM_TILE_TYPES; i++)
-    {
-        TILE_TEXTURES[i] = load_texture(app, TILE_TEXTURE_FILENAMES[i]);
-        PANEL_TEXTURES[i] = load_texture(app, PANEL_TEXTURE_FILENAMES[i]);
-
-        // Use nearest interpolation to scale resolution for pixel-perfect tiles.
-        SDL_CHECK(SDL_SetTextureScaleMode(TILE_TEXTURES[i], SDL_SCALEMODE_PIXELART));
-        SDL_CHECK(SDL_SetTextureScaleMode(PANEL_TEXTURES[i], SDL_SCALEMODE_PIXELART));
-    }
-}
-
-
-/**
- * Initialize GUI application data relevant to blitting tile particles: colors,
- * pixel formats, and tile window dimensions.
- *
- * This function is idempotent, initializing several times does nothing.
- */
-static void init_tile_colors(void)
-{
-    // If colors have been loaded already, do not reload.
-    if (TILE_COLORS[1].a != NO_COLOR.a || ALPHA_PIXEL_FORMAT != nullptr)
-    {
-        return;
-    }
-
-    // Initialize the universal alpha pixel format
-    ALPHA_PIXEL_FORMAT = SDL_CHECK(SDL_GetPixelFormatDetails(SDL_PIXELFORMAT_RGBA32));
-
-    // Initialize all colors used by tiles. 
-    // Take pixel RGB at (0, 0) as representative of color of whole tile.
-    SDL_Point topleft = {.x = 0, .y = 0};
-
-    for (int i = 0; i < NUM_TILE_TYPES; i++)
-    {
-        SDL_Surface *tile_surface = SDL_CHECK(IMG_Load(TILE_TEXTURE_FILENAMES[i]));
-        TILE_COLORS[i] = get_pixel(tile_surface, topleft);
-        SDL_DestroySurface(tile_surface);
-    }
-}
-
-
-/**
- * Unload all tile textures from memory, destroying them and freeing the array
- * of tile_textures.
- */
-static void destroy_textures(void)
-{
-    // Strictly speaking, it's not an error to destroy NULL, but not good either.
-    if (*TILE_TEXTURES == nullptr || *PANEL_TEXTURES == nullptr)
-    {
-        SDL_Log("\nWARNING: %s:%d\nReason: Attempted to destroy NULL textures!\n", __FILE__, __LINE__);
-    }
-
-    for (int i = 0; i < NUM_TILE_TYPES; i++)
-    {
-        SDL_DestroyTexture(TILE_TEXTURES[i]);
-        SDL_DestroyTexture(PANEL_TEXTURES[i]);
-
-        TILE_TEXTURES[i] = nullptr;
-        PANEL_TEXTURES[i] = nullptr;
-    }
-}
-
-
 // ----- PUBLIC FUNCTIONS -----
 
 
@@ -434,6 +554,7 @@ struct Application *create_app(const char *title, struct Sandbox *sandbox)
     // Set a logical drawing area for automatic resolution scaling of rendered contents.
     // Logical area is big enough to render sandbox at full resolution.
     app->renderer = SDL_CHECK(SDL_CreateRenderer(app->window, nullptr));
+    SDL_CHECK(SDL_SetRenderVSync(app->renderer, true));
     SDL_CHECK(SDL_SetRenderLogicalPresentation(app->renderer, app->min_window_width, app->min_window_height, SDL_LOGICAL_PRESENTATION_LETTERBOX));
 
     // Initialize members which track GUI user interaction.
@@ -446,6 +567,9 @@ struct Application *create_app(const char *title, struct Sandbox *sandbox)
     // all textures.
     SDL_CHECK(SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND));
     init_textures(app);
+
+    // Start tracking time since app has started.
+    app->logical_time = SDL_GetTicks();
     return app;
 }
 
@@ -468,115 +592,52 @@ void destroy_app(struct Application *app)
 }
 
 
-
-SDL_Texture *load_texture(struct Application *app, const char *filename)
+SDL_AppResult app_update(struct Application *app)
 {
-    // Call to SDL_image to load image.
-    SDL_Texture *texture = SDL_CHECK(IMG_LoadTexture(app->renderer, filename));
-    return texture;
-}
-
-
-// Currently unused, but maybe useful in future?
-SDL_Texture *load_texture_alpha(struct Application *app, const char *filename, unsigned char alpha)
-{
-    // SDL_Image makes no guarantee on the image format of loaded textures.
-    //
-    // To guarantee alpha channel presence, temporarily load image as surface,
-    // then convert surface to a portable alpha channel format. Finally, convert
-    // to texture, enable + set alpha blending, and free the surfaces.
-    SDL_Surface *raw_surface = SDL_CHECK(IMG_Load(filename));
-    SDL_Surface *alpha_surface = SDL_CHECK(SDL_ConvertSurface(raw_surface, ALPHA_PIXEL_FORMAT->format));
-    SDL_Texture *texture = SDL_CHECK(SDL_CreateTextureFromSurface(app->renderer, alpha_surface));
-    SDL_CHECK(SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND));
-    SDL_CHECK(SDL_SetTextureAlphaMod(texture, alpha));
-
-    SDL_DestroySurface(raw_surface);
-    SDL_DestroySurface(alpha_surface);
-    return texture;   
-}
-
-
-void blit_texture(struct Application *app, SDL_Texture *texture, SDL_FPoint window_coords)
-{
-    // Setup rectangle to draw texture.
-    SDL_FRect dest;
-    dest.x = window_coords.x;
-    dest.y = window_coords.y;
-
-    // Fill in rectangle dimension data by querying the texture.
-    SDL_CHECK(SDL_GetTextureSize(texture, &dest.w, &dest.h));
-
-    // Draw texture, passing in NULL to copy whole texture.
-    SDL_CHECK(SDL_RenderTexture(app->renderer, texture, nullptr, &dest));
-}
-
-
-void blit_rectangle(struct Application *app, SDL_FRect rect, SDL_Color color, bool do_fill)
-{
-    // Draw a fill rectangle or rectangle outline, depending on parameter.
-    SDL_CHECK(SDL_SetRenderDrawColor(app->renderer, color.r, color.g, color.b, color.a));
-    bool (*rect_blitter)(SDL_Renderer *, const SDL_FRect *);
-    rect_blitter = do_fill ? SDL_RenderFillRect : SDL_RenderRect;
-    SDL_CHECK(rect_blitter(app->renderer, &rect));
-}
-
-
-void set_black_background(struct Application *app)
-{
-    SDL_CHECK(SDL_SetRenderDrawColor(app->renderer, BLACK.r, BLACK.g, BLACK.b, BLACK.a));
-    SDL_CHECK(SDL_RenderClear(app->renderer));
-}
-
-
-void draw_sandbox(struct Application *app)
-{
-    for (int row = 0; row < app->sandbox->height; row++)
+    if (app == nullptr)
     {
-        for (int col = 0; col < app->sandbox->width; col++)
+        SDL_Log("\nWARNING: %s:%d\nReason: Attempted to update NULL app!\n", __FILE__, __LINE__);
+        return SDL_APP_FAILURE;
+    }
+
+    // Step forward once in simulation.
+    process_sandbox(app->sandbox);
+
+    // Copy and empty-out event buffer contents for processing.
+    struct EventBuffer buffer_copy;
+    event_buffer_flush(app->event_buffer, &buffer_copy);
+
+    // Update app to reflect all input events, then update sandbox for inputs.
+    // If app signaled to quit, stop early and signal shutdown.
+    SDL_AppResult result;
+    for (int i = 0; i < buffer_copy.size; ++i)
+    {
+        result = process_input_event(app, &buffer_copy.events[i]);
+        if (result == SDL_APP_SUCCESS || result == SDL_APP_FAILURE)
         {
-            struct SandboxPoint sandbox_coords = {row, col};
-            draw_tile(app, sandbox_coords);
+            return result;
         }
     }
+    do_input_update(app);
+    return result;
 }
 
 
-void draw_tile(struct Application *app, struct SandboxPoint coords)
+void app_render(struct Application *app)
 {
-    Tile tile = get_tile(app->sandbox, coords);
-
-    if (is_tile_empty(tile))
+    if (app == nullptr)
     {
+        SDL_Log("\nWARNING: %s:%d\nReason: Attempted to display NULL app!\n", __FILE__, __LINE__);
         return;
     }
 
-    // Compute the screen coordinates that a tile should be blitted at.
-    SDL_FPoint window_coords = scale_sandbox_coords(coords);
+    // Clear canvas, draw sandbox, then draw UI above sandbox.
+    set_black_background(app);
+    draw_sandbox(app);
+    draw_ui(app);
 
-    // Grab the associated tile texture, apply tile color variation, then blit.
-    SDL_Texture *tile_texture = TILE_TEXTURES[get_tile_type(tile)];
-
-    uint8_t color_mod = COLOR_MOD_FACTOR * get_tile_color(tile);
-    SDL_Color variant = {
-        .r = WHITE.r - color_mod, 
-        .g = WHITE.g - color_mod, 
-        .b = WHITE.b - color_mod,
-        .a = WHITE.a,
-    };
-    SDL_CHECK(SDL_SetTextureColorMod(tile_texture, variant.r, variant.g, variant.b));
-    blit_texture(app, tile_texture, window_coords);
-}
-
-
-void draw_ui(struct Application *app)
-{
-    draw_highlight(app);
-
-    // Draw panel texture and blit to topleft of screen.
-    SDL_Texture *panel_texture = PANEL_TEXTURES[app->brush->selected_type];
-    SDL_FPoint topleft = {.x = 0, .y = 0};
-    blit_texture(app, panel_texture, topleft);
+    // Display all rendered graphics.
+    SDL_CHECK(SDL_RenderPresent(app->renderer));
 }
 
 

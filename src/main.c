@@ -5,19 +5,23 @@
  * than a traditional main() entrypoint.
  */
 
+#include "gui/sdl_utils.h"
 #include "sandsim_cli.h"
 #include "gui/app.h"
 #include "gui/event_buffer.h"
-#include "gui/sdl_utils.h"
 #include "sim/sandbox.h"
 
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-// Waiting 33 ms per frame equates to roughly 30 FPS.
-// TODO: Implement separation between FPS and logic timing.
-static constexpr int MILLISECONDS_BETWEEN_FRAMES = 33;
+#include <stdint.h>
+
+// App aims to perform 40 state updates per second, but can render at any FPS.
+static constexpr uint64_t ONE_SECOND_IN_MS = 1000;
+static constexpr uint64_t TARGET_FPS = 40;
+static constexpr uint64_t MS_BETWEEN_UPDATES = ONE_SECOND_IN_MS / TARGET_FPS;
+
 static const char *APP_NAME = "sand-sim";
 
 /**
@@ -48,44 +52,36 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char **argv)
 
 
 /**
- * Application main loop. This function handles all logic updates, 
- * event handling, and drawing for 1 frame of simulation.
+ * Application main loop. This function handles all logic updates and drawing 
+ * for 1 frame of simulation.
  * 
  * Called concurrently with SDL_AppEvent().
  */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
     struct Application *app = appstate;
-
-    // Step forward once in simulation.
-    process_sandbox(app->sandbox);
-
-    // Copy and empty-out event buffer contents for processing.
-    struct EventBuffer buffer_copy;
-    event_buffer_flush(app->event_buffer, &buffer_copy);
-
-    // Update app to reflect all input events, then update sandbox for inputs.
-    for (int i = 0; i < buffer_copy.size; i++)
+    uint64_t current_time = SDL_GetTicks();
+    
+    // If VSync is enabled, let VSync determine when renderer is ready.
+    // Otherwise, fallback to waiting manually for next frame.
+    if (app->logical_time > current_time && !is_vsync_enabled(app->renderer))
     {
-        SDL_AppResult result = process_input_event(app, &buffer_copy.events[i]);
-        
-        // If app signaled to quit, stop and initiate shutdown.
-        if (result == SDL_APP_SUCCESS)
-        {
-            return result;
-        }
+        SDL_Delay((uint32_t) (app->logical_time - current_time));
+        return SDL_APP_CONTINUE;
     }
-    do_input_update(app);
 
-    // Clear canvas, draw sandbox, then draw UI above sandbox.
-    set_black_background(app);
-    draw_sandbox(app);
-    draw_ui(app);
+    while (app->logical_time <= current_time)
+    {
+        // If input handling signaled for shutdown, don't bother rendering.
+        SDL_AppResult update_result = app_update(app);
+        if (update_result == SDL_APP_FAILURE || update_result == SDL_APP_SUCCESS)
+        {
+            return update_result;
+        }
+        app->logical_time += MS_BETWEEN_UPDATES;
+    }
 
-    // Display all rendered graphics.
-    SDL_CHECK(SDL_RenderPresent(app->renderer));
-    SDL_Delay(MILLISECONDS_BETWEEN_FRAMES);
-
+    app_render(app);
     return SDL_APP_CONTINUE;
 }
 

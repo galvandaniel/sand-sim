@@ -12,6 +12,8 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 
+#include <stdint.h>
+
 /**
  * Arrays of length NUM_TILE_TYPES to NULL-terminated strings indicating 
  * relative filepaths of textures in use at the application-level.
@@ -40,6 +42,10 @@ struct Application
 
     // Event storage of incoming events to be handled.
     struct EventBuffer *event_buffer;
+
+    // Time passed in milliseconds as an integer multiple of `Sandbox.lifetime`.
+    // This member is not necessarily equal SDL_Ticks() at any given time.
+    uint64_t logical_time;
 
     // Minimum size of app window in pixels, depends on sandbox size.
     // Actual window size may grow larger than these values.
@@ -75,100 +81,35 @@ void destroy_app(struct Application *app);
 
 
 /**
- * Given the filename for a location to a JPG or PNG, load the image as an
- * SDL_Texture on the given application.
- *
- * @param app App to load image on.
- * @param filename Filepath of image to load from, relative to program location.
- * @return Image loaded as SDL_Texture
- */
-SDL_Texture *load_texture(struct Application *app, const char *filename);
-
-
-
-/**
- * Given the filename of a JPG or PNG, load the image as an SDL_Texture on the
- * given application with the given alpha value set.
+ * Perform all logical state updates to app related to 1 update step.
  * 
- * The loaded texture will have alpha blending enabled for drawing with opacity.
- * This will force the resulting texture to have an SDL pixel format which
- * supports an alpha channel.
+ * This includes advancing sandbox simulation, flushing event buffer, reacting
+ * to input events, etc.
  * 
- * @param app App to load image on.
- * @param filename Filepath of image to load from, relative to program location.
- * @param alpha Alpha value of returned SDL_Texture for displaying with opacity.
- * @return Transparent image loaded as SDL_Texture.
- */
-SDL_Texture *load_texture_alpha(struct Application *app, const char *filename, unsigned char alpha);
-
-
-
-/**
- * Draw the given SDL texture on the given app at the given screen coordinates
- *
- * @param app Application to draw texture on.
- * @param texture Loaded texture to draw.
- * @param window_coords x,y screen coordinates to draw texture at.
- */
-void blit_texture(struct Application *app, SDL_Texture *texture, SDL_FPoint window_coords);
-
-
-/**
- * Draw a rectangle of the given dimensions and RGBA value to the screen of
- * the given GUI application at the rectangle's (x,y) window coordinates.
+ * If `app` is NULL, this function returns SDL_APP_FAILURE to signal shutdown.
  * 
- * @param app Application to draw rectangle on.
- * @param rect Dimensions of rectangle to draw packed in an SDL_FRect.
- * @param color RGBA color of rectangle packed as an SDL_Color.
- * @param do_fill If true, rectangle is filled with color. If false, only
- * outline of rectangle with color is drawn.
- */
-void blit_rectangle(struct Application *app, SDL_FRect rect, SDL_Color color, bool do_fill);
-
-
-/**
- * Setup a black background on the given application.
- *
- * This background can be used as a base for further blitting.
- *
- * @param app App whose background to set.
- */
-void set_black_background(struct Application *app);
-
-
-/**
- * Draw a passed GUI application's currently owned sandbox, where each tile 
- * represents one pixel onscreen, scaled in size according to TILE_SCALE.
- *
- * SDL_RenderPresent() is NOT called inside this function.
- *
- * @param app App whose owned sandbox will be drawn.
- */
-void draw_sandbox(struct Application *app);
-
-
-/**
- * Draw the tile located at the given sandbox coordinates which lives inside
- * the passed GUI application's owned sandbox to the application's screen.
+ * If the event buffer contains an event signaling shutdown, this function
+ * return SDL_APP_SUCCESS to signal graceful shutdown.
  * 
- * If the tile located at the given indices is empty, this function does
- * nothing.
+ * Otherwise, this function returns SDL_APP_SUCCESS.
  * 
- * @param app GUI application to draw tile on.
- * @param coords Coordinates of some tile located inside the sandbox owned by
- * the passed app.
+ * @param app App to mutate with 1 update's worth of logical state updates.
+ * @return AppResult indicating next app state after updating.
  */
-void draw_tile(struct Application *app, struct SandboxPoint coords);
+SDL_AppResult app_update(struct Application *app);
 
 
 /**
- * Render sand-sim UI elements to the given app which display ontop of sandbox
- * simulation render.
- *
- * @param app App to render UI elements to.
- *
+ * Display the given application: sandbox simulation and all GUI elements.
+ * 
+ * This function calls SDL_RenderPresent to display app contents, and therefore
+ * assumes SDL has been initialized.
+ * 
+ * If `app` is NULL, this function does nothing.
+ * 
+ * @param app App to display.
  */
-void draw_ui(struct Application *app);
+void app_render(struct Application *app);
 
 
 /**
