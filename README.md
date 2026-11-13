@@ -7,7 +7,7 @@ Sand falls, water flows, steam rises, wood burns, fire extinguishes!
 
 Written in C23 using [SDL3](https://www.libsdl.org/).
 
-Personal project by Daniel Galvan.
+Personal learner project by Daniel Galvan.
 
 ![Demo of Program](assets/demo/demo.gif)
 
@@ -203,71 +203,23 @@ Then the Windows cross-compile can be run on Linux like so:
 wine ./sand-sim.exe
 ```
 
-
-If developing sand-sim, the provided `.clang-tidy` file enables usage of [clangd](https://clangd.llvm.org/) as a C language server.
-
-To generate the requisite `compile_commands.json` required by clangd, use [Bear](https://github.com/rizsotto/Bear).
-
-First install Bear:
-```bash
-sudo apt install bear
-```
-
-Then use Bear to generate a compilation database from sand-sim's compile command:
-```bash
-make clean
-bear -- make
-```
-
-Now opening the project root directory:
-```bash
-code .
-```
-will allow an installed [clangd VSCode extension](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) to recognize sand-sim's dependencies and provide
-in-editor documentation.
-
-With a created `compile_commands.json`, the [Clang Static Analyzer](https://clang-analyzer.llvm.org/) can be used via clang-tidy to analyze the sand-sim source against the defined checks in `.clang-tidy`.
-
-First install clang-tidy:
-
-```bash
-sudo apt install clang-tidy
-```
-
-Then run clang-tidy static analysis against the source code via `compile_commands.json` like so:
-
-```bash
-run-clang-tidy
-```
-
-The clang-tidy conventions used by sand-sim follow those specified by the [RHEL docs](https://developers.redhat.com/blog/2021/04/06/get-started-with-clang-tidy-in-red-hat-enterprise-linux#using_clang_tidy_in_red_hat_enterprise_linux) and the [official LLVM docs](https://clang.llvm.org/extra/clang-tidy/).
-
-A debug compile of sand-sim which is enabled to run with [AddressSanitizer](https://releases.llvm.org/20.1.0/tools/clang/docs/AddressSanitizer.html) is also available.
-
-The debug sand-sim compile additionally disables optimization and generates DWARF symbols for use with LLDB. 
-In order to use it, the llvm toolchain must be installed:
-
-```bash
-# Enable usage of `llvm-symbolizer` in PATH.
-sudo apt install llvm
-```
-
-sand-sim can then be compiled for debugging like so:
-
-```bash
-make debug
-```
-
-And run with Address+LeakSanitizer stack tracing like so:
-```bash
-ASAN_OPTIONS=fast_unwind_on_malloc=false ./sand-sim
-```
-
 ### Compiling on Windows
 
-Compiling sand-sim on Windows requires the Visual Studio Build Tools 2026.
+Compiling sand-sim on Windows requires the Microsoft C runtime from Visual Studio Build Tools 2026, the LLVM toolchain, and Git Bash.
 
-On the command line, the installer for Build Tools can be downloaded using [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/), the official Windows package manager, like so:
+Git Bash is likely already installed, assuming `git` was used to clone sand-sim, as the two come together on Git for Windows. 
+If `git` is not installed, it can be installed using [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/), the official Windows package manager, like so:
+
+```bash
+winget install --id=Git.Git -e
+```
+
+The LLVM toolchain can be installed similarly:
+```bash
+winget install --id=LLVM.LLVM -e
+```
+
+Finally, the installer for Build Tools: 
 
 ```bash
 winget install --id=Microsoft.VisualStudio.BuildTools -e
@@ -283,30 +235,231 @@ Once installed (using either method above), open the Visual Studio Installer and
 
 ![Demo of Modify Button](assets/demo/visual_studio_modify.png)
 
-Inside Build Tools workloads, enable "Desktop development with C++" and (under the
-"Optional" packages) enable "C++ Clang tools for Windows" as shown below:
+Inside Build Tools workloads, enable "Desktop development with C++".
 
 ![Demo of Visual Studio](assets/demo/visual_studio_installer.png)
 
-Click "Modify" on the bottom right of the installer and allow the Visual Studio Installer to install clang and MSVC.
+Click "Modify" on the bottom right of the installer and allow the Visual Studio Installer to install MSVC and the Microsoft C runtime environment.
 
-Once finished, sand-sim's Windows version can be built from the project root directory by
-running the `build.bat` auxiliary script:
+After Build Tools has finished, it is recommended to restart the machine to ensure all the installed dependencies can be correctly recognized in PATH. 
+
+Once finished, sand-sim's Windows version can be built from the project root directory.
+
+First enter a build environment by running the `enter_bash.bat` auxiliary script:
 
 ```bash
-.\build.bat
+.\enter_bash.bat
 ```
 
-This will produce a binary called `sand-sim.exe` which can be executed to run the program. 
-The build script will also generate the necessary SDL3 DLLs next to `sand-sim.exe` to
-allow the binary to run.
+This script will open a Developer-enabled Git Bash command prompt which allows the MSVC C runtime and clang from LLVM to be available in PATH.
 
-As with the MinGW build, the necessary pre-compiled MSVC builds of SDL3 are provided
-with the source of sand-sim.
+sand-sim can then be built into a binary `sand-sim.exe` by calling Microsoft NMAKE:
 
-As well, if compiling on Windows, no additional installation of the Microsoft Visual C++ v14 Redistributable is necessary, since the Microsoft C runtime comes bundled with the "Desktop development with C++" workload.
+```bash
+# (Inside Git Bash)
+nmake
+./sand-sim.exe
+```
 
-Developing sand-sim as a solution inside Windows Visual Studio is not supported. Prefer instead to use a Linux environment on Windows via WSL2.
+The build command will generate the necessary pre-compiled MSVC builds of the SDL3 DLLs next to `sand-sim.exe` to
+allow the binary to run, so no separate install of SDL3 is necessary.
+
+No additional installation of the Microsoft Visual C++ v14 Redistributable is necessary, since the Microsoft C runtime comes bundled with the "Desktop development with C++" workload.
+
+The opened Git Bash command prompt can additionally be used to clean up the project directory of compiler artifacts:
+```bash
+nmake clean
+```
+
+
+## Development Environment Setup
+
+Building sand-sim is entirely CLI-based, so any popular C/C++ IDE or text editor can be used. 
+
+VSCode and CLion are recommended for their native integration with [clangd](https://clangd.llvm.org/) as a C language server.
+
+clangd requires a `compile_commands.json` to provided proper language server analysis. Having a compilation database present at the project root allows CLion or VSCode with an installed [clangd VSCode extension](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) to recognize sand-sim's dependencies and provide
+in-editor hints and documentation.
+
+With a created `compile_commands.json`, the [Clang Static Analyzer](https://clang-analyzer.llvm.org/) can be also used via clang-tidy to analyze the sand-sim source against the defined checks in the provided `.clang-tidy` at project root. This `.clang-tidy` file defines several checks that lint the sand-sim codebase for error-prone C code, while also providing reasonable exceptions for idiomatic C.
+
+The instructions that follow assume the necessary steps have first been taken to build sand-sim.
+
+### Developing on Linux
+
+To generate `compile_commands.json`, either use [Bear](https://github.com/rizsotto/Bear) or [compiledb](https://github.com/nickdiego/compiledb). This document recommends compiledb, as it is the more cross-platform of the two.
+
+compiledb requires Python 3.3 or higher. Any Debian-based distribution should have Python already installed out-of-the-box, however the ability to make Python virtual environments may not necessarily be available.
+
+To [avoid breaking Debian](https://wiki.debian.org/DontBreakDebian) (and Debian-based systems), do not install Python packages system-wide via `pip`. Prefer to use a virtual environment instead to isolate the compiledb dependency
+
+Install python-venv if not already available:
+
+```bash
+sudo apt install python3-venv
+```
+
+Then create a virtual environment and install compiledb:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install compiledb
+```
+
+compiledb can then be used to generate a compilation database from sand-sim's compile command:
+```bash
+make clean
+compiledb make
+```
+
+Alternatively, using Bear, Bear can be installed as below:
+```bash
+sudo apt install bear
+```
+
+Then Bear can be used to generate a compilation database from sand-sim's compile command:
+```bash
+make clean
+bear -- make
+```
+
+clang-tidy can then be run to provide detailed analysis on potentially problematic code. 
+
+First install clang-tidy:
+
+```bash
+sudo apt install clang-tidy
+```
+
+Then run clang-tidy static analysis against the source code using `compile_commands.json` like so:
+
+```bash
+run-clang-tidy
+```
+
+The clang-tidy conventions used by sand-sim follow those specified by the [RHEL docs](https://developers.redhat.com/blog/2021/04/06/get-started-with-clang-tidy-in-red-hat-enterprise-linux#using_clang_tidy_in_red_hat_enterprise_linux) and the [official LLVM docs](https://clang.llvm.org/extra/clang-tidy/).
+
+A debug compile of sand-sim is also available, enabled to run with [AddressSanitizer](https://releases.llvm.org/20.1.0/tools/clang/docs/AddressSanitizer.html).
+
+The debug sand-sim compile additionally disables optimization and generates DWARF symbols for use with LLDB.
+In order to use ASAN, the LLVM toolchain must be installed:
+
+```bash
+# Enable usage of `llvm-symbolizer` in PATH.
+sudo apt install llvm
+```
+
+sand-sim can then be compiled for debugging like so:
+
+```bash
+make debug
+```
+
+And run with combined AddressSanitizer  + LeakSanitizer stack tracing like so:
+```bash
+ASAN_OPTIONS=fast_unwind_on_malloc=false ./sand-sim
+```
+
+### Developing on Windows
+
+> [!TIP]
+> If using an IDE instead of a simple text editor, you will likely want to start it from within the sand-sim project root inside a developer-enabled Git Bash from `enter_bash.bat`. This way clang, LLDB, ASAN, and the MSVC C runtime are available in PATH to the IDE.
+
+To generate `compile_commands.json`, use [compiledb](https://github.com/nickdiego/compiledb). 
+
+compiledb requires Python 3.3 or higher. Install Python 3.14 using the Windows package manager:
+
+```bash
+winget install Python.Python.3.14
+```
+
+A virtual environment should be created to contain the compiledb install. First open the developer-enabled Git Bash via `enter_bash.bat`, then inside the Git Bash developer command prompt:
+
+```bash
+# Explicitly use Python 3.14 to create this venv.
+py -3.14 -m venv .venv
+source .venv\Scripts\Activate
+python -m pip install --upgrade pip
+```
+
+compiledb can then be installed:
+```bash
+pip install compiledb
+```
+
+From inside Git Bash, as opened by `enter_bash.bat`, compiledb can then be used to generate a compilation database by feeding it sand-sim's compile command:
+```bash
+nmake clean
+nmake | compiledb
+```
+
+clang-tidy can further be run inside Git Bash to provide detailed analysis on potentially problematic code. 
+
+Assuming the instructions to build sand-sim on Windows were followed, then clang-tidy should already be installed from the LLVM toolchain and be available inside `enter_bash.bat`.
+
+Unlike Linux, Windows will install Python as `python`, which is not compatible with clang-tidy's `run-clang-tidy` script, where `python3` is required.
+
+There are several ways to get around this, but the simplest is to create a copy of the `python.exe` binary inside the created virtual environment called `python3.exe` while in Git Bash:
+
+```bash
+# Make sure you're in Git Bash to enable use of GNU Coreutils
+cp .venv/Scripts/python.exe .venv/Scripts/python3.exe
+```
+
+Then, from inside `enter_bash.bat`, run clang-tidy static analysis against the source code via the `compile_commands.json` produced from compiledb like so:
+
+```bash
+# You must enter the Python 3.14 venv inside Git Bash if not already inside it.
+run-clang-tidy
+```
+
+The above command may fail in Git Bash with an error `/usr/bin/env: ‘python3’: No such file or directory` or `Python was not found` if `python3.exe` is not available in the Python virtual environment as previously instructed above.
+
+The clang-tidy conventions used by sand-sim follow those specified by the [RHEL docs](https://developers.redhat.com/blog/2021/04/06/get-started-with-clang-tidy-in-red-hat-enterprise-linux#using_clang_tidy_in_red_hat_enterprise_linux) and the [official LLVM docs](https://clang.llvm.org/extra/clang-tidy/).
+
+A debug compile of sand-sim is also available, enabled to run with [AddressSanitizer](https://releases.llvm.org/20.1.0/tools/clang/docs/AddressSanitizer.html).
+
+The debug sand-sim compile additionally disables optimization and generates DWARF symbols for use with LLDB.
+
+To produce the debug build of sand-sim, first enter a developer-enabled Git Bash terminal:
+
+```bash
+.\enter_bash.bat
+```
+
+Then from inside Git Bash, call NMAKE with the `debug` target:
+
+```bash
+nmake debug
+```
+
+The debug build of `sand-sim.exe` can then be run from within LLDB. 
+
+AddressSanitizer from the official LLVM Windows distribution may sometimes cause LLDB to hang due to conflicts between SDL's WinMain implementation and the MSVC C Runtime. 
+
+If this occurs, to get around this, instruct LLDB to wait for `sand-sim.exe` to start and attach immediately to it once it exists:
+
+```bash
+# (Inside Git Bash)
+lldb --wait-for --attach-name sand-sim.exe
+```
+
+Then in a separate instance of `enter_bash.bat`, start sand-sim:
+
+```bash
+# (Inside Git Bash)
+./sand-sim.exe
+```
+
+LLDB will then catch a SIGTRAP signal and stop sand-sim immediately after initialization, giving an opportunity
+to set breakpoints. Once ready to start, simply pass `continue` to LLDB.
+
+> [!NOTE]
+> The `enter_bash.bat` script assumes that the AddressSanitizer LLVM distribution is avaiable at `C:\Program Files\LLVM\lib\clang\23\lib\windows`, the default install location. If this does not match the LLVM install location, debug compilation may fail, or the resulting sand-sim.exe binary may fail to run in LLDB with "Process prematurely exited with 0xc0000135" due to being unable to find ASAN. Modify `enter_bash.bat` with the appropriate LLVM ASAN install location if this occurs.
+
+> [!WARNING]
+> Do not try to run the debug build of sand-sim outside a developer-enabled Git Bash. It is likely that a normal Windows install does not have the AddresSanitizer LLVM binaries available in PATH, so this will likely fail with "The code execution cannot proceed because clang_rt.asan_dynamic-x86_64.dll was not found."
 
 ## Project and Source File Organization
 
@@ -319,4 +472,4 @@ Developing sand-sim as a solution inside Windows Visual Studio is not supported.
 - `src/sandsim_cli.c` - Argument parsing logic.
 - `GNUmakefile` + `Makefile` - Makefiles specific to GNUmake and Microsoft's NMAKE.
 - `Makefile.common` - Build definitions common to both Linux and Windows ports.
-- `build.bat` - Auxiliary script driving Windows compilation using clang in MSVC-mode.
+- `enter_bash.bat` - Auxiliary script enabling Windows compilation.

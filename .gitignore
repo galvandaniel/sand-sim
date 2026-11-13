@@ -5,6 +5,7 @@
 *.o
 *.ko
 *.obj
+*.debugobj
 *.elf
 
 # Vim editor files
@@ -47,6 +48,10 @@ dkms.conf
 # VS Code Folder
 .vscode
 
+# Python virtual environments
+.venv/
+venv/
+
 # sand binaries and DLLs as produced by build commands.
 sand-sim*
 *.dll
@@ -56,4 +61,6 @@ massif.out.*
 
 # CMake/Bear produced Clang compile databases.
 compile_commands*
+compiledb*
 compile_flags*
+.cache/

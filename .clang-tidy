@@ -20,7 +20,7 @@ Checks: |
 
   portability-*"
 WarningsAsErrors: True
-HeaderFilterRegex: ".*"
+HeaderFilterRegex: "./src/*"
 
 CheckOptions:
   # It's not feasible to define constants for every unique sandbox probability,

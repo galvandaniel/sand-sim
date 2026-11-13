@@ -31,7 +31,7 @@ CFLAGS = -std=c2x \
 
 # Flags for using Address and LeakSanitizer from LLVM.
 ASAN_FLAGS = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
-DEBUG_CFLAGS = $(CFLAGS:O2=O0 -g -gpubnames $(ASAN_FLAGS))
+DEBUG_CFLAGS = $(CFLAGS:O2=O0) -g -gpubnames $(ASAN_FLAGS)
 
 # Linker flags common to all build targets. 
 # (There are none... left empty for now.)
@@ -61,6 +61,7 @@ HDRS = $(SRCS:src/main.c= )
 GNU_OBJS = $(SRCS:.c=.o)
 WIN_OBJS = $(SRCS:.c=.obj)
 DEBUG_OBJS = $(SRCS:.c=_debug.o)
+WIN_DEBUG_OBJS = $(SRCS:.c=.debugobj)
 
 # Targets to delete on clean.
-RM_TARGETS = *.out *.o *.obj $(GNU_OBJS) $(WIN_OBJS) $(DEBUG_OBJS) *.exe *.dll LICENSE.* sand-sim*
+RM_TARGETS = *.out *.o *.obj $(GNU_OBJS) $(WIN_OBJS) $(DEBUG_OBJS) $(WIN_DEBUG_OBJS) *.exe *.dll LICENSE.* sand-sim*
