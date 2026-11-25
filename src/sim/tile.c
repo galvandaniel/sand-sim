@@ -21,13 +21,13 @@
  */
 static constexpr uint8_t GET_UPDATE_MASK = 0b1000'0000;
 static constexpr uint8_t REMOVE_UPDATE_MASK = 0b0111'1111;
-static constexpr int UPDATE_FLAG_SHIFT = 7;
+static constexpr uint32_t UPDATE_FLAG_SHIFT = 7;
 
 static constexpr uint8_t GET_TILE_MASK = 0b0000'1111;
 
 static constexpr uint8_t REMOVE_COLOR_MASK = 0b1001'1111;
 static constexpr uint8_t GET_COLOR_MASK = 0b0110'0000;
-static constexpr int COLOR_SHIFT = 5;
+static constexpr uint32_t COLOR_SHIFT = 5;
 
 
 enum TileType get_tile_type(Tile tile)

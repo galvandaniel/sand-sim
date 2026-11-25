@@ -3,6 +3,9 @@
  */
 
 #include "gui/app.h"
+#include "SDL3/SDL_init.h"
+#include "SDL3/SDL_keycode.h"
+#include "SDL3/SDL_mouse.h"
 #include "gui/cursor.h"
 #include "gui/brush.h"
 #include "gui/event_buffer.h"
@@ -352,10 +355,15 @@ static SDL_AppResult do_mouse_button_down(struct Application *app, SDL_MouseButt
             app->cursor->is_holding_interact = true;
             return SDL_APP_CONTINUE;
         
-        // Do nothing on unhandled mouse press.
+        case SDL_BUTTON_MIDDLE:
+            app->cursor->is_holding_pan = true;
+            return SDL_APP_CONTINUE;
+        
         default:
             return SDL_APP_CONTINUE;
     }
+
+    return SDL_APP_CONTINUE;
 }
 
 
@@ -468,7 +476,11 @@ static SDL_AppResult do_keyboard_press(struct Application *app, SDL_KeyboardEven
 
         case SDLK_LCTRL:
             app->cursor->is_holding_lctrl = true;
-            return SDL_APP_CONTINUE;        
+            return SDL_APP_CONTINUE;
+
+        case SDLK_LSHIFT:
+            app->cursor->is_holding_lshift = true;
+            return SDL_APP_CONTINUE;
 
         // In the case of pressing ESC, the app will quit.
         case SDLK_ESCAPE:
@@ -497,6 +509,10 @@ static SDL_AppResult do_keyboard_release(struct Application *app, SDL_KeyboardEv
     {
         case SDLK_LCTRL:
             app->cursor->is_holding_lctrl = false;
+            return SDL_APP_CONTINUE;
+        
+        case SDLK_LSHIFT:
+            app->cursor->is_holding_lshift = false;
             return SDL_APP_CONTINUE;
 
         // In an unhandled key release, do nothing.

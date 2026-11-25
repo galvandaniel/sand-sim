@@ -41,8 +41,12 @@ struct Cursor
     // Whether user is holding down main interaction button. Typically, LMB.
     bool is_holding_interact;
 
+    // TODO: Whether user is holding down main panning button. Typically, MMB.
+    bool is_holding_pan;
+
     // TODO: Move this data into dedicated ButtonInput data type?
     bool is_holding_lctrl;
+    bool is_holding_lshift;
 
     // Collection of all different cursor icons that can cursor can be.
     SDL_Cursor *icons[NUM_CURSOR_ICONS];

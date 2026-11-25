@@ -78,5 +78,5 @@ int clamp(int val, int min, int max)
 
 bool is_odd(uint64_t value)
 {
-    return value & 0b0000'0001;
+    return value & 0b0000'0001U;
 }
